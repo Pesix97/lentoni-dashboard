@@ -244,47 +244,6 @@
   .award-card .name{font-size:16px; font-weight:700; margin-top:2px; color:var(--gold);}
   .award-card .stat{font-size:12px; color:var(--muted); margin-top:2px;}
 
-  /* ---- Pagelle (voti partita per partita) ---- */
-  .mvp-hero{
-    background:linear-gradient(135deg, rgba(240,185,11,.14), rgba(213,32,58,.10));
-    border:1px solid var(--accent-2); border-radius:12px; padding:18px 20px;
-    display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:14px;
-  }
-  .mvp-hero .mvp-medal{font-size:44px; line-height:1;}
-  .mvp-hero .mvp-body{flex:1; min-width:180px;}
-  .mvp-hero .mvp-label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);}
-  .mvp-hero .mvp-name{font-size:26px; font-weight:800; color:var(--gold); margin:2px 0 4px;}
-  .mvp-hero .mvp-meta{font-size:12.5px; color:var(--muted);}
-  .mvp-hero .mvp-score{text-align:center; padding-left:18px; border-left:1px solid var(--border);}
-  .mvp-hero .mvp-score .v{font-size:34px; font-weight:800; color:var(--accent-2); line-height:1;}
-  .mvp-hero .mvp-score .k{font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:4px;}
-
-  .vote{display:inline-block; min-width:42px; text-align:center; padding:3px 8px; border-radius:6px; font-weight:700; font-size:12.5px;}
-  .vote.top{background:rgba(51,193,122,.18); color:var(--win);}
-  .vote.good{background:rgba(240,185,11,.16); color:var(--accent-2);}
-  .vote.mid{background:rgba(224,178,63,.10); color:var(--tie);}
-  .vote.bad{background:rgba(229,86,109,.16); color:var(--loss);}
-
-  .rate-spark{display:flex; align-items:flex-end; gap:2px; height:26px;}
-  .rate-spark .rb{width:6px; border-radius:2px 2px 0 0; background:var(--muted); opacity:.85;}
-  .rate-spark .rb.top{background:var(--win);}
-  .rate-spark .rb.good{background:var(--accent-2);}
-  .rate-spark .rb.mid{background:var(--tie);}
-  .rate-spark .rb.bad{background:var(--loss);}
-  .trend-up{color:var(--win); font-weight:600;}
-  .trend-down{color:var(--loss); font-weight:600;}
-  .trend-flat{color:var(--muted);}
-  .opp-tag{color:var(--muted); font-size:11px; white-space:nowrap;}
-  .coverage-note{
-    background:rgba(240,185,11,.07); border:1px solid rgba(240,185,11,.35);
-    border-left:3px solid var(--accent-2); border-radius:8px;
-    padding:12px 14px; margin-bottom:12px; font-size:12.5px; color:var(--muted); line-height:1.5;
-  }
-  .coverage-note strong{color:var(--text);}
-  .career-cell{font-size:11.5px; color:var(--muted); white-space:nowrap;}
-  #pagelleTable tbody tr{cursor:pointer;}
-  #pagelleTable tbody tr:hover{background:var(--panel-2);}
-
   .roast-list{display:flex; flex-direction:column; gap:10px;}
   .roast-item{
     background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
@@ -511,29 +470,6 @@
   <div class="award-grid" id="awardGrid"></div>
 </section>
 
-<section id="pagelle">
-  <h2>Pagelle <span class="h2-sub">— voti partita per partita, dalle partite presenti nel database</span></h2>
-  <div class="coverage-note" id="pagelleCoverage"></div>
-  <div class="panel" style="margin-bottom:12px;">
-    <div class="filter-bar" id="pagelleFilters"></div>
-  </div>
-  <div id="mvpHero"></div>
-  <div class="award-grid" id="pagelleAwards" style="margin-bottom:14px;"></div>
-  <div class="panel">
-    <div class="table-wrap">
-      <table id="pagelleTable" class="responsive-table">
-        <thead><tr>
-          <th>#</th><th>Giocatore</th><th>Pres.</th><th>Voto medio</th>
-          <th>Andamento</th><th>Trend</th><th>Gol</th><th>Assist</th><th>MOTM</th>
-          <th>Migliore</th><th>Peggiore</th><th>Carriera EA</th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div class="empty" style="margin-top:10px; padding:10px 0; text-align:left;">Clicca su un giocatore per aprire la sua scheda completa. Le barre mostrano i voti dalla partita più vecchia (a sinistra) alla più recente (a destra).</div>
-  </div>
-</section>
-
 <section id="classifiche">
   <h2>Classifiche complete <span class="h2-sub">— tutte le statistiche · solo giocatori con almeno 20 partite</span></h2>
   <div class="panel">
@@ -686,9 +622,6 @@ const DATA = {"club": {"club_id": 2703620, "name": "lentoni", "platform": "commo
 // rappresentativo (es. 2 partite giocate falsano medie e statistiche). Il filtro è
 // applicato una sola volta qui, alla fonte, così nessuna sezione può più mostrarli.
 const LEADERBOARD_MIN_GAMES = 20;
-// Roster completo, prima del filtro sulle partite minime: serve alle Pagelle
-// per mostrare i totali di carriera anche di chi ha poche presenze.
-const ROSTER_ALL = [...(DATA.roster || [])];
 DATA.roster = (DATA.roster || []).filter(r => r.games_played >= LEADERBOARD_MIN_GAMES);
 
 function fmtDate(iso){
@@ -1027,221 +960,6 @@ function renderAwards(){
 }
 renderAwardFilters();
 renderAwards();
-
-// ---- Pagelle: voti partita per partita (da match_player_stats) ----
-// A differenza delle altre sezioni (che usano i totali di carriera EA), qui si
-// guarda SOLO alle partite realmente presenti nel database, quindi la finestra
-// temporale e' selezionabile: ultime 5 / 10 / 20 / tutte.
-const PAGELLE_WINDOWS = [
-  { key: 5,   label: "Ultime 5" },
-  { key: 10,  label: "Ultime 10" },
-  { key: 20,  label: "Ultime 20" },
-  { key: 0,   label: "Tutte" },
-];
-let pagelleWindow = 10;
-const PAGELLE_MIN_APPS = 2; // presenze minime per comparire in classifica
-
-function voteClass(v){
-  if(v >= 8)   return "top";
-  if(v >= 7)   return "good";
-  if(v >= 6)   return "mid";
-  return "bad";
-}
-function voteChip(v){
-  if(v === null || v === undefined || isNaN(v)) return '<span class="vote">-</span>';
-  return `<span class="vote ${voteClass(v)}">${Number(v).toFixed(2)}</span>`;
-}
-function rateSparkline(ratings){
-  if(!ratings || ratings.length === 0) return "-";
-  return `<div class="rate-spark">${ratings.map(r => {
-    const h = Math.max(3, Math.round(((Math.min(Math.max(r, 3), 10) - 3) / 7) * 24));
-    return `<div class="rb ${voteClass(r)}" style="height:${h}px" title="Voto ${r.toFixed(2)}"></div>`;
-  }).join("")}</div>`;
-}
-
-// Aggrega le prestazioni dei giocatori sulle ultime N partite del club.
-function computePagelle(windowSize){
-  const matches = [...(DATA.matches || [])];           // gia' ordinate ts DESC
-  const scoped = windowSize > 0 ? matches.slice(0, windowSize) : matches;
-  const chrono = [...scoped].reverse();                // dalla piu' vecchia alla piu' recente
-  const byPlayer = new Map();
-
-  chrono.forEach(m => {
-    (DATA.matchPlayers[m.match_id] || []).forEach(p => {
-      const rating = Number(p.rating);
-      if(!isFinite(rating) || rating <= 0) return;
-      if(!byPlayer.has(p.player_name)){
-        byPlayer.set(p.player_name, {
-          player_name: p.player_name, apps: 0, ratings: [], goals: 0, assists: 0,
-          mom: 0, pos: p.pos, best: null, worst: null,
-        });
-      }
-      const e = byPlayer.get(p.player_name);
-      e.apps += 1;
-      e.ratings.push(rating);
-      e.goals   += Number(p.goals)   || 0;
-      e.assists += Number(p.assists) || 0;
-      e.mom     += Number(p.mom)     || 0;
-      e.pos = p.pos || e.pos;
-      if(!e.best  || rating > e.best.rating)  e.best  = { rating, opponent: m.opponent_name, played_at: m.played_at };
-      if(!e.worst || rating < e.worst.rating) e.worst = { rating, opponent: m.opponent_name, played_at: m.played_at };
-    });
-  });
-
-  const rows = [...byPlayer.values()].map(e => {
-    const avg = e.ratings.reduce((a,b) => a+b, 0) / e.ratings.length;
-    // Trend: media della seconda meta' delle presenze meno la media della prima meta'.
-    let trend = 0;
-    if(e.ratings.length >= 4){
-      const half = Math.floor(e.ratings.length / 2);
-      const first = e.ratings.slice(0, half);
-      const last  = e.ratings.slice(-half);
-      trend = (last.reduce((a,b)=>a+b,0)/last.length) - (first.reduce((a,b)=>a+b,0)/first.length);
-    }
-    // Deviazione standard: serve per il premio "piu' continuo".
-    const variance = e.ratings.reduce((a,r) => a + Math.pow(r - avg, 2), 0) / e.ratings.length;
-    return { ...e, avg, trend, sd: Math.sqrt(variance) };
-  });
-
-  rows.sort((a,b) => b.avg - a.avg || b.apps - a.apps);
-  return { rows, matchCount: scoped.length };
-}
-
-// Totali di carriera EA, per far capire la differenza tra "archiviato" e "giocato".
-const CAREER_BY_NAME = new Map(ROSTER_ALL.map(r => [r.player_name, r]));
-function careerCell(name){
-  const c = CAREER_BY_NAME.get(name);
-  if(!c) return "-";
-  return `${c.games_played} pt · ${c.goals} gol · ${c.assists} ass`;
-}
-
-// Banner di trasparenza: quante partite sono davvero nell'archivio rispetto a
-// quelle giocate dal club. Senza questo, i numeri sembrano semplicemente sbagliati.
-function renderPagelleCoverage(){
-  const el = document.getElementById("pagelleCoverage");
-  const archived = (DATA.matches || []).length;
-  const played = Number((DATA.latest || {}).games_played) || 0;
-  if(archived === 0){ el.innerHTML = ""; return; }
-  const dates = (DATA.matches || []).map(m => m.played_at).filter(Boolean).sort();
-  const from = dates.length ? fmtDate(dates[0]) : "-";
-  const to   = dates.length ? fmtDate(dates[dates.length - 1]) : "-";
-  const pct = played ? ((archived / played) * 100).toFixed(1) : "?";
-  el.innerHTML = `
-    ⚠️ <strong>Le pagelle coprono solo le partite archiviate, non tutta la carriera.</strong><br>
-    Archivio: <strong>${archived} partite</strong> (dal ${from} al ${to}) sulle <strong>${played}</strong> giocate dal club — il ${pct}%.
-    L'API di EA restituisce solo le <strong>ultime 10 partite</strong> a ogni aggiornamento: tutto quello che il club gioca
-    oltre le 10 tra un aggiornamento e l'altro non è più recuperabile. Per questo un giocatore può avere
-    centinaia di partite in carriera ma poche presenze qui. La colonna <strong>Carriera EA</strong> mostra i totali veri.
-    Più spesso gira l'aggiornamento, più l'archivio diventa completo.`;
-}
-
-function renderPagelleFilters(){
-  const el = document.getElementById("pagelleFilters");
-  el.innerHTML = PAGELLE_WINDOWS.map(w =>
-    `<span class="filter-btn ${w.key === pagelleWindow ? "active" : ""}" data-win="${w.key}">${w.label}</span>`
-  ).join("");
-  el.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      pagelleWindow = Number(btn.dataset.win);
-      renderPagelleFilters();
-      renderPagelle();
-    });
-  });
-}
-
-function renderPagelle(){
-  const { rows, matchCount } = computePagelle(pagelleWindow);
-  const heroEl   = document.getElementById("mvpHero");
-  const awardsEl = document.getElementById("pagelleAwards");
-  const tbody    = document.querySelector("#pagelleTable tbody");
-
-  if(rows.length === 0){
-    heroEl.innerHTML = "";
-    awardsEl.innerHTML = "";
-    tbody.innerHTML = `<tr><td colspan="12" class="empty">Nessun dato sulle partite disponibile.</td></tr>`;
-    return;
-  }
-
-  // Eleggibili al premio: chi ha almeno PAGELLE_MIN_APPS presenze nel periodo.
-  // Se nessuno ci arriva (finestra molto piccola) si ripiega su tutti.
-  let eligible = rows.filter(r => r.apps >= PAGELLE_MIN_APPS);
-  if(eligible.length === 0) eligible = rows;
-
-  const mvp = eligible[0];
-  const label = PAGELLE_WINDOWS.find(w => w.key === pagelleWindow).label.toLowerCase();
-  heroEl.innerHTML = `
-    <div class="mvp-hero">
-      <div class="mvp-medal">🏅</div>
-      <div class="mvp-body">
-        <div class="mvp-label">Giocatore del periodo — ${label} (${matchCount} partite)</div>
-        <div class="mvp-name">${mvp.player_name}</div>
-        <div class="mvp-meta">${mvp.apps} presenze · ${mvp.goals} gol · ${mvp.assists} assist · ${mvp.mom} MOTM</div>
-      </div>
-      <div class="mvp-score">
-        <div class="v">${mvp.avg.toFixed(2)}</div>
-        <div class="k">Voto medio</div>
-      </div>
-    </div>`;
-
-  const maxBy = (arr, fn) => arr.reduce((best, r) => (best === null || fn(r) > fn(best)) ? r : best, null);
-  const minBy = (arr, fn) => arr.reduce((best, r) => (best === null || fn(r) < fn(best)) ? r : best, null);
-
-  const bomber   = maxBy(rows, r => r.goals);
-  const assistman= maxBy(rows, r => r.assists);
-  const momKing  = maxBy(rows, r => r.mom);
-  const bestGame = maxBy(rows, r => r.best ? r.best.rating : -1);
-  const steady   = minBy(eligible.filter(r => r.apps >= 3), r => r.sd);
-  const rising   = maxBy(rows.filter(r => r.apps >= 4), r => r.trend);
-
-  const cards = [
-    bomber    && bomber.goals    > 0 ? { icon:"⚽", title:"Bomber del periodo",  name:bomber.player_name,    stat:`${bomber.goals} gol in ${bomber.apps} partite` } : null,
-    assistman && assistman.assists>0 ? { icon:"🎯", title:"Assistman",           name:assistman.player_name, stat:`${assistman.assists} assist` } : null,
-    momKing   && momKing.mom     > 0 ? { icon:"⭐", title:"Uomo partita",        name:momKing.player_name,   stat:`${momKing.mom} volte MOTM` } : null,
-    bestGame  && bestGame.best       ? { icon:"🔥", title:"Miglior prestazione", name:bestGame.player_name,  stat:`Voto ${bestGame.best.rating.toFixed(2)} vs ${bestGame.best.opponent || "?"}` } : null,
-    steady                           ? { icon:"🧱", title:"Il più continuo",     name:steady.player_name,    stat:`Oscillazione ±${steady.sd.toFixed(2)} su ${steady.apps} partite` } : null,
-    rising    && rising.trend    > 0 ? { icon:"📈", title:"In crescita",         name:rising.player_name,    stat:`+${rising.trend.toFixed(2)} di voto medio` } : null,
-  ].filter(Boolean);
-
-  awardsEl.innerHTML = cards.map(c => `
-    <div class="award-card">
-      <div class="icon">${c.icon}</div>
-      <div class="title">${c.title}</div>
-      <div class="name">${c.name}</div>
-      <div class="stat">${c.stat}</div>
-    </div>`).join("");
-
-  tbody.innerHTML = rows.map((r, i) => {
-    let trendCell = '<span class="trend-flat">—</span>';
-    if(r.apps >= 4 && Math.abs(r.trend) >= 0.15){
-      trendCell = r.trend > 0
-        ? `<span class="trend-up">▲ +${r.trend.toFixed(2)}</span>`
-        : `<span class="trend-down">▼ ${r.trend.toFixed(2)}</span>`;
-    }
-    return `
-    <tr data-player="${r.player_name}">
-      <td data-label="#">${i + 1}</td>
-      <td data-label="Giocatore"><strong>${r.player_name}</strong> ${roleBadge(r.pos)}</td>
-      <td data-label="Presenze">${r.apps}</td>
-      <td data-label="Voto medio">${voteChip(r.avg)}</td>
-      <td data-label="Andamento">${rateSparkline(r.ratings)}</td>
-      <td data-label="Trend">${trendCell}</td>
-      <td data-label="Gol">${r.goals}</td>
-      <td data-label="Assist">${r.assists}</td>
-      <td data-label="MOTM">${r.mom}</td>
-      <td data-label="Migliore">${r.best ? `${voteChip(r.best.rating)} <span class="opp-tag">vs ${r.best.opponent || "?"}</span>` : "-"}</td>
-      <td data-label="Peggiore">${r.worst ? `${voteChip(r.worst.rating)} <span class="opp-tag">vs ${r.worst.opponent || "?"}</span>` : "-"}</td>
-      <td data-label="Carriera EA" class="career-cell">${careerCell(r.player_name)}</td>
-    </tr>`;
-  }).join("");
-
-  tbody.querySelectorAll("tr[data-player]").forEach(tr => {
-    tr.addEventListener("click", () => openPlayerCard(tr.dataset.player));
-  });
-}
-
-renderPagelleCoverage();
-renderPagelleFilters();
-renderPagelle();
 
 // ---- Classifiche complete (navigabili, tutte le statistiche) ----
 (function renderLeaderboard(){
@@ -2013,7 +1731,7 @@ document.addEventListener("keydown", (e) => {
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
   overview: "home", forma: "home", andamento: "home",
-  rosa: "rosa", premi: "premi", pagelle: "pagelle", classifiche: "classifiche",
+  rosa: "rosa", premi: "premi", classifiche: "classifiche",
   forza: "forza", formazione: "formazione", statsdivertenti: "statsdivertenti", h2h: "h2h",
   riepilogo: "riepilogo", avversari: "avversari", partite: "partite",
 };
@@ -2021,7 +1739,6 @@ const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
   { key: "rosa", icon: "🧑‍🤝‍🧑", label: "Rosa" },
   { key: "premi", icon: "🏆", label: "Premi" },
-  { key: "pagelle", icon: "📝", label: "Pagelle" },
   { key: "classifiche", icon: "📋", label: "Classifiche" },
   { key: "forza", icon: "💪", label: "Indice di Forza" },
   { key: "formazione", icon: "⚽", label: "Formazione" },
