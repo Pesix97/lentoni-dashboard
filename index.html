@@ -244,6 +244,18 @@
   .award-card .name{font-size:16px; font-weight:700; margin-top:2px; color:var(--gold);}
   .award-card .stat{font-size:12px; color:var(--muted); margin-top:2px;}
 
+  .trend-up{color:var(--win); font-weight:600;}
+  .trend-down{color:var(--loss); font-weight:600;}
+  .trend-flat{color:var(--muted);}
+  .opp-tag{color:var(--muted); font-size:11px; white-space:nowrap;}
+  .career-cell{font-size:12px; color:var(--muted); white-space:nowrap;}
+  .role-split{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+  .role-split .rs{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 8px; font-size:11.5px; color:var(--muted);
+  }
+  .role-split .rs b{color:var(--text);}
+
   /* ---- Novita dall'ultimo aggiornamento ---- */
   .news-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px;}
   .news-card{
@@ -490,7 +502,7 @@
         <table id="rosterTable" class="responsive-table">
           <thead><tr>
             <th data-key="player_name">Giocatore</th>
-            <th data-key="favorite_position">Ruolo</th>
+            <th data-key="role_effective">Ruolo</th>
             <th data-key="pro_overall">OVR</th>
             <th data-key="games_played">PG</th>
             <th data-key="win_rate">Win%</th>
@@ -557,7 +569,23 @@
       frequenza MOTM (15%), % vittorie (10%), efficienza tecnica media tra passaggi/contrasti/tiro (10%),
       con una piccola penalità per i cartellini rossi a partita (5%). Ogni componente è normalizzato rispetto
       al resto della rosa, quindi il punteggio è relativo a questa squadra, non un valore assoluto universale.
+      <br><br>
+      <strong style="color:var(--text);">Peso della forma recente.</strong> Come per i coefficienti UEFA, il valore storico da
+      solo reagisce troppo lentamente. Il punteggio finale è quindi una media pesata tra l'<strong style="color:var(--text);">indice
+      storico</strong> (tutta la carriera) e l'<strong style="color:var(--text);">indice di forma</strong>, ricalcolato con gli stessi
+      pesi ma solo sulle ultime partite archiviate. La colonna <strong style="color:var(--text);">Δ</strong> mostra quanto la forma
+      recente sposta il giocatore rispetto al suo storico. Chi ha meno di 4 presenze nella finestra
+      resta al 100% storico ed è segnalato in tabella.
     </div>
+  </div>
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="lb-controls">
+      <span style="font-size:12px; color:var(--muted);">Finestra recente:</span>
+      <div class="filter-bar" id="formWindowFilters" style="display:inline-flex;"></div>
+      <span style="font-size:12px; color:var(--muted); margin-left:10px;">Peso:</span>
+      <div class="filter-bar" id="formWeightFilters" style="display:inline-flex;"></div>
+    </div>
+    <div id="formCoverage" style="font-size:12px; color:var(--muted); margin-top:10px;"></div>
   </div>
   <div class="power-podium" id="powerPodium"></div>
   <div class="panel">
@@ -569,6 +597,9 @@
           <th>Giocatore</th>
           <th>Ruolo</th>
           <th data-key="score">Indice</th>
+          <th>Δ</th>
+          <th>Storico</th>
+          <th>Forma</th>
           <th data-key="rating_ave">Media</th>
           <th data-key="contrib">G+A/partita</th>
           <th data-key="motmRate">MOTM%</th>
@@ -687,6 +718,38 @@ const DATA = {"club": {"club_id": 2703620, "name": "lentoni", "platform": "commo
 const LEADERBOARD_MIN_GAMES = 20;
 DATA.roster = (DATA.roster || []).filter(r => r.games_played >= LEADERBOARD_MIN_GAMES);
 
+// ---- Ruolo effettivo: la posizione occupata davvero in campo ----
+// EA espone due cose diverse: "favoritePosition" (il ruolo dichiarato/archetipo del
+// pro) e il campo "pos" di ogni singola partita (dove ha giocato per davvero).
+// Contano solo le partite: se un attaccante viene schierato in difesa, quella
+// partita pesa come difensore. Il ruolo preferito resta solo come ripiego per chi
+// non ha ancora partite archiviate.
+const ROLE_COUNTS_BY_NAME = (function(){
+  const m = new Map();
+  (DATA.matches || []).forEach(mt => {
+    (DATA.matchPlayers[mt.match_id] || []).forEach(p => {
+      if(!p.pos) return;
+      if(!m.has(p.player_name)) m.set(p.player_name, {});
+      const c = m.get(p.player_name);
+      c[p.pos] = (c[p.pos] || 0) + 1;
+    });
+  });
+  return m;
+})();
+
+function roleCountsSorted(name){
+  const c = ROLE_COUNTS_BY_NAME.get(name);
+  return c ? Object.entries(c).sort((a,b) => b[1] - a[1]) : [];
+}
+
+(DATA.roster || []).forEach(r => {
+  const sorted = roleCountsSorted(r.player_name);
+  r.role_counts = sorted.length ? Object.fromEntries(sorted) : null;
+  r.role_matches = sorted.reduce((a, [,n]) => a + n, 0);
+  r.role_effective = sorted.length ? sorted[0][0] : (r.favorite_position || null);
+  r.role_from_matches = sorted.length > 0;
+});
+
 function fmtDate(iso){
   if(!iso) return "-";
   const d = new Date(iso);
@@ -742,6 +805,118 @@ function computePowerScores(roster){
 }
 const POWER_SCORES = computePowerScores(DATA.roster);
 const POWER_SCORE_BY_NAME = new Map(POWER_SCORES.map(s => [s.r.player_name, s]));
+
+// ---- Indice di Forza pesato (meccanismo tipo coefficiente UEFA) ----
+// Il punteggio storico usa i totali di carriera: e' stabile ma reagisce
+// lentissimamente. Quello di forma usa solo le ultime N partite archiviate.
+// Il punteggio finale e' una media pesata dei due, cosi' una crescita o un calo
+// recenti si vedono subito senza cancellare quello che uno ha costruito negli anni.
+const FORM_MIN_APPS = 4;   // presenze minime nella finestra per avere un punteggio di forma
+const FORM_WINDOWS = [30, 40, 0];
+let formWindow = 30;
+let formWeight = 0.5;      // 0 = solo storico, 1 = solo forma recente
+
+// Scale di riferimento (min/max di ogni metrica sull'intera rosa, dai totali di
+// carriera). Storico e forma DEVONO essere normalizzati sulla stessa scala:
+// normalizzarli separatamente sui rispettivi gruppi produrrebbe un Δ falso,
+// perche' misurerebbe la differenza tra i due gruppi e non il cambio di rendimento.
+const POWER_RANGES = (function(roster){
+  const mk = (arr) => ({ min: Math.min(...arr), max: Math.max(...arr) });
+  return {
+    rating:  mk(roster.map(r => r.rating_ave)),
+    contrib: mk(roster.map(r => r.games_played ? (r.goals + r.assists) / r.games_played : 0)),
+    motm:    mk(roster.map(r => r.games_played ? r.man_of_the_match / r.games_played : 0)),
+    win:     mk(roster.map(r => r.win_rate)),
+    tech:    mk(roster.map(r => (r.pass_success_rate + r.tackle_success_rate + r.shot_success_rate) / 3)),
+    disc:    mk(roster.map(r => r.games_played ? r.red_cards / r.games_played : 0)),
+  };
+})(DATA.roster);
+
+function normWith(v, range){
+  if(range.max === range.min) return 0.5;
+  return Math.max(0, Math.min(1, (v - range.min) / (range.max - range.min)));
+}
+
+// Punteggio calcolato SOLO sulle ultime N partite, con gli stessi pesi dello storico.
+function computeFormScores(windowSize){
+  const matches = [...(DATA.matches || [])];
+  const scoped = windowSize > 0 ? matches.slice(0, windowSize) : matches;
+  const winByMatch = new Map(scoped.map(m => [m.match_id, m.win ? 1 : 0]));
+  const agg = new Map();
+
+  scoped.forEach(m => {
+    (DATA.matchPlayers[m.match_id] || []).forEach(p => {
+      if(!agg.has(p.player_name)){
+        agg.set(p.player_name, { games:0, rating:0, goals:0, assists:0, mom:0, win:0,
+          passesMade:0, passAtt:0, tacklesMade:0, tackleAtt:0, shots:0, red:0 });
+      }
+      const a = agg.get(p.player_name);
+      a.games++;
+      a.rating      += p.rating || 0;
+      a.goals       += p.goals || 0;
+      a.assists     += p.assists || 0;
+      a.mom         += p.mom || 0;
+      a.win         += winByMatch.get(m.match_id) || 0;
+      a.passesMade  += p.passes_made || 0;
+      a.passAtt     += p.pass_attempts || 0;
+      a.tacklesMade += p.tackles_made || 0;
+      a.tackleAtt   += p.tackle_attempts || 0;
+      a.shots       += p.shots || 0;
+      a.red         += p.red_cards || 0;
+    });
+  });
+
+  const pool = [...agg.entries()]
+    .filter(([, a]) => a.games >= FORM_MIN_APPS)
+    .map(([name, a]) => {
+      const pass   = a.passAtt   > 0 ? (a.passesMade  / a.passAtt)   * 100 : 0;
+      const tackle = a.tackleAtt > 0 ? (a.tacklesMade / a.tackleAtt) * 100 : 0;
+      const shot   = a.shots     > 0 ? (a.goals       / a.shots)     * 100 : 0;
+      return {
+        name, games: a.games,
+        ratingAve: a.rating / a.games,
+        contrib:   (a.goals + a.assists) / a.games,
+        motmRate:  a.mom / a.games,
+        winRate:   (a.win / a.games) * 100,
+        techEff:   (pass + tackle + shot) / 3,
+        redRate:   a.red / a.games,
+      };
+    });
+
+  if(pool.length === 0) return new Map();
+
+  return new Map(pool.map(p => [p.name, {
+    ...p,
+    score: Math.max(0, Math.min(100, 100 * (
+      0.40 * normWith(p.ratingAve, POWER_RANGES.rating) +
+      0.20 * normWith(p.contrib,   POWER_RANGES.contrib) +
+      0.15 * normWith(p.motmRate,  POWER_RANGES.motm) +
+      0.10 * normWith(p.winRate,   POWER_RANGES.win) +
+      0.10 * normWith(p.techEff,   POWER_RANGES.tech) -
+      0.05 * normWith(p.redRate,   POWER_RANGES.disc)
+    ))),
+  }]));
+}
+
+// Fonde storico e forma. Chi non ha abbastanza partite recenti resta al 100% storico
+// (segnalato con `formAvailable: false`), invece di essere penalizzato per assenza di dati.
+function computeBlendedScores(windowSize, weight){
+  const form = computeFormScores(windowSize);
+  return POWER_SCORES.map(s => {
+    const f = form.get(s.r.player_name);
+    const hasForm = !!f;
+    const blended = hasForm ? (1 - weight) * s.score + weight * f.score : s.score;
+    return {
+      ...s,
+      historicScore: s.score,
+      formScore: hasForm ? f.score : null,
+      formGames: hasForm ? f.games : 0,
+      formAvailable: hasForm,
+      blendedScore: blended,
+      delta: blended - s.score,
+    };
+  }).sort((a, b) => b.blendedScore - a.blendedScore);
+}
 
 // ---- Cards ----
 (function renderCards(){
@@ -872,7 +1047,7 @@ function renderRoster(){
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td data-label="Giocatore"><span class="player-link" data-player="${r.player_name}">${r.player_name}</span>${r.pro_name && r.pro_name !== r.player_name ? ` <span class="pos-badge">(${r.pro_name})</span>` : ""}</td>
-      <td data-label="Ruolo">${roleBadge(r.favorite_position)}</td>
+      <td data-label="Ruolo">${roleBadge(r.role_effective)}</td>
       <td data-label="OVR">${r.pro_overall || "-"}</td>
       <td data-label="PG">${r.games_played}</td>
       <td data-label="Win%">${r.win_rate}%</td>
@@ -1396,7 +1571,7 @@ let growthChart = null;
         <tr>
           <td data-label="#"><span class="lb-rank ${rankCls}">#${i+1}</span></td>
           <td data-label="Giocatore"><span class="player-link" data-player="${r.player_name}">${r.player_name}</span></td>
-          <td data-label="Ruolo">${roleBadge(r.favorite_position)}</td>
+          <td data-label="Ruolo">${roleBadge(r.role_effective)}</td>
           <td data-label="Valore" class="lb-value">${fmtStatValue(def, v)} ${def.unit}</td>
           <td data-label="Partite">${r.games_played}</td>
         </tr>
@@ -1419,11 +1594,22 @@ let growthChart = null;
   const roster = DATA.roster || [];
   if(roster.length === 0){
     podiumEl.innerHTML = "";
-    tbody.innerHTML = `<tr><td colspan="8" class="empty">Nessun giocatore con almeno ${LEADERBOARD_MIN_GAMES} partite ancora.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun giocatore con almeno ${LEADERBOARD_MIN_GAMES} partite ancora.</td></tr>`;
     return;
   }
 
-  const scored = [...POWER_SCORES].sort((a, b) => b.score - a.score);
+  const winEl    = document.getElementById("formWindowFilters");
+  const weightEl = document.getElementById("formWeightFilters");
+  const covEl    = document.getElementById("formCoverage");
+  let activeRole = "Tutti";
+  let scored = [];
+
+  const WEIGHT_OPTS = [
+    { v: 0,   label: "100% storico" },
+    { v: 0.5, label: "50/50" },
+    { v: 1,   label: "100% forma" },
+  ];
+  const winLabel = (w) => (w === 0 ? "Tutte" : "Ultime " + w);
 
   function topFactor(s){
     const labels = { rating: "media voto alta", contrib: "tanti gol+assist a partita", motm: "spesso migliore in campo", win: "grande % vittorie", tech: "solidissimo tecnicamente" };
@@ -1431,24 +1617,67 @@ let growthChart = null;
     return labels[best];
   }
 
-  podiumEl.innerHTML = scored.slice(0, 3).map((s, i) => `
-    <div class="power-card rank${i+1}">
-      <div class="medal">${i===0?"🥇":i===1?"🥈":"🥉"}</div>
-      <div class="pname player-link" data-player="${s.r.player_name}">${s.r.player_name}</div>
-      <div class="pscore">${s.score.toFixed(1)}</div>
-      <div class="power-bar-track"><div class="power-bar-fill" style="width:${s.score}%"></div></div>
-      <div class="pwhy">${s.r.favorite_position || "-"} · ${topFactor(s)}</div>
-    </div>
-  `).join("");
+  function deltaCell(s){
+    if(!s.formAvailable) return '<span class="trend-flat" title="Poche partite recenti">solo storico</span>';
+    const d = s.delta;
+    if(Math.abs(d) < 0.05) return '<span class="trend-flat">—</span>';
+    return d > 0
+      ? `<span class="trend-up">▲ +${d.toFixed(1)}</span>`
+      : `<span class="trend-down">▼ ${d.toFixed(1)}</span>`;
+  }
 
-  const roles = ["Tutti", ...new Set(roster.map(r => r.favorite_position).filter(Boolean))];
-  let activeRole = "Tutti";
-  roleFiltersEl.innerHTML = roles.map(role => `<span class="filter-btn ${role===activeRole?"active":""}" data-role="${role}">${role}</span>`).join("");
+  function renderControls(){
+    winEl.innerHTML = FORM_WINDOWS.map(w =>
+      `<span class="filter-btn ${w === formWindow ? "active" : ""}" data-win="${w}">${winLabel(w)}</span>`).join("");
+    weightEl.innerHTML = WEIGHT_OPTS.map(o =>
+      `<span class="filter-btn ${o.v === formWeight ? "active" : ""}" data-w="${o.v}">${o.label}</span>`).join("");
+    winEl.querySelectorAll(".filter-btn").forEach(b => b.addEventListener("click", () => {
+      formWindow = Number(b.dataset.win); recompute();
+    }));
+    weightEl.querySelectorAll(".filter-btn").forEach(b => b.addEventListener("click", () => {
+      formWeight = Number(b.dataset.w); recompute();
+    }));
+  }
+
+  function renderPodium(){
+    podiumEl.innerHTML = scored.slice(0, 3).map((s, i) => `
+      <div class="power-card rank${i+1}">
+        <div class="medal">${i===0?"🥇":i===1?"🥈":"🥉"}</div>
+        <div class="pname player-link" data-player="${s.r.player_name}">${s.r.player_name}</div>
+        <div class="pscore">${s.blendedScore.toFixed(1)}</div>
+        <div class="power-bar-track"><div class="power-bar-fill" style="width:${s.blendedScore}%"></div></div>
+        <div class="pwhy">${ROLE_LABELS[s.r.role_effective] || "-"} · ${topFactor(s)}</div>
+      </div>
+    `).join("");
+  }
+
+  function renderCoverage(){
+    const total = (DATA.matches || []).length;
+    const used = formWindow > 0 ? Math.min(formWindow, total) : total;
+    const withForm = scored.filter(s => s.formAvailable).length;
+    covEl.innerHTML = formWeight === 0
+      ? `Vista storica pura: la forma recente non incide sul punteggio.`
+      : `Forma calcolata su <strong>${used} partite</strong> archiviate (${withForm} giocatori con almeno ${FORM_MIN_APPS} presenze).
+         Peso applicato: ${Math.round((1-formWeight)*100)}% storico + ${Math.round(formWeight*100)}% forma.`;
+  }
+
+  function renderRoleFilters(){
+    const roles = ["Tutti", ...new Set(roster.map(r => r.role_effective).filter(Boolean))];
+    roleFiltersEl.innerHTML = roles.map(role =>
+      `<span class="filter-btn ${role===activeRole?"active":""}" data-role="${role}">${ROLE_LABELS[role] || role}</span>`).join("");
+    roleFiltersEl.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeRole = btn.dataset.role;
+        roleFiltersEl.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b === btn));
+        draw();
+      });
+    });
+  }
 
   function draw(){
-    const rows = scored.filter(s => activeRole === "Tutti" || s.r.favorite_position === activeRole);
+    const rows = scored.filter(s => activeRole === "Tutti" || s.r.role_effective === activeRole);
     if(rows.length === 0){
-      tbody.innerHTML = `<tr><td colspan="8" class="empty">Nessun giocatore per questo ruolo.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun giocatore per questo ruolo.</td></tr>`;
       return;
     }
     tbody.innerHTML = rows.map((s, i) => {
@@ -1457,8 +1686,11 @@ let growthChart = null;
         <tr>
           <td data-label="#"><span class="lb-rank ${rankCls}">#${i+1}</span></td>
           <td data-label="Giocatore"><span class="player-link" data-player="${s.r.player_name}">${s.r.player_name}</span></td>
-          <td data-label="Ruolo">${roleBadge(s.r.favorite_position)}</td>
-          <td data-label="Indice" class="lb-value">${s.score.toFixed(1)}</td>
+          <td data-label="Ruolo">${roleBadge(s.r.role_effective)}</td>
+          <td data-label="Indice" class="lb-value">${s.blendedScore.toFixed(1)}</td>
+          <td data-label="Δ">${deltaCell(s)}</td>
+          <td data-label="Storico" class="career-cell">${s.historicScore.toFixed(1)}</td>
+          <td data-label="Forma" class="career-cell">${s.formAvailable ? `${s.formScore.toFixed(1)} <span class="opp-tag">(${s.formGames} pt)</span>` : "-"}</td>
           <td data-label="Media">${s.r.rating_ave}</td>
           <td data-label="G+A/partita">${s.contrib.toFixed(2)}</td>
           <td data-label="MOTM%">${s.motmRate.toFixed(0)}%</td>
@@ -1467,14 +1699,17 @@ let growthChart = null;
       `;
     }).join("");
   }
-  roleFiltersEl.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      activeRole = btn.dataset.role;
-      roleFiltersEl.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b === btn));
-      draw();
-    });
-  });
-  draw();
+
+  function recompute(){
+    scored = computeBlendedScores(formWindow, formWeight);
+    renderControls();
+    renderPodium();
+    renderCoverage();
+    draw();
+  }
+
+  renderRoleFilters();
+  recompute();
 })();
 
 // ---- Formazione tipo: modulo fisso 3-4-1-2, portiere sempre libero ----
@@ -1568,7 +1803,7 @@ const EXCLUDED_FROM_FORMATION = new Set(["VRT_ernestino", "VRT_Lo_Ziio_87", "Cin
 
 function computeOutfieldLineup(){
   const roster = (DATA.roster || []).filter(r => !EXCLUDED_FROM_FORMATION.has(r.player_name));
-  const goalkeeperNames = new Set(roster.filter(r => r.favorite_position === "goalkeeper").map(r => r.player_name));
+  const goalkeeperNames = new Set(roster.filter(r => r.role_effective === "goalkeeper").map(r => r.player_name));
   const byRole = computeRoleScores();
   const assigned = new Set();
   const lineup = { defender: [], midfielder: [], forward: [], trequartista: null };
@@ -2081,9 +2316,17 @@ function openPlayerCard(name){
         <div class="pm-name">${r.player_name}</div>
         ${subParts.length ? `<div class="pm-sub">${subParts.join(" · ")}</div>` : ""}
         <div class="pm-badges">
-          ${roleBadge(r.favorite_position)}
+          ${roleBadge(r.role_effective)}
           ${r.pro_overall ? `<span class="pm-ovr">OVR ${r.pro_overall}</span>` : ""}
           ${powerEntry ? `<span class="pm-ovr">💪 Indice ${powerEntry.score.toFixed(1)}</span>` : ""}
+        </div>
+        <div class="role-split">
+          ${r.role_from_matches
+            ? Object.entries(r.role_counts).sort((a,b) => b[1]-a[1]).map(([pos, n]) =>
+                `<span class="rs"><b>${ROLE_LABELS[pos] || pos}</b> ${n} pt</span>`).join("")
+              + (r.favorite_position && r.favorite_position !== r.role_effective
+                  ? `<span class="rs">ruolo EA: ${ROLE_LABELS[r.favorite_position] || r.favorite_position}</span>` : "")
+            : `<span class="rs">ruolo EA: ${ROLE_LABELS[r.favorite_position] || r.favorite_position || "-"} · nessuna partita archiviata</span>`}
         </div>
       </div>
       <button class="pm-close" id="pmCloseBtn" aria-label="Chiudi">✕</button>
