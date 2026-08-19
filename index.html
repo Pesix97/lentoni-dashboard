@@ -275,6 +275,13 @@
   .trend-down{color:var(--loss); font-weight:600;}
   .trend-flat{color:var(--muted);}
   .opp-tag{color:var(--muted); font-size:11px; white-space:nowrap;}
+  .coverage-note{
+    background:rgba(240,185,11,.07); border:1px solid rgba(240,185,11,.35);
+    border-left:3px solid var(--accent-2); border-radius:8px;
+    padding:12px 14px; margin-bottom:12px; font-size:12.5px; color:var(--muted); line-height:1.5;
+  }
+  .coverage-note strong{color:var(--text);}
+  .career-cell{font-size:11.5px; color:var(--muted); white-space:nowrap;}
   #pagelleTable tbody tr{cursor:pointer;}
   #pagelleTable tbody tr:hover{background:var(--panel-2);}
 
@@ -506,6 +513,7 @@
 
 <section id="pagelle">
   <h2>Pagelle <span class="h2-sub">— voti partita per partita, dalle partite presenti nel database</span></h2>
+  <div class="coverage-note" id="pagelleCoverage"></div>
   <div class="panel" style="margin-bottom:12px;">
     <div class="filter-bar" id="pagelleFilters"></div>
   </div>
@@ -516,7 +524,8 @@
       <table id="pagelleTable" class="responsive-table">
         <thead><tr>
           <th>#</th><th>Giocatore</th><th>Pres.</th><th>Voto medio</th>
-          <th>Andamento</th><th>Trend</th><th>Gol</th><th>Assist</th><th>MOTM</th><th>Migliore</th><th>Peggiore</th>
+          <th>Andamento</th><th>Trend</th><th>Gol</th><th>Assist</th><th>MOTM</th>
+          <th>Migliore</th><th>Peggiore</th><th>Carriera EA</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -677,6 +686,9 @@ const DATA = {"club": {"club_id": 2703620, "name": "lentoni", "platform": "commo
 // rappresentativo (es. 2 partite giocate falsano medie e statistiche). Il filtro è
 // applicato una sola volta qui, alla fonte, così nessuna sezione può più mostrarli.
 const LEADERBOARD_MIN_GAMES = 20;
+// Roster completo, prima del filtro sulle partite minime: serve alle Pagelle
+// per mostrare i totali di carriera anche di chi ha poche presenze.
+const ROSTER_ALL = [...(DATA.roster || [])];
 DATA.roster = (DATA.roster || []).filter(r => r.games_played >= LEADERBOARD_MIN_GAMES);
 
 function fmtDate(iso){
@@ -1095,6 +1107,34 @@ function computePagelle(windowSize){
   return { rows, matchCount: scoped.length };
 }
 
+// Totali di carriera EA, per far capire la differenza tra "archiviato" e "giocato".
+const CAREER_BY_NAME = new Map(ROSTER_ALL.map(r => [r.player_name, r]));
+function careerCell(name){
+  const c = CAREER_BY_NAME.get(name);
+  if(!c) return "-";
+  return `${c.games_played} pt · ${c.goals} gol · ${c.assists} ass`;
+}
+
+// Banner di trasparenza: quante partite sono davvero nell'archivio rispetto a
+// quelle giocate dal club. Senza questo, i numeri sembrano semplicemente sbagliati.
+function renderPagelleCoverage(){
+  const el = document.getElementById("pagelleCoverage");
+  const archived = (DATA.matches || []).length;
+  const played = Number((DATA.latest || {}).games_played) || 0;
+  if(archived === 0){ el.innerHTML = ""; return; }
+  const dates = (DATA.matches || []).map(m => m.played_at).filter(Boolean).sort();
+  const from = dates.length ? fmtDate(dates[0]) : "-";
+  const to   = dates.length ? fmtDate(dates[dates.length - 1]) : "-";
+  const pct = played ? ((archived / played) * 100).toFixed(1) : "?";
+  el.innerHTML = `
+    ⚠️ <strong>Le pagelle coprono solo le partite archiviate, non tutta la carriera.</strong><br>
+    Archivio: <strong>${archived} partite</strong> (dal ${from} al ${to}) sulle <strong>${played}</strong> giocate dal club — il ${pct}%.
+    L'API di EA restituisce solo le <strong>ultime 10 partite</strong> a ogni aggiornamento: tutto quello che il club gioca
+    oltre le 10 tra un aggiornamento e l'altro non è più recuperabile. Per questo un giocatore può avere
+    centinaia di partite in carriera ma poche presenze qui. La colonna <strong>Carriera EA</strong> mostra i totali veri.
+    Più spesso gira l'aggiornamento, più l'archivio diventa completo.`;
+}
+
 function renderPagelleFilters(){
   const el = document.getElementById("pagelleFilters");
   el.innerHTML = PAGELLE_WINDOWS.map(w =>
@@ -1118,7 +1158,7 @@ function renderPagelle(){
   if(rows.length === 0){
     heroEl.innerHTML = "";
     awardsEl.innerHTML = "";
-    tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun dato sulle partite disponibile.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="empty">Nessun dato sulle partite disponibile.</td></tr>`;
     return;
   }
 
@@ -1190,6 +1230,7 @@ function renderPagelle(){
       <td data-label="MOTM">${r.mom}</td>
       <td data-label="Migliore">${r.best ? `${voteChip(r.best.rating)} <span class="opp-tag">vs ${r.best.opponent || "?"}</span>` : "-"}</td>
       <td data-label="Peggiore">${r.worst ? `${voteChip(r.worst.rating)} <span class="opp-tag">vs ${r.worst.opponent || "?"}</span>` : "-"}</td>
+      <td data-label="Carriera EA" class="career-cell">${careerCell(r.player_name)}</td>
     </tr>`;
   }).join("");
 
@@ -1198,6 +1239,7 @@ function renderPagelle(){
   });
 }
 
+renderPagelleCoverage();
 renderPagelleFilters();
 renderPagelle();
 
