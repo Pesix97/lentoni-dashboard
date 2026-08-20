@@ -64,12 +64,11 @@ jobs:
                 '| partite nel feed', len(j['matches']['league']))
           PY
 
-      - name: Copia di sicurezza del database
-        run: |
-          mkdir -p backups
-          cp lentoni.db "backups/lentoni_$(date -u +%Y-%m-%d).db"
-          # tiene solo gli ultimi 14 giorni, per non far crescere il repository all'infinito
-          find backups -name 'lentoni_*.db' -mtime +14 -delete
+      # Nessuna cartella di backup: su GitHub la cronologia dei commit E' il backup.
+      # Ogni commit di lentoni.db e' uno stato recuperabile con
+      #   git show <commit>:lentoni.db > lentoni.db
+      # Tenere anche copie datate nel repository raddoppierebbe lo spazio occupato e
+      # produrrebbe un commit al giorno anche senza aver giocato.
 
       - name: Aggiorna il database
         run: python3 ingest.py --raw-dir raw --db lentoni.db
@@ -86,9 +85,8 @@ jobs:
         run: |
           git config user.name "Lentoni Dashboard Bot"
           git config user.email "peppeblu84@gmail.com"
-          git add index.html lentoni.db backups
+          git add index.html lentoni.db
           git diff --staged --quiet && { echo "nessuna modifica da pubblicare"; exit 0; }
           git commit -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC"
           git push
 
-# Verifica del 20/08/2026: un giro senza partite nuove non deve produrre commit.
