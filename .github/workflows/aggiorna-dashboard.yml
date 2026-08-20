@@ -85,7 +85,7 @@ jobs:
         run: |
           git config user.name "Lentoni Dashboard Bot"
           git config user.email "peppeblu84@gmail.com"
-          git add index.html lentoni.db raw backups
+          git add index.html lentoni.db backups
           git diff --staged --quiet && { echo "nessuna modifica da pubblicare"; exit 0; }
           git commit -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC"
           git push

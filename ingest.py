@@ -309,6 +309,31 @@ def ingest_club_info(cur, club_search, club_info_resp):
 
     raw_combined = json.dumps({"club_search": club_search, "club_info": club_info_resp}, ensure_ascii=False)
 
+    # EA restituisce alcuni campi che cambiano ad ogni chiamata pur non significando
+    # nulla: "teamId" e "customKit.kitId" oscillano (visti passare da 1343 a 52 tra due
+    # richieste consecutive a distanza di minuti). Riscrivere la riga per colpa loro
+    # sporcherebbe il database ad ogni esecuzione, e su GitHub Actions equivarrebbe a un
+    # commit ogni due ore anche senza aver giocato. Confrontiamo quindi ignorandoli.
+    def _senza_volatili(testo):
+        try:
+            dati = json.loads(testo)
+        except (TypeError, ValueError):
+            return testo
+        def pulisci(nodo):
+            if isinstance(nodo, dict):
+                return {k: pulisci(v) for k, v in nodo.items() if k not in ("teamId", "kitId")}
+            if isinstance(nodo, list):
+                return [pulisci(v) for v in nodo]
+            return nodo
+        return json.dumps(pulisci(dati), sort_keys=True, ensure_ascii=False)
+
+    esistente = cur.execute(
+        "SELECT raw_json FROM club_info WHERE club_id = ?", (club_id,)
+    ).fetchone()
+    if esistente and esistente[0] is not None:
+        if _senza_volatili(esistente[0]) == _senza_volatili(raw_combined):
+            return club_id
+
     cur.execute(
         """INSERT INTO club_info
            (club_id, name, platform, region_id, team_id, crest_asset_id,
