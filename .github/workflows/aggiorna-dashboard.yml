@@ -90,3 +90,5 @@ jobs:
           git diff --staged --quiet && { echo "nessuna modifica da pubblicare"; exit 0; }
           git commit -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC"
           git push
+
+# Verifica del 20/08/2026: un giro senza partite nuove non deve produrre commit.
