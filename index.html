@@ -1881,6 +1881,8 @@ function rankGroup(pool){
         <td data-label="Giocatore"><span class="player-link" data-player="${a.player_name}">${a.player_name}</span>${a.unassigned ? ` <span class="pos-badge" title="Non presente in roles.json: gruppo dedotto dall'etichetta EA">da assegnare</span>` : ""}</td>
         <td data-label="Indice">${rankable ? `<strong>${a.score.toFixed(1)}</strong>` : `<span style="color:var(--muted);" title="Serve almeno un altro giocatore nello stesso reparto per calcolare un punteggio relativo">n/d</span>`}</td>
         <td data-label="Partite nel ruolo">${a.games}</td>
+        <td data-label="Gol">${a.sumGoals}</td>
+        <td data-label="Assist">${a.sumAssists}</td>
         <td data-label="Media">${a.ratingAve.toFixed(2)}</td>
         <td data-label="G+A/partita">${a.contrib.toFixed(2)}</td>
         <td data-label="MOTM%">${a.motmRate.toFixed(0)}%</td>
@@ -1893,7 +1895,7 @@ function rankGroup(pool){
       ${soloNote}
       <div class="table-wrap">
         <table class="responsive-table">
-          <thead><tr><th>#</th><th>Giocatore</th><th>Indice</th><th>Partite nel ruolo</th><th>Media</th><th>G+A/partita</th><th>MOTM%</th><th>Win%</th></tr></thead>
+          <thead><tr><th>#</th><th>Giocatore</th><th>Indice</th><th>Partite nel ruolo</th><th>Gol</th><th>Assist</th><th>Media</th><th>G+A/partita</th><th>MOTM%</th><th>Win%</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
