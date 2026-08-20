@@ -1,0 +1,48 @@
+# Verifica una tantum: le API pubbliche di EA rispondono a un runner GitHub?
+# Il risultato viene scritto nel repository stesso, perche' e' l'unico canale
+# da cui possiamo rileggerlo senza usare le API di GitHub.
+name: Diagnostica connettivita EA
+
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnostica-ea.yml'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Interroga le API EA
+        run: |
+          mkdir -p diagnostica
+          exec > diagnostica/ea_check.txt 2>&1
+          echo "eseguita: $(date -u) UTC"
+          echo "runner: $(curl -s --max-time 10 https://ifconfig.me 2>/dev/null || echo sconosciuto)"
+          echo
+          check () {
+            local nome="$1" url="$2"
+            local code bytes
+            code=$(curl -s -o /tmp/r.json -w '%{http_code}' --max-time 30 \
+                   -H 'User-Agent: Mozilla/5.0' "$url" || echo "000")
+            bytes=$(wc -c < /tmp/r.json 2>/dev/null || echo 0)
+            echo "[$nome] HTTP $code  bytes=$bytes"
+            echo "   primi 200 caratteri: $(head -c 200 /tmp/r.json 2>/dev/null | tr -d '\n')"
+            echo
+          }
+          check "EA overallStats" "https://proclubs.ea.com/api/fc/clubs/overallStats?platform=common-gen5&clubIds=2703620"
+          check "EA members"      "https://proclubs.ea.com/api/fc/members/stats?platform=common-gen5&clubId=2703620"
+          check "EA matches"      "https://proclubs.ea.com/api/fc/clubs/matches?platform=common-gen5&clubIds=2703620&matchType=leagueMatch&maxResultCount=10"
+          check "proclubstracker" "https://proclubstracker.com/api/clubs/2703620?platform=common-gen5"
+
+      - name: Salva il risultato nel repository
+        run: |
+          git config user.name "Lentoni Dashboard Bot"
+          git config user.email "peppeblu84@gmail.com"
+          git add diagnostica/ea_check.txt
+          git commit -m "Esito diagnostica connettivita EA da runner GitHub" || echo "nessuna modifica"
+          git push
