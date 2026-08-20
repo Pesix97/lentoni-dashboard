@@ -1,0 +1,88 @@
+# Aggiornamento automatico della dashboard Lentoni, interamente sui server GitHub.
+#
+# Perche' proclubstracker e non le API dirette di EA: EA risponde 403 (Access Denied)
+# alle richieste che arrivano da un data center, verificato il 20/08/2026 da questo
+# stesso runner. proclubstracker espone gli stessi identici dati, nella stessa forma.
+#
+# La finestra di EA e' di sole 10 partite: girare ogni 12 ore serve a non perderne
+# nessuna nelle sessioni lunghe.
+name: Aggiorna dashboard Lentoni
+
+on:
+  schedule:
+    # UTC. In ora legale italiana corrispondono all'01:00 e alle 13:00.
+    - cron: '0 23 * * *'
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/aggiorna-dashboard.yml'
+      - 'roles.json'
+      - 'generate_dashboard.py'
+      - 'ingest.py'
+
+# Due esecuzioni sovrapposte scriverebbero sullo stesso database: meglio accodarle.
+concurrency:
+  group: aggiorna-dashboard
+  cancel-in-progress: false
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scarica i dati del club
+        run: |
+          set -euo pipefail
+          curl -sS --fail --max-time 60 -H 'User-Agent: Mozilla/5.0' \
+            'https://proclubstracker.com/api/clubs/2703620?platform=common-gen5' \
+            -o /tmp/club.json
+          echo "scaricati $(wc -c < /tmp/club.json) byte"
+
+      - name: Scomponi il JSON nei file raw attesi dalla pipeline
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib
+          j = json.load(open('/tmp/club.json'))
+          raw = pathlib.Path('raw'); raw.mkdir(exist_ok=True)
+          scrivi = lambda n, o: (raw / n).write_text(json.dumps(o, ensure_ascii=False))
+          scrivi('overall_stats.json',   [j['overallStats']])
+          scrivi('members_stats.json',   j['memberStats'])
+          scrivi('club_info.json',       j['clubInfoData'])
+          scrivi('matches_league.json',  j['matches']['league'])
+          scrivi('matches_playoff.json', j['matches']['playoff'])
+          scrivi('matches_friendly.json',j['matches']['friendly'])
+          print('skillRating', j['overallStats']['skillRating'],
+                '| partite nel feed', len(j['matches']['league']))
+          PY
+
+      - name: Copia di sicurezza del database
+        run: |
+          mkdir -p backups
+          cp lentoni.db "backups/lentoni_$(date -u +%Y-%m-%d).db"
+          # tiene solo gli ultimi 14 giorni, per non far crescere il repository all'infinito
+          find backups -name 'lentoni_*.db' -mtime +14 -delete
+
+      - name: Aggiorna il database
+        run: python3 ingest.py --raw-dir raw --db lentoni.db
+
+      - name: Rigenera la dashboard
+        run: |
+          set -euo pipefail
+          python3 generate_dashboard.py --db lentoni.db --out index.html
+          # controllo minimo: se il risultato non ha dati sensati, meglio fallire
+          grep -q '"skill_rating": [1-9]' index.html || { echo "dashboard senza skill rating"; exit 1; }
+          grep -q 'id="ruoli"' index.html || { echo "sezione ruoli mancante"; exit 1; }
+
+      - name: Pubblica
+        run: |
+          git config user.name "Lentoni Dashboard Bot"
+          git config user.email "peppeblu84@gmail.com"
+          git add index.html lentoni.db raw backups
+          git diff --staged --quiet && { echo "nessuna modifica da pubblicare"; exit 0; }
+          git commit -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC"
+          git push

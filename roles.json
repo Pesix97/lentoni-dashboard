@@ -1,0 +1,65 @@
+{
+  "_come_funziona": [
+    "Mappa dei ruoli REALI del club, scritta a mano: EA espone solo quattro etichette",
+    "(goalkeeper/defender/midfielder/forward) e non sa distinguere un COC da un CC, quindi il",
+    "ruolo vero puo' arrivare solo da qui.",
+    "",
+    "Il gruppo indicato qui e' il ruolo ABITUALE del giocatore. Per le singole partite vince",
+    "sempre il dato EA: se in una partita un giocatore risulta schierato in una posizione",
+    "diversa da quella in cui gioca di solito, per QUELLA partita viene conteggiato nel gruppo",
+    "corrispondente. Esempio: eredes e' ATTACCANTI, ma se gioca 3 partite da difensore quelle 3",
+    "finiscono tra i DIFENSORI.",
+    "",
+    "Per aggiungere un giocatore basta una riga in 'giocatori'. Chi non e' elencato finisce nel",
+    "gruppo dedotto dall'etichetta EA ed e' segnalato come 'da assegnare' nella dashboard.",
+    "I gruppi validi sono quelli elencati in 'ordine'."
+  ],
+
+  "ordine": ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI", "PORTIERI"],
+
+  "etichette": {
+    "DIFENSORI": "Difensori",
+    "CENTROCAMPISTI": "Centrocampisti",
+    "ESTERNI": "Esterni",
+    "ATTACCANTI": "Attaccanti",
+    "PORTIERI": "Portieri"
+  },
+
+  "_macro_ea": "Come tradurre l'etichetta EA di una singola partita quando differisce dal ruolo abituale.",
+  "macro_ea": {
+    "defender": "DIFENSORI",
+    "midfielder": "CENTROCAMPISTI",
+    "forward": "ATTACCANTI",
+    "goalkeeper": "PORTIERI"
+  },
+
+  "giocatori": {
+    "ilmille": "CENTROCAMPISTI",
+    "gio05596": "CENTROCAMPISTI",
+    "Ocirne_1197": "CENTROCAMPISTI",
+    "Jysmu": "ESTERNI",
+    "Smilzo_87": "ESTERNI",
+    "Maverik_44_": "ESTERNI",
+    "Pesix_97": "ATTACCANTI",
+    "ktm-008": "ATTACCANTI",
+    "FFLI_Adriano": "ATTACCANTI",
+    "Ironman-6-6": "ATTACCANTI",
+    "domenicocasaburi": "ATTACCANTI",
+    "eredes": "ATTACCANTI"
+  },
+
+  "_eccezioni_partita": [
+    "EA scrive 'midfielder' sia per un COC sia per un CC: sono la stessa etichetta e non c'e'",
+    "modo di distinguerle. Per un giocatore che di solito fa il COC, tutte le sue partite da",
+    "'midfielder' vengono percio' lette come COC. Quando invece ha giocato davvero da",
+    "centrocampista, la partita va elencata qui sotto: l'eccezione batte qualsiasi deduzione.",
+    "Il campo 'quando' serve solo a te per rileggere la lista, il codice usa 'match_id'."
+  ],
+  "eccezioni_partita": [],
+
+  "_da_assegnare": [
+    "Questi sono in rosa (>=30 partite) ma non hanno ancora un ruolo assegnato.",
+    "Non hanno partite archiviate, quindi al momento non compaiono nelle classifiche per ruolo:",
+    "ASRT_Filiphil23, VRT_Lo_Ziio_87, CinghioKart7"
+  ]
+}
