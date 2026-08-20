@@ -1,4 +1,8 @@
-# I file scaricati ad ogni esecuzione sono input temporanei, non stato del progetto.
-# EA ci mette dentro campi volatili (teamId, kitId) che cambiano ad ogni chiamata:
-# tenerli sotto controllo di versione significherebbe un commit ogni due ore a vuoto.
-raw/
+# I dati scaricati ad ogni esecuzione sono input temporanei: EA ci mette dentro campi
+# volatili (teamId, kitId) che cambiano ad ogni chiamata, quindi tenerli sotto controllo
+# di versione significherebbe un commit ogni due ore anche senza aver giocato.
+raw/*
+
+# Eccezione: club_search.json NON viene riscaricato dalla pipeline ed e' l'unica fonte
+# di "platform" e "region_id". Senza, l'intestazione della dashboard perde la piattaforma.
+!raw/club_search.json
