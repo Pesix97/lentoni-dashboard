@@ -10,9 +10,12 @@ name: Aggiorna dashboard Lentoni
 
 on:
   schedule:
-    # UTC. In ora legale italiana corrispondono all'01:00 e alle 13:00.
-    - cron: '0 23 * * *'
-    - cron: '0 11 * * *'
+    # Ogni due ore. Le sessioni vanno dalle 23:00 alle 02:30 italiane: con questa
+    # cadenza almeno due esecuzioni cadono DENTRO la sessione e la spezzano, cosi'
+    # tra un giro e l'altro non si accumulano mai piu' di 5 partite sulle 10 che
+    # EA rende disponibili. Girare piu' spesso non costa nulla: quando i dati sono
+    # invariati ingest.py non tocca il database e il workflow esce senza committare.
+    - cron: '0 */2 * * *'
   workflow_dispatch:
   push:
     paths:

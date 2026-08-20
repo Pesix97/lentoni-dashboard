@@ -340,6 +340,19 @@ def ingest_overall_stats(cur, overall_stats, club_id, fetched_at):
         "opponents": [s.get(f"lastOpponent{i}") for i in range(10)],
     })
 
+    # Uno snapshot ha senso solo se qualcosa e' cambiato. Girando ogni due ore, la
+    # maggior parte delle esecuzioni trova dati identici ai precedenti: salvarli
+    # comunque gonfierebbe il database (e i commit del repository) e riempirebbe i
+    # grafici dell'andamento di punti sovrapposti. Verificato che EA restituisce
+    # payload identici byte per byte quando non si gioca.
+    payload = json.dumps(s, ensure_ascii=False)
+    ultimo = cur.execute(
+        "SELECT raw_json FROM club_stats_history WHERE club_id = ? ORDER BY id DESC LIMIT 1",
+        (club_id,),
+    ).fetchone()
+    if ultimo and ultimo[0] == payload:
+        return False
+
     cur.execute(
         """INSERT INTO club_stats_history
            (club_id, fetched_at, wins, losses, ties, games_played,
@@ -376,9 +389,10 @@ def ingest_overall_stats(cur, overall_stats, club_id, fetched_at):
             as_int(s.get("finishesInDivision5Group1")),
             as_int(s.get("finishesInDivision6Group1")),
             last_matches_compact,
-            json.dumps(s, ensure_ascii=False),
+            payload,
         ),
     )
+    return True
 
 
 def ingest_member_stats(cur, members_stats, club_id, fetched_at):
@@ -394,6 +408,23 @@ def ingest_member_stats(cur, members_stats, club_id, fetched_at):
         groups.setdefault(canon, []).append(m)
 
     merged_members = [merge_member_group(canon, group) for canon, group in groups.items()]
+
+    # Come per lo snapshot del club: se la fotografia della rosa e' identica a quella
+    # gia' salvata, non ha senso duplicarla. Il confronto e' sull'insieme completo dei
+    # payload, cosi' basta che cambi un solo giocatore perche' venga registrata tutta.
+    validi = [m for m in merged_members
+              if not (m.get("gamesPlayed", "0") in ("0", 0) and not m.get("name"))]
+    firma_nuova = sorted(json.dumps(m, ensure_ascii=False) for m in validi)
+    ultimo_fetch = cur.execute(
+        "SELECT MAX(fetched_at) FROM member_stats_history WHERE club_id = ?", (club_id,)
+    ).fetchone()[0]
+    if ultimo_fetch:
+        precedenti = [r[0] for r in cur.execute(
+            "SELECT raw_json FROM member_stats_history WHERE club_id = ? AND fetched_at = ?",
+            (club_id, ultimo_fetch),
+        )]
+        if all(p is not None for p in precedenti) and sorted(precedenti) == firma_nuova:
+            return False
 
     for m in merged_members:
         if m.get("gamesPlayed", "0") in ("0", 0) and not m.get("name"):
@@ -442,6 +473,8 @@ def ingest_member_stats(cur, members_stats, club_id, fetched_at):
                 json.dumps(m, ensure_ascii=False),
             ),
         )
+
+    return True
 
 
 def ingest_matches(cur, matches, club_id, match_type):
@@ -575,10 +608,10 @@ def main():
         raise SystemExit("Impossibile determinare club_id: manca club_search.json o overall_stats.json")
 
     overall_stats = load_json(raw_dir / "overall_stats.json")
-    ingest_overall_stats(cur, overall_stats, club_id, fetched_at)
+    nuovo_club = ingest_overall_stats(cur, overall_stats, club_id, fetched_at)
 
     members_stats = load_json(raw_dir / "members_stats.json")
-    ingest_member_stats(cur, members_stats, club_id, fetched_at)
+    nuovi_membri = ingest_member_stats(cur, members_stats, club_id, fetched_at)
 
     total_new_matches = 0
     for match_type, fname in [
@@ -597,6 +630,8 @@ def main():
     con.close()
 
     print(f"Club ID: {club_id}")
+    print(f"Snapshot club: {'nuovo salvato' if nuovo_club else 'invariato, non salvato'}")
+    print(f"Snapshot membri: {'nuovo salvato' if nuovi_membri else 'invariato, non salvato'}")
     print(f"Snapshot club salvati finora: {n_club_snap}")
     print(f"Snapshot membri salvati finora: {n_member_snap}")
     print(f"Nuove partite inserite in questa run: {total_new_matches}")
