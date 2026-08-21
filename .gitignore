@@ -6,3 +6,8 @@ raw/*
 # Eccezione: club_search.json NON viene riscaricato dalla pipeline ed e' l'unica fonte
 # di "platform" e "region_id". Senza, l'intestazione della dashboard perde la piattaforma.
 !raw/club_search.json
+
+# I backup locali non servono nel repository: ogni commit di lentoni.db e' gia' uno
+# stato recuperabile con  git show <commit>:lentoni.db
+backups/
+__pycache__/
