@@ -17,10 +17,16 @@ Basta indicare quando ("la seconda di giovedì", "quella contro I Razzi"), i `ma
 recuperano dal database. Segnarselo sul momento funziona; a distanza di giorni no — a
 metà agosto ci abbiamo provato con 11 partite ambigue e non erano più ricostruibili.
 
-**Le notifiche del controllo battito.** Il task `lentoni-controllo-battito` gira ogni
-giorno alle 13:00 ma non manda notifiche: non è stato possibile attivarle perché sono
-state configurate da una sessione nata a sua volta da un task pianificato. Da una chat
-Cowork normale basta chiedere di attivare le notifiche di completamento per quel task.
+**Le notifiche del controllo battito: rinunciato.** Il task `lentoni-controllo-battito`
+gira ogni giorno alle 13:00 ma non manda notifiche. Non è stato possibile attivarle dalla
+sessione che lo ha creato (nata a sua volta da un task pianificato), e da una chat nuova
+il task non risultava nemmeno visibile — anche aprendola dall'app desktop. Il motivo non
+è chiaro e non vale la pena inseguirlo.
+
+Il ripiego funziona benissimo: l'esito resta nella sezione "Scheduled", e il battito è
+consultabile in qualsiasi momento su
+https://github.com/Pesix97/lentoni-dashboard/blob/stato/stato.json — trenta byte che
+dicono se l'automazione è viva.
 
 **Il vecchio task `lentoni-dashboard-update` è in pausa**, sostituito da GitHub Actions.
 Si può eliminare, ma vale la pena tenerlo ancora qualche giorno come rete di sicurezza.
