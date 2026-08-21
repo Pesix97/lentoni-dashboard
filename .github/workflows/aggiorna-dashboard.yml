@@ -90,3 +90,5 @@ jobs:
           git commit -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC"
           git push
 
+
+# Esecuzione forzata del 21/08/2026 per archiviare le partite della notte.
