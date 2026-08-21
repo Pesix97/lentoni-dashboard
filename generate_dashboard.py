@@ -59,9 +59,13 @@ def carica_club(script_dir=None):
         return dict(DEFAULT_CLUB)
 
 
-def build_data(db_path, club_id=None):
+def build_data(db_path, club_id=None, esclusi=None):
     if club_id is None:
         club_id = carica_club()["club_id"]
+    # Chi ha lasciato il gruppo viene tolto QUI, prima che i dati entrino nella pagina:
+    # filtrarlo solo lato browser lascerebbe comunque i suoi nomi e le sue statistiche
+    # dentro il file pubblicato.
+    esclusi = set(esclusi or [])
     con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
@@ -104,6 +108,7 @@ def build_data(db_path, club_id=None):
            ORDER BY m.goals DESC""",
         (club_id, club_id),
     )
+    roster = [r for r in roster if r["player_name"] not in esclusi]
     for r in roster:
         try:
             r["prev_goals_trend"] = json.loads(r["prev_goals_trend"]) if r["prev_goals_trend"] else []
@@ -124,6 +129,8 @@ def build_data(db_path, club_id=None):
            ORDER BY fetched_at ASC, player_name ASC""",
         (club_id,),
     )
+
+    member_history = [h for h in member_history if h["player_name"] not in esclusi]
 
     matches = fetch_all(
         cur,
@@ -1013,9 +1020,9 @@ const DATA = __DATA_JSON__;
 // applicato una sola volta qui, alla fonte, così nessuna sezione può più mostrarli.
 const LEADERBOARD_MIN_GAMES = __MIN_GAMES__;
 
-// Chi ha lasciato il gruppo. EA continua a restituirlo tra i membri del club, quindi
-// l'unico modo di toglierlo dalla dashboard e' escluderlo qui, alla fonte: da questo
-// punto in poi nessuna sezione lo vede. I suoi dati restano nell'archivio.
+// Chi ha lasciato il club viene gia' escluso da generate_dashboard.py, prima che i dati
+// entrino in questa pagina: qui non arrivano proprio, e i loro nomi non compaiono nel
+// file. Questo insieme resta come rete di sicurezza e vale per la formazione tipo.
 const EX_GIOCATORI = new Set((DATA.roleGroups && DATA.roleGroups.exPlayers) || []);
 
 DATA.roster = (DATA.roster || [])
@@ -3323,8 +3330,12 @@ def main():
     args = ap.parse_args()
 
     club = carica_club()
-    data = build_data(args.db, club_id=club["club_id"])
-    data["roleGroups"] = load_role_groups()
+    ruoli = load_role_groups()
+    data = build_data(args.db, club_id=club["club_id"], esclusi=ruoli.get("exPlayers"))
+    # La lista degli ex giocatori ha gia' fatto il suo lavoro qui sopra: non viene
+    # pubblicata nella pagina, cosi' chi ha lasciato il club non compare da nessuna
+    # parte nel file, nemmeno tra i dati grezzi.
+    data["roleGroups"] = {k: v for k, v in ruoli.items() if k != "exPlayers"}
     data["titolo"] = club.get("titolo") or ""
     club_name = (data["club"].get("name") or "Club").title()
     platform = data["club"].get("platform") or "-"

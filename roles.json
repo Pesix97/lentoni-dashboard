@@ -86,14 +86,15 @@
     }
   },
   "_ex_giocatori": [
-    "Chi non fa piu' parte del gruppo. Viene escluso da TUTTA la dashboard: rosa,",
-    "classifiche, premi, indice di forza, formazione tipo.",
+    "Chi ha lasciato il club. Viene escluso da TUTTA la dashboard prima ancora che i dati",
+    "entrino nella pagina: rosa, classifiche, premi, indice di forza, formazione tipo, e",
+    "nemmeno il nome finisce nel file pubblicato.",
     "",
-    "Serve una lista esplicita perche' EA continua a restituirli tra i membri del club",
-    "anche dopo che hanno smesso di giocare: cancellarne le righe dal database non",
-    "servirebbe, l'aggiornamento successivo le riscriverebbe identiche.",
+    "Serve una lista esplicita perche' EA continua a restituirli tra i membri del club anche",
+    "dopo che ne sono usciti: cancellarne le righe dal database non servirebbe, il primo",
+    "aggiornamento le riscriverebbe identiche.",
     "",
-    "Non e' una cancellazione: i dati restano nell'archivio e togliendo un nome da questa",
+    "Non e' una cancellazione: lo storico resta nell'archivio, e togliendo un nome da questa",
     "lista il giocatore ricompare com'era."
   ],
   "ex_giocatori": [
