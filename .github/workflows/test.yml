@@ -1,0 +1,37 @@
+# Test eseguiti ad ogni modifica del codice.
+#
+# Deliberatamente NON fanno parte del workflow di aggiornamento: se un test avesse un
+# difetto, bloccherebbe la raccolta dei dati, e una partita persa non si recupera piu'.
+# Qui proteggono le modifiche; la' non devono poter fermare l'archiviazione.
+name: Test
+
+on:
+  push:
+    paths:
+      - '**.py'
+      - '**.js'
+      - '*.json'
+      - 'giro.sh'
+      - '.github/workflows/test.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test della pipeline
+        run: python3 -m unittest test_pipeline -v
+
+      - name: Genera la dashboard per i test lato pagina
+        run: python3 generate_dashboard.py --db lentoni.db --out /tmp/prova.html
+
+      - name: Test della logica dei ruoli
+        run: node test_ruoli.js /tmp/prova.html
+
+      - name: Sintassi degli script
+        run: |
+          bash -n giro.sh
+          python3 -m py_compile ingest.py generate_dashboard.py avversari.py
