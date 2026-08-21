@@ -1046,7 +1046,7 @@ function roleCountsSorted(name){
   r.role_from_matches = sorted.length > 0;
 });
 
-// ---- Classifiche per ruolo ----
+// ---- Ruoli del club e classifiche per reparto ----
 // Stessa formula dell'Indice di Forza, ma ogni giocatore viene normalizzato SOLO contro i pari
 // ruolo: cosi' un difensore non viene penalizzato dal fatto che gol e assist pesano il 20%.
 // Il ruolo abituale arriva da roles.json (EA non distingue COC da CC); per la singola partita
