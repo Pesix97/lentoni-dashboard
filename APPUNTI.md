@@ -35,13 +35,55 @@ Si può eliminare, ma vale la pena tenerlo ancora qualche giorno come rete di si
 
 ## Programmato per settembre
 
-**Il selettore del titolo nella dashboard.** FC 27 è atteso per inizio ottobre. Il
-database e gli script sono già pronti a contenere più titoli insieme (vedi `club.json`),
-e ogni query filtra per club attivo — verificato iniettando un secondo club finto.
-Manca solo il modo di passare da una stagione all'altra guardando la pagina.
+Tutto quello che è stato rimandato ha lo stesso motivo: **serve un archivio più grande**.
+Al 21/08 le partite archiviate erano 33, e a ~7 per sessione a settembre saranno diverse
+centinaia. Queste cose oggi non si possono né costruire bene né testare davvero.
 
-Meglio costruirlo a settembre che adesso: con due mesi di partite in archivio si può
-simulare il secondo titolo con dati veri invece che copiati.
+### 1. Selettore del titolo nella dashboard
+
+FC 27 è atteso per inizio ottobre. Database e script sono già pronti a contenere più
+titoli insieme (vedi `club.json`), e ogni query filtra per club attivo — verificato
+iniettando un secondo club finto e controllando che i numeri non cambiassero.
+
+Manca il modo di passare da una stagione all'altra guardando la pagina. Va costruito
+**prima** dell'uscita, ma non prima di settembre: con due mesi di partite si può simulare
+il secondo titolo con dati veri invece che copiati.
+
+### 2. Pesi specifici per reparto nell'Indice di Forza
+
+Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un
+difensore è ancora valutato per il 20% su gol e assist, solo rispetto ad altri difensori.
+
+Un indice davvero fedele al ruolo peserebbe contrasti e clean sheet per chi sta dietro,
+passaggi e assist per chi costruisce, precisione sotto porta per chi finalizza. Era stato
+proposto e volutamente rimandato: tarare un algoritmo nuovo su 33 partite non ha senso.
+Con qualche centinaio si potrà capire se i pesi alternativi producono classifiche sensate
+o solo diverse.
+
+### 3. Riprendere la sezione "Analisi serate"
+
+Era stata costruita e poi rimossa il 21/08 perché il campione era troppo piccolo — sette
+sessioni. Il codice è recuperabile dalla cronologia: **commit `7010b50`**.
+
+Conteneva il rendimento in base a quante partite si erano già giocate quella sera (i dati
+suggerivano 1.50 punti nelle prime tre contro 0.67 dalla quinta in poi) e le coppie di
+giocatori in campo. Il difetto era evidente: quattro coppie di FFLI_Adriano avevano numeri
+identici, perché erano semplicemente le stesse dieci partite viste da angoli diversi.
+
+### 4. Idee proposte e mai realizzate
+
+**Riepilogo dell'ultima serata** in cima alla dashboard: com'è andata ieri notte senza
+doverlo chiedere. Non dipende dal campione, si può fare in qualsiasi momento.
+
+**Traguardi**: chi sta per tagliare una cifra tonda (presenze, gol, assist).
+
+### 5. Leve tenute da parte
+
+**Spazio**: `matches.raw_json` occupa circa un terzo del database e duplica dati già
+presenti in colonne vere.
+
+**Manutenibilità**: `generate_dashboard.py` è un file da 3200 righe con HTML, CSS e
+JavaScript dentro un'unica stringa.
 
 ---
 
