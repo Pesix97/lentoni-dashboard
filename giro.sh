@@ -51,10 +51,6 @@ PY
 python3 ingest.py --raw-dir raw --db lentoni.db || { echo "  ingest fallito, salto"; exit 0; }
 python3 avversari.py --db lentoni.db --max-richieste 10 || echo "  avversari non aggiornati (non bloccante)"
 
-# VACUUM: sqlite non restituisce da solo lo spazio delle pagine liberate. Senza, il file
-# cresce piu' del contenuto e ogni commit porta in dote quel peso inutile.
-python3 -c "import sqlite3; c=sqlite3.connect('lentoni.db'); c.execute('VACUUM'); c.close()" || true
-
 python3 generate_dashboard.py --db lentoni.db --out index.html || { echo "  generazione fallita, salto"; exit 0; }
 
 # Controlli minimi: meglio non pubblicare che pubblicare una pagina rotta.
@@ -65,6 +61,12 @@ git add index.html lentoni.db
 if git diff --staged --quiet; then
   echo "  nessuna modifica"
 else
+  # VACUUM solo quando c'e' davvero qualcosa da pubblicare. Non e' deterministico:
+  # ricompattare un contenuto identico produce byte diversi ad ogni esecuzione
+  # (verificato il 21/08/2026, tre VACUUM di fila = tre hash diversi). Eseguirlo ad
+  # ogni giro significherebbe un commit ogni venti minuti anche senza aver giocato.
+  python3 -c "import sqlite3; c=sqlite3.connect('lentoni.db'); c.execute('VACUUM'); c.close()" || true
+  git add lentoni.db
   git commit -q -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC"
   if ! git push -q origin HEAD:main 2>/dev/null; then
     echo "  push respinto, riprovo dopo un rebase"
