@@ -92,7 +92,20 @@
     "centrocampista, la partita va elencata qui sotto: l'eccezione batte qualsiasi deduzione.",
     "Il campo 'quando' serve solo a te per rileggere la lista, il codice usa 'match_id'."
   ],
-  "eccezioni_partita": [],
+  "eccezioni_partita": [
+    {
+      "match_id": "990436866090226",
+      "quando": "21/08 01:28 FRISAPOMODORO39",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "990704066050469",
+      "quando": "21/08 01:49 Alpha Girls",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    }
+  ],
   "_da_assegnare": [
     "Questi sono in rosa (>=30 partite) ma non hanno ancora un ruolo assegnato.",
     "Non hanno partite archiviate, quindi al momento non compaiono nelle classifiche per ruolo:",
