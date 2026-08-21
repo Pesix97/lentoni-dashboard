@@ -101,7 +101,8 @@
     "VRT_Lo_Ziio_87",
     "CinghioKart7",
     "VRT_ernestino",
-    "Upipp"
+    "Upipp",
+    "ASRT_Filiphil23"
   ],
   "_eccezioni_partita": [
     "EA scrive 'midfielder' sia per un COC sia per un CC: sono la stessa etichetta e non c'e'",
@@ -137,9 +138,9 @@
     }
   ],
   "_da_assegnare": [
-    "In rosa (>=30 partite) ma senza un ruolo assegnato, e senza partite archiviate:",
-    "al momento non compaiono nelle classifiche per reparto.",
-    "ASRT_Filiphil23"
+    "Nessuno: tutti i giocatori in rosa hanno un ruolo assegnato, e chi ha lasciato il club",
+    "e' elencato in 'ex_giocatori'. Se compare un nome nuovo, la dashboard lo segnala con un",
+    "punto interrogativo accanto al ruolo dedotto dall'etichetta EA."
   ],
   "_etichetta_ea": [
     "'etichetta_ea' e' l'etichetta che EA usa per questo giocatore quando gioca nel suo ruolo",

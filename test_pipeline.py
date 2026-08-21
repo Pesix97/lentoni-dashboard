@@ -264,6 +264,45 @@ class TestDashboard(BaseConArchivio):
         self.assertGreaterEqual(sa["divario"], 0)
 
 
+class TestQualitaDati(BaseConArchivio):
+
+    def test_i_gol_restano_attribuiti_ai_giocatori(self):
+        """La somma dei gol dei giocatori deve corrispondere ai gol del club.
+
+        Qualche scarto e' fisiologico: EA elenca solo i giocatori umani, quindi un gol
+        segnato da un CPU non e' attribuibile a nessuno. Ma se lo scarto diventasse
+        sistematico vorrebbe dire che stiamo perdendo righe per partita, e nessuno se ne
+        accorgerebbe: le medie continuerebbero a sembrare plausibili.
+
+        La soglia e' larga apposta (un terzo delle partite): serve a intercettare una
+        rottura, non a inseguire il singolo gol di un CPU.
+        """
+        con = sqlite3.connect(self.db)
+        totale = con.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+        discordanti = con.execute(
+            """SELECT COUNT(*) FROM (
+                 SELECT m.match_id FROM matches m JOIN match_player_stats p USING(match_id)
+                 GROUP BY m.match_id HAVING SUM(p.goals) != MAX(m.goals_for))"""
+        ).fetchone()[0]
+        con.close()
+        if totale == 0:
+            self.skipTest("archivio vuoto")
+        quota = discordanti / totale
+        self.assertLess(quota, 0.34,
+                        f"{discordanti} partite su {totale} hanno gol non attribuiti: "
+                        f"probabile perdita di righe per partita")
+
+    def test_ogni_partita_ha_dei_giocatori(self):
+        """Una partita senza nessun giocatore e' un dato monco che falsa le medie."""
+        con = sqlite3.connect(self.db)
+        vuote = con.execute(
+            "SELECT COUNT(*) FROM matches WHERE match_id NOT IN "
+            "(SELECT DISTINCT match_id FROM match_player_stats)"
+        ).fetchone()[0]
+        con.close()
+        self.assertEqual(vuote, 0, f"{vuote} partite senza alcun giocatore registrato")
+
+
 class TestConfigurazione(unittest.TestCase):
 
     def test_club_json_valido(self):
@@ -284,6 +323,12 @@ class TestConfigurazione(unittest.TestCase):
                 if isinstance(v, dict) and v.get("etichetta_ea"):
                     self.assertIn(v["etichetta_ea"], macro,
                                   f"etichetta EA sconosciuta per {nome}")
+
+    def test_ex_giocatori_non_sono_anche_attivi(self):
+        """Un nome non puo' stare sia tra i giocatori sia tra gli ex: e' ambiguo."""
+        r = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        doppi = set(r.get("giocatori", {})) & set(r.get("ex_giocatori", []))
+        self.assertEqual(doppi, set(), f"presenti in entrambe le liste: {doppi}")
 
     def test_eccezioni_partita_ben_formate(self):
         r = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))

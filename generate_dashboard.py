@@ -1020,14 +1020,10 @@ const DATA = __DATA_JSON__;
 // applicato una sola volta qui, alla fonte, così nessuna sezione può più mostrarli.
 const LEADERBOARD_MIN_GAMES = __MIN_GAMES__;
 
-// Chi ha lasciato il club viene gia' escluso da generate_dashboard.py, prima che i dati
-// entrino in questa pagina: qui non arrivano proprio, e i loro nomi non compaiono nel
-// file. Questo insieme resta come rete di sicurezza e vale per la formazione tipo.
-const EX_GIOCATORI = new Set((DATA.roleGroups && DATA.roleGroups.exPlayers) || []);
-
-DATA.roster = (DATA.roster || [])
-  .filter(r => r.games_played >= LEADERBOARD_MIN_GAMES)
-  .filter(r => !EX_GIOCATORI.has(r.player_name));
+// Chi ha lasciato il club non arriva nemmeno qui: generate_dashboard.py lo esclude
+// prima di scrivere la pagina, e il suo nome non compare nel file. Vedi 'ex_giocatori'
+// in roles.json.
+DATA.roster = (DATA.roster || []).filter(r => r.games_played >= LEADERBOARD_MIN_GAMES);
 
 // ---- Ruolo effettivo: la posizione occupata davvero in campo ----
 // EA espone due cose diverse: "favoritePosition" (il ruolo dichiarato/archetipo del
@@ -2488,12 +2484,10 @@ function computeRoleScores(){
 
 // Giocatori che non fanno più parte del club: esclusi da tutti i suggerimenti di formazione
 // (ma restano visibili nelle altre sezioni della dashboard, es. Indice di Forza, che sono storiche).
-// Gli ex giocatori sono gia' fuori da DATA.roster (vedi EX_GIOCATORI in cima): qui resta
-// solo il riferimento, per non avere due elenchi da tenere allineati.
-const EXCLUDED_FROM_FORMATION = EX_GIOCATORI;
 
 function computeOutfieldLineup(){
-  const roster = (DATA.roster || []).filter(r => !EXCLUDED_FROM_FORMATION.has(r.player_name));
+  // Gli ex giocatori sono gia' fuori da DATA.roster: qui non serve rifiltrarli.
+  const roster = DATA.roster || [];
   const goalkeeperNames = new Set(roster
     .filter(r => r.gruppo === "PORTIERI" || r.role_effective === "goalkeeper")
     .map(r => r.player_name));
@@ -2505,11 +2499,11 @@ function computeOutfieldLineup(){
   const lineup = { defender: [], midfielder: [], forward: [], trequartista: null };
 
   const genericRanked = [...POWER_SCORES]
-    .filter(s => !goalkeeperNames.has(s.r.player_name) && !EXCLUDED_FROM_FORMATION.has(s.r.player_name))
+    .filter(s => !goalkeeperNames.has(s.r.player_name))
     .sort((a, b) => b.score - a.score);
 
   function fillRole(role, count){
-    const pool = (byRole[role] || []).filter(c => rosterNames.has(c.player_name) && !goalkeeperNames.has(c.player_name) && !assigned.has(c.player_name) && !EXCLUDED_FROM_FORMATION.has(c.player_name));
+    const pool = (byRole[role] || []).filter(c => rosterNames.has(c.player_name) && !goalkeeperNames.has(c.player_name) && !assigned.has(c.player_name));
     const picked = [];
     for(const c of pool){
       if(picked.length >= count) break;

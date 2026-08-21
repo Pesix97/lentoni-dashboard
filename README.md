@@ -12,14 +12,30 @@ nessun computer.
 
 ## Come funziona
 
-Ad ogni esecuzione, il workflow `.github/workflows/aggiorna-dashboard.yml`:
+Il workflow `.github/workflows/aggiorna-dashboard.yml` esegue `giro.sh` **sette volte a
+distanza di venti minuti**, coprendo circa due ore per ogni avvio. Ogni giro:
 
-1. scarica i dati del club da proclubstracker.com;
-2. li scompone nei file che la pipeline si aspetta (`raw/`, non versionati);
-3. `ingest.py` li scrive nel database `lentoni.db`;
-4. `avversari.py` raccoglie il livello dei club affrontati (uno alla volta, senza fretta);
-5. `generate_dashboard.py` rigenera `index.html`;
-6. se qualcosa è cambiato, committa. Altrimenti non tocca nulla.
+1. legge da `club.json` quale club interrogare;
+2. scarica i dati da proclubstracker.com;
+3. li scompone nei file che la pipeline si aspetta (`raw/`, non versionati);
+4. `ingest.py` li scrive nel database `lentoni.db`;
+5. `avversari.py` raccoglie il livello dei club affrontati (dieci al massimo per giro);
+6. `generate_dashboard.py` rigenera `index.html`;
+7. se qualcosa è cambiato compatta il database e committa, altrimenti non tocca nulla;
+8. aggiorna il **battito** sul ramo `stato`.
+
+### Il battito
+
+Ogni giro riscrive `stato.json` sul ramo `stato`, anche quando non c'è niente da
+pubblicare. Serve a distinguere "l'automazione è viva e non c'era nulla da fare" da
+"l'automazione è morta": sul ramo principale le due cose lasciano la stessa identica
+traccia, cioè nessuna.
+
+Si consulta qui: **[stato.json](../../blob/stato/stato.json)**. È un ramo orfano riscritto
+ogni volta, quindi la sua cronologia è lunga uno e non pesa sul repository.
+
+Un task pianificato di Cowork (`lentoni-controllo-battito`) lo legge ogni giorno alle 13:00
+e segnala se è più vecchio di sei ore.
 
 ### Perché proclubstracker e non EA direttamente
 
@@ -42,7 +58,8 @@ Due fatti misurati il 21/08/2026 rendono la cadenza oraria necessaria:
   pubblici.
 
 Girare spesso non costa nulla perché senza dati nuovi il database non cambia e non viene
-prodotto alcun commit.
+prodotto alcun commit. Il ciclo interno serve proprio a questo: basta **un** trigger
+riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fila.
 
 ---
 
@@ -55,8 +72,25 @@ prodotto alcun commit.
 | `ingest.py` | Scrive i JSON scaricati nel database. Nessuna chiamata di rete. |
 | `avversari.py` | Raccoglie skill rating e record dei club affrontati. |
 | `generate_dashboard.py` | Rigenera `index.html` a partire dal database. |
-| `roles.json` | Mappa dei ruoli reali dei giocatori, scritta a mano. |
+| `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. |
+| `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
+| `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
+| `test_pipeline.py` | Tredici test: ingest, duplicati, isolamento tra titoli, qualità dei dati. |
+| `test_ruoli.js` | Quindici controlli sulla logica dei ruoli, estratta dalla pagina generata. |
 | `raw/club_search.json` | Unica fonte di `platform` e `region_id`. Il resto di `raw/` non è versionato. |
+
+---
+
+## club.json — quale club, quale titolo
+
+Ogni titolo EA crea un club nuovo con un id diverso, ma le persone restano le stesse.
+L'archivio tiene **tutti i titoli insieme**, distinti da `club_id`, e la dashboard ne
+mostra uno alla volta: quello indicato in `attivo`.
+
+Al passaggio a FC 27 si sposta il club corrente in `storico`, si scrive il nuovo in
+`attivo`, e non serve toccare nient'altro. Ogni query di `generate_dashboard.py` filtra
+per club attivo — senza quel filtro due stagioni finirebbero sommate nella stessa rosa
+senza che nulla lo segnali.
 
 ---
 
@@ -79,7 +113,40 @@ e l'eccezione batte qualsiasi deduzione automatica.
 ```
 
 Modificare `roles.json` è sicuro: al giro successivo la dashboard si ricalcola **su tutto
-lo storico**, non solo sulle partite future.
+lo storico**, non solo sulle partite future. Se il file è malformato, la generazione non
+si ferma: ripiega sulle etichette EA e lo segnala nel log.
+
+### Chi ha lasciato il club
+
+La voce `ex_giocatori` elenca chi non fa più parte del gruppo. Viene escluso da tutta la
+dashboard prima ancora che i dati entrino nella pagina, e il suo nome non compare nel file
+pubblicato. Serve una lista esplicita perché **EA continua a restituirli tra i membri del
+club** anche dopo che ne sono usciti: cancellarne le righe dal database sarebbe inutile,
+il primo aggiornamento le riscriverebbe.
+
+Non è una cancellazione: lo storico resta, e togliendo un nome dalla lista il giocatore
+ricompare com'era.
+
+---
+
+## Test
+
+```bash
+python3 -m unittest test_pipeline -v          # pipeline e qualità dei dati
+python3 generate_dashboard.py --db lentoni.db --out /tmp/prova.html
+node test_ruoli.js /tmp/prova.html            # logica dei ruoli
+```
+
+Girano da soli ad ogni modifica del codice, tramite `.github/workflows/test.yml`.
+
+Sono **deliberatamente fuori** dal workflow di aggiornamento: se un test avesse un difetto
+bloccherebbe la raccolta dei dati, e una partita persa non si recupera. Proteggono le
+modifiche, non devono poter fermare l'archiviazione.
+
+Due dettagli utili. I test ricostruiscono i dati grezzi **dal database** invece di leggere
+`raw/`, che non è versionato: girano ovunque, senza rete. E quelli JavaScript **estraggono
+le funzioni dalla pagina generata** ed eseguono quelle, non una copia che potrebbe
+divergere.
 
 ---
 
