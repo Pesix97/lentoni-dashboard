@@ -77,23 +77,25 @@ else
   fi
 fi
 
-# Battito: un ramo orfano con un solo commit, riscritto ogni volta con force-push.
-# Serve ad accorgersi se la pianificazione di GitHub smette di funzionare, cosa che
-# altrimenti non lascerebbe alcuna traccia. Non pesa sul repository perche' il commit
-# precedente viene sostituito, non accodato: la cronologia di 'stato' e' lunga uno.
+# Battito. Serve a distinguere "l'automazione e' viva e non c'era nulla da fare" da
+# "l'automazione e' morta": sul ramo principale le due cose lasciano la stessa traccia,
+# cioe' nessuna. Viene quindi scritto SEMPRE, anche quando non c'e' niente da pubblicare.
+#
+# Costruito con i comandi di basso livello di git, senza toccare il ramo corrente ne' la
+# cartella di lavoro. La versione precedente creava un ramo orfano con checkout: dentro un
+# ciclo che rilancia questo script sette volte di seguito il cambio di ramo a volte
+# falliva, e il ramo 'stato' finiva per ereditare la storia di main con tutti i suoi file
+# (verificato il 21/08/2026: 3 commit invece di 1). Cosi' invece il commit e' sempre
+# senza genitore e contiene un solo file, e il force-push sostituisce il precedente.
 {
   printf '{"ultimo_giro":"%s","partite":%s}\n' \
     "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
     "$(python3 -c "import sqlite3;print(sqlite3.connect('lentoni.db').execute('select count(*) from matches').fetchone()[0])" 2>/dev/null || echo 0)" \
     > /tmp/stato.json
-  git checkout -q --orphan stato-tmp
-  git rm -rq --cached . >/dev/null 2>&1 || true
-  cp /tmp/stato.json stato.json
-  git add stato.json
-  git commit -q -m "battito $(date -u '+%Y-%m-%d %H:%M') UTC"
-  git push -qf origin stato-tmp:stato
-  git checkout -q main
-  git branch -qD stato-tmp
+  blob=$(git hash-object -w /tmp/stato.json)
+  albero=$(printf '100644 blob %s\tstato.json\n' "$blob" | git mktree)
+  commit=$(git commit-tree "$albero" -m "battito $(date -u '+%Y-%m-%d %H:%M') UTC")
+  git push -qf origin "$commit:refs/heads/stato"
 } >/dev/null 2>&1 || echo "  battito non aggiornato (non bloccante)"
 
 exit 0
