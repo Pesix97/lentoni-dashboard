@@ -17,6 +17,7 @@ import argparse
 import json
 import sqlite3
 import time
+from pathlib import Path
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -78,13 +79,26 @@ def da_aggiornare(cur, massimo):
     return [(r[0], r[1]) for r in righe]
 
 
+def piattaforma_attiva():
+    """Letta da club.json, cosi' al cambio di titolo si tocca un file solo."""
+    try:
+        percorso = Path(__file__).resolve().parent / "club.json"
+        return json.loads(percorso.read_text(encoding="utf-8"))["attivo"].get(
+            "piattaforma", "common-gen5")
+    except Exception:  # noqa: BLE001
+        return "common-gen5"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default="lentoni.db")
-    ap.add_argument("--piattaforma", default="common-gen5")
+    ap.add_argument("--piattaforma", default=None,
+                    help="se omessa viene letta da club.json")
     ap.add_argument("--max-richieste", type=int, default=15,
                     help="quanti club interrogare al massimo in questa esecuzione")
     args = ap.parse_args()
+
+    piattaforma = args.piattaforma or piattaforma_attiva()
 
     con = sqlite3.connect(args.db)
     cur = con.cursor()
@@ -102,7 +116,7 @@ def main():
     ok = falliti = 0
     for club_id, incontri in lavoro:
         try:
-            j = scarica(club_id, args.piattaforma)
+            j = scarica(club_id, piattaforma)
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError) as e:
             # Un avversario irraggiungibile non deve fermare l'aggiornamento: si riprova
             # al giro successivo, resta semplicemente senza dati fino ad allora.

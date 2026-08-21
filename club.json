@@ -1,0 +1,27 @@
+{
+  "_come_funziona": [
+    "Quale club interrogare e quale mostrare nella dashboard. Ogni titolo EA crea un club",
+    "nuovo con un id diverso, ma le persone e i ruoli restano gli stessi: l'archivio tiene",
+    "tutti i titoli insieme, distinti da 'club_id', cosi' lo storico del gruppo attraversa",
+    "gli anni invece di ripartire da zero ad ogni uscita.",
+    "",
+    "Al passaggio a un titolo nuovo:",
+    "  1. spostare il club corrente in 'storico'",
+    "  2. scrivere il nuovo in 'attivo' con il suo club_id e il nome del titolo",
+    "Nient'altro: gli script leggono da qui, i dati vecchi restano nel database e",
+    "continuano a essere consultabili.",
+    "",
+    "IMPORTANTE: il club in 'attivo' e' l'unico che la dashboard mostra. Senza questo",
+    "filtro i dati di due titoli finirebbero sommati nella stessa rosa e nelle stesse",
+    "classifiche, senza che nulla lo segnali."
+  ],
+
+  "attivo": {
+    "club_id": 2703620,
+    "titolo": "FC 26",
+    "piattaforma": "common-gen5",
+    "dal": "2026-08-03"
+  },
+
+  "storico": []
+}

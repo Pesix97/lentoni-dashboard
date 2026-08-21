@@ -10,8 +10,20 @@
 # interrompere il ciclo, si ritenta tra venti minuti.
 set -uo pipefail
 
-CLUB_ID=2703620
-PIATTAFORMA=common-gen5
+# Club e piattaforma vengono da club.json: al passaggio a un titolo nuovo (FC 27 e
+# successivi) si modifica solo quel file, non gli script.
+leggi_club() {
+  python3 -c "
+import json,sys
+try:
+    a=json.load(open('club.json'))['attivo']
+    print(a['club_id'], a.get('piattaforma','common-gen5'))
+except Exception:
+    print('2703620 common-gen5')
+"
+}
+read -r CLUB_ID PIATTAFORMA <<< "$(leggi_club)"
+echo "  club attivo: $CLUB_ID ($PIATTAFORMA)"
 
 echo "--- giro delle $(date -u '+%H:%M:%S') UTC ---"
 

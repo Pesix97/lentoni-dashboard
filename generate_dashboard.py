@@ -29,12 +29,44 @@ def fetch_all(cur, sql, params=()):
     return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
-def build_data(db_path):
+DEFAULT_CLUB = {"club_id": 2703620, "titolo": "FC 26", "piattaforma": "common-gen5"}
+
+
+def carica_club(script_dir=None):
+    """Quale club mostrare. Vedi club.json per il perche'.
+
+    Ogni titolo EA crea un club nuovo: l'archivio li tiene tutti, ma la dashboard ne
+    mostra uno alla volta. Senza questo filtro due titoli finirebbero sommati nella
+    stessa rosa e nelle stesse classifiche, in silenzio.
+    """
+    base = Path(script_dir) if script_dir else Path(__file__).resolve().parent
+    path = base / "club.json"
+    if not path.exists():
+        print(f"  attenzione: {path.name} non trovato, uso il club predefinito")
+        return dict(DEFAULT_CLUB)
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        attivo = raw.get("attivo") or {}
+        club_id = int(attivo["club_id"])
+        return {
+            "club_id": club_id,
+            "titolo": attivo.get("titolo") or "",
+            "piattaforma": attivo.get("piattaforma") or "",
+            "storico": raw.get("storico") or [],
+        }
+    except Exception as exc:  # noqa: BLE001 - meglio il predefinito che non pubblicare
+        print(f"  attenzione: club.json non interpretabile ({exc.__class__.__name__}), uso il predefinito")
+        return dict(DEFAULT_CLUB)
+
+
+def build_data(db_path, club_id=None):
+    if club_id is None:
+        club_id = carica_club()["club_id"]
     con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
 
-    club_info = fetch_all(cur, "SELECT * FROM club_info LIMIT 1")
+    club_info = fetch_all(cur, "SELECT * FROM club_info WHERE club_id = ? LIMIT 1", (club_id,))
     club_info = club_info[0] if club_info else {}
 
     history = fetch_all(
@@ -45,7 +77,8 @@ def build_data(db_path):
                   wstreak, unbeatenstreak, reputationtier, league_appearances,
                   finishes_div1_group1, finishes_div2_group1, finishes_div3_group1,
                   finishes_div4_group1, finishes_div5_group1, finishes_div6_group1
-           FROM club_stats_history ORDER BY fetched_at ASC""",
+           FROM club_stats_history WHERE club_id = ? ORDER BY fetched_at ASC""",
+        (club_id,),
     )
     latest_club = history[-1] if history else {}
 
@@ -63,11 +96,13 @@ def build_data(db_path):
            JOIN (
              SELECT player_name, MAX(fetched_at) AS max_fetched
              FROM member_stats_history
+             WHERE club_id = ?
              GROUP BY player_name
            ) latest
            ON m.player_name = latest.player_name AND m.fetched_at = latest.max_fetched
-           WHERE m.games_played > 0 OR m.pro_name != ''
+           WHERE m.club_id = ? AND (m.games_played > 0 OR m.pro_name != '')
            ORDER BY m.goals DESC""",
+        (club_id, club_id),
     )
     for r in roster:
         try:
@@ -85,14 +120,17 @@ def build_data(db_path):
                   rating_ave, man_of_the_match, win_rate, pass_success_rate,
                   tackle_success_rate, shot_success_rate, red_cards
            FROM member_stats_history
+           WHERE club_id = ?
            ORDER BY fetched_at ASC, player_name ASC""",
+        (club_id,),
     )
 
     matches = fetch_all(
         cur,
         """SELECT match_id, match_type, played_at, ts, opponent_club_id, opponent_name,
                   goals_for, goals_against, win, loss, tie
-           FROM matches ORDER BY ts DESC""",
+           FROM matches WHERE club_id = ? ORDER BY ts DESC""",
+        (club_id,),
     )
 
     match_players = {}
@@ -111,16 +149,16 @@ def build_data(db_path):
                       red_cards, mom, seconds_played,
                       MIN(CASE WHEN ea_player_id LIKE 'recovered\\_%' ESCAPE '\\'
                                THEN 1 ELSE 0 END) AS _pref
-               FROM match_player_stats WHERE match_id=?
+               FROM match_player_stats WHERE match_id = ? AND club_id = ?
                GROUP BY player_name
                ORDER BY rating DESC""",
-            (m["match_id"],),
+            (m["match_id"], club_id),
         )
         for r in rows:
             r.pop("_pref", None)
         match_players[m["match_id"]] = rows
 
-    salute = calcola_salute_archivio(cur)
+    salute = calcola_salute_archivio(cur, club_id)
 
     # La tabella puo' non esistere ancora: avversari.py la crea alla prima esecuzione.
     try:
@@ -146,7 +184,7 @@ def build_data(db_path):
     }
 
 
-def calcola_salute_archivio(cur):
+def calcola_salute_archivio(cur, club_id):
     """Quante partite EA dice che il club ha giocato, contro quante ne abbiamo archiviate.
 
     EA espone il dettaglio per giocatore solo delle ultime 10 partite: se tra un
@@ -160,9 +198,12 @@ def calcola_salute_archivio(cur):
     """
     snaps = cur.execute(
         "SELECT fetched_at, games_played FROM club_stats_history "
-        "WHERE games_played IS NOT NULL ORDER BY fetched_at"
+        "WHERE club_id = ? AND games_played IS NOT NULL ORDER BY fetched_at",
+        (club_id,),
     ).fetchall()
-    totale_archiviate = cur.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+    totale_archiviate = cur.execute(
+        "SELECT COUNT(*) FROM matches WHERE club_id = ?", (club_id,)
+    ).fetchone()[0]
     vuoto = {
         "archiviate": totale_archiviate, "attese": None, "divario": None,
         "divarioRecente": None, "daQuando": None, "giocateEA": None,
@@ -173,7 +214,8 @@ def calcola_salute_archivio(cur):
     primo, ultimo = snaps[0], snaps[-1]
     attese = (ultimo["games_played"] or 0) - (primo["games_played"] or 0)
     archiviate_dopo = cur.execute(
-        "SELECT COUNT(*) FROM matches WHERE played_at >= ?", (primo["fetched_at"],)
+        "SELECT COUNT(*) FROM matches WHERE club_id = ? AND played_at >= ?",
+        (club_id, primo["fetched_at"]),
     ).fetchone()[0]
 
     # Divario recente: ultime 48 ore, l'unico su cui si possa ancora intervenire.
@@ -185,7 +227,8 @@ def calcola_salute_archivio(cur):
     if len(recenti) >= 2:
         attese_rec = (recenti[-1]["games_played"] or 0) - (recenti[0]["games_played"] or 0)
         arch_rec = cur.execute(
-            "SELECT COUNT(*) FROM matches WHERE played_at >= ?", (recenti[0]["fetched_at"],)
+            "SELECT COUNT(*) FROM matches WHERE club_id = ? AND played_at >= ?",
+            (club_id, recenti[0]["fetched_at"]),
         ).fetchone()[0]
         divario_recente = max(0, attese_rec - arch_rec)
 
@@ -3222,8 +3265,10 @@ def main():
     ap.add_argument("--out", default="dashboard.html")
     args = ap.parse_args()
 
-    data = build_data(args.db)
+    club = carica_club()
+    data = build_data(args.db, club_id=club["club_id"])
     data["roleGroups"] = load_role_groups()
+    data["titolo"] = club.get("titolo") or ""
     club_name = (data["club"].get("name") or "Club").title()
     platform = data["club"].get("platform") or "-"
     division = data["latest"].get("best_division") or "-"
@@ -3241,7 +3286,7 @@ def main():
 
     Path(args.out).write_text(html, encoding="utf-8")
     print(f"Dashboard generata: {args.out}")
-    print(f"  club: {club_name} | snapshot storico: {len(data['history'])} | roster: {len(data['roster'])} | partite: {len(data['matches'])}")
+    print(f"  club: {club_name} ({club['club_id']}, {club.get('titolo') or 'titolo non indicato'}) | snapshot storico: {len(data['history'])} | roster: {len(data['roster'])} | partite: {len(data['matches'])}")
 
     sa = data.get("saluteArchivio") or {}
     if sa.get("attese") is not None:

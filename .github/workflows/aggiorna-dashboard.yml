@@ -22,6 +22,7 @@ on:
       - 'generate_dashboard.py'
       - 'ingest.py'
       - 'avversari.py'
+      - 'club.json'
       - 'raw/club_search.json'
 
 # Un trigger nuovo sostituisce il ciclo in corso invece di accodarsi: cosi' non si
