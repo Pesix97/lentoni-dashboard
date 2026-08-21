@@ -700,6 +700,74 @@
   </div>
 </section>
 
+<section id="sessioni">
+  <h2>Analisi delle serate <span class="h2-sub">— cosa succede col passare delle partite, e chi rende con chi</span></h2>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Le partite archiviate vengono raggruppate in <strong style="color:var(--text);">serate</strong>: due partite appartengono
+      alla stessa sessione se tra l'una e l'altra passano meno di 3 ore. Nessun dato nuovo, solo gli orari
+      che erano già nell'archivio.
+      <br><br>
+      I punti sono calcolati come in campionato: 3 per la vittoria, 1 per il pareggio, 0 per la sconfitta.
+    </div>
+  </div>
+
+  <h3 style="margin:18px 0 10px; font-size:16px;">Rendimento col passare della serata</h3>
+  <div class="panel" style="margin-bottom:12px;">
+    <div id="sessionSummary" style="font-size:13px; line-height:1.6;"></div>
+  </div>
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="table-wrap">
+      <table id="sessionPosTable" class="responsive-table">
+        <thead><tr>
+          <th>Partita n.</th><th>Volte giocata</th><th>Gol fatti</th><th>Gol subiti</th>
+          <th>Punti a partita</th><th>Andamento</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div style="font-size:12px; color:var(--muted); margin-top:10px;">
+      Il campione si assottiglia man mano che si va avanti: poche serate arrivano alla settima partita,
+      quindi le ultime righe vanno lette con prudenza. La stanchezza è solo una delle spiegazioni
+      possibili — a fine serata cambiano anche gli avversari e può cambiare chi resta in campo.
+    </div>
+  </div>
+
+  <h3 style="margin:22px 0 10px; font-size:16px;">Le serate</h3>
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="table-wrap">
+      <table id="sessionListTable" class="responsive-table">
+        <thead><tr><th>Serata</th><th>Partite</th><th>Bilancio</th><th>Gol</th><th>Punti a partita</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3 style="margin:22px 0 10px; font-size:16px;">Chi rende con chi</h3>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Per ogni coppia di giocatori si contano solo le partite in cui erano <strong style="color:var(--text);">entrambi
+      in campo</strong>, e si guarda come è andata alla squadra. È una fotografia, non una spiegazione:
+      due giocatori che compaiono spesso insieme condividono anche tutto il resto — gli altri compagni,
+      gli avversari, l'ora della notte. Serve a farsi venire domande, non a dare colpe.
+    </div>
+  </div>
+  <div class="panel">
+    <div class="lb-controls" style="margin-bottom:10px;">
+      <span style="font-size:12px; color:var(--muted);">Minimo partite insieme:</span>
+      <div class="filter-bar" id="pairMinFilters" style="display:inline-flex;"></div>
+    </div>
+    <div class="table-wrap">
+      <table id="pairsTable" class="responsive-table">
+        <thead><tr>
+          <th>Coppia</th><th>Insieme</th><th>Punti a partita</th><th>Gol fatti</th><th>Gol subiti</th><th>Differenza</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 <section id="avversari">
   <h2>Avversari <span class="h2-sub">— bilancio contro ogni club affrontato</span></h2>
   <div class="grid-cards" id="opponentCards" style="margin-bottom:16px;"></div>
@@ -1942,6 +2010,164 @@ function rankGroup(pool){
   draw();
 })();
 
+// ---- Analisi delle serate ----
+// Due partite appartengono alla stessa sessione se distano meno di questo intervallo.
+// Le serate osservate durano 1-3 ore con 15-25 minuti tra una partita e l'altra, quindi
+// tre ore separano bene una sessione dall'altra senza spezzare quelle lunghe.
+const SESSION_GAP_MS = 3 * 3600 * 1000;
+
+function punti(m){
+  if(m.goals_for > m.goals_against) return 3;
+  if(m.goals_for === m.goals_against) return 1;
+  return 0;
+}
+
+function buildSessions(){
+  const ordinate = [...(DATA.matches || [])]
+    .filter(m => m.played_at)
+    .sort((a, b) => new Date(a.played_at) - new Date(b.played_at));
+  const sessioni = [];
+  ordinate.forEach(m => {
+    const corrente = sessioni[sessioni.length - 1];
+    const precedente = corrente && corrente[corrente.length - 1];
+    if(precedente && (new Date(m.played_at) - new Date(precedente.played_at)) <= SESSION_GAP_MS){
+      corrente.push(m);
+    } else {
+      sessioni.push([m]);
+    }
+  });
+  return sessioni;
+}
+
+(function renderSessioni(){
+  const posBody = document.querySelector("#sessionPosTable tbody");
+  if(!posBody) return;
+  const sessioni = buildSessions();
+
+  // --- rendimento in base alla posizione nella serata ---
+  const perPosizione = new Map();
+  sessioni.forEach(s => s.forEach((m, i) => {
+    const k = i + 1;
+    if(!perPosizione.has(k)) perPosizione.set(k, { n:0, gf:0, ga:0, pt:0 });
+    const a = perPosizione.get(k);
+    a.n++; a.gf += m.goals_for || 0; a.ga += m.goals_against || 0; a.pt += punti(m);
+  }));
+  const posizioni = [...perPosizione.entries()].sort((a, b) => a[0] - b[0]);
+  const maxPunti = Math.max(1, ...posizioni.map(([, a]) => a.pt / a.n));
+
+  posBody.innerHTML = posizioni.map(([k, a]) => {
+    const pp = a.pt / a.n;
+    const largh = Math.round((pp / 3) * 100);
+    const scarso = a.n < 3;
+    return `<tr>
+      <td data-label="Partita n.">${k}ª</td>
+      <td data-label="Volte giocata">${a.n}${scarso ? ` <span class="pos-badge" title="Campione troppo piccolo per trarne conclusioni">poche</span>` : ""}</td>
+      <td data-label="Gol fatti">${(a.gf / a.n).toFixed(2)}</td>
+      <td data-label="Gol subiti">${(a.ga / a.n).toFixed(2)}</td>
+      <td data-label="Punti a partita"><strong>${pp.toFixed(2)}</strong></td>
+      <td data-label="Andamento">
+        <div style="background:var(--panel-2,rgba(255,255,255,.06)); border-radius:4px; height:8px; width:100%; min-width:60px;">
+          <div style="width:${largh}%; height:8px; border-radius:4px; background:var(--accent);"></div>
+        </div>
+      </td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty">Nessuna partita archiviata.</td></tr>`;
+
+  // --- confronto inizio / fine serata ---
+  const somma = (filtro) => posizioni.filter(([k]) => filtro(k))
+    .reduce((acc, [, a]) => ({ n:acc.n+a.n, gf:acc.gf+a.gf, ga:acc.ga+a.ga, pt:acc.pt+a.pt }), {n:0,gf:0,ga:0,pt:0});
+  const inizio = somma(k => k <= 3);
+  const fine = somma(k => k >= 5);
+  const el = document.getElementById("sessionSummary");
+  if(inizio.n && fine.n){
+    const diff = (fine.pt / fine.n) - (inizio.pt / inizio.n);
+    const verso = diff < -0.1 ? "cala" : (diff > 0.1 ? "migliora" : "resta stabile");
+    el.innerHTML =
+      `<strong>Prime 3 partite della serata</strong> (${inizio.n} giocate): `
+      + `<strong style="color:var(--accent);">${(inizio.pt/inizio.n).toFixed(2)}</strong> punti a partita, `
+      + `${(inizio.gf/inizio.n).toFixed(2)} gol fatti e ${(inizio.ga/inizio.n).toFixed(2)} subiti.<br>`
+      + `<strong>Dalla quinta in poi</strong> (${fine.n} giocate): `
+      + `<strong style="color:var(--accent);">${(fine.pt/fine.n).toFixed(2)}</strong> punti a partita, `
+      + `${(fine.gf/fine.n).toFixed(2)} gol fatti e ${(fine.ga/fine.n).toFixed(2)} subiti.<br><br>`
+      + `Il rendimento ${verso} di <strong>${Math.abs(diff).toFixed(2)}</strong> punti a partita. `
+      + (Math.abs((fine.gf/fine.n) - (inizio.gf/inizio.n)) < 0.5
+          ? `I gol fatti restano praticamente identici: quello che cambia non è l'attacco.` : ``);
+  } else {
+    el.innerHTML = `<span class="empty">Servono più serate archiviate per confrontare inizio e fine.</span>`;
+  }
+
+  // --- elenco delle serate ---
+  const listBody = document.querySelector("#sessionListTable tbody");
+  listBody.innerHTML = [...sessioni].reverse().map(s => {
+    const v = s.filter(m => m.goals_for > m.goals_against).length;
+    const p = s.filter(m => m.goals_for === m.goals_against).length;
+    const sc = s.length - v - p;
+    const pt = s.reduce((a, m) => a + punti(m), 0);
+    const gf = s.reduce((a, m) => a + (m.goals_for || 0), 0);
+    const ga = s.reduce((a, m) => a + (m.goals_against || 0), 0);
+    const d = new Date(s[0].played_at);
+    return `<tr>
+      <td data-label="Serata">${d.toLocaleDateString("it-IT", { day:"2-digit", month:"short" })} · ${d.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" })}</td>
+      <td data-label="Partite">${s.length}</td>
+      <td data-label="Bilancio">${v}V ${p}P ${sc}S</td>
+      <td data-label="Gol">${gf}-${ga}</td>
+      <td data-label="Punti a partita">${(pt / s.length).toFixed(2)}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="5" class="empty">Nessuna serata archiviata.</td></tr>`;
+})();
+
+// ---- Chi rende con chi ----
+(function renderCoppie(){
+  const body = document.querySelector("#pairsTable tbody");
+  const filtri = document.getElementById("pairMinFilters");
+  if(!body) return;
+
+  const inRosa = new Set((DATA.roster || []).map(r => r.player_name));
+  const risultato = new Map((DATA.matches || []).map(m => [m.match_id, m]));
+  const coppie = new Map();
+
+  (DATA.matches || []).forEach(m => {
+    // Set: la stessa persona non deve poter formare coppia con se stessa se per
+    // qualche motivo comparisse due volte nella stessa partita.
+    const presenti = [...new Set((DATA.matchPlayers[m.match_id] || [])
+      .map(p => p.player_name).filter(n => inRosa.has(n)))].sort();
+    for(let i = 0; i < presenti.length; i++){
+      for(let j = i + 1; j < presenti.length; j++){
+        const k = presenti[i] + " | " + presenti[j];
+        if(!coppie.has(k)) coppie.set(k, { a:presenti[i], b:presenti[j], n:0, pt:0, gf:0, ga:0 });
+        const c = coppie.get(k);
+        c.n++; c.pt += punti(m); c.gf += m.goals_for || 0; c.ga += m.goals_against || 0;
+      }
+    }
+  });
+
+  const OPZIONI = [5, 10, 15, 20];
+  let minimo = 10;
+
+  function disegna(){
+    filtri.innerHTML = OPZIONI.map(n =>
+      `<span class="filter-btn ${n === minimo ? "active" : ""}" data-min="${n}">${n}</span>`).join("");
+    filtri.querySelectorAll(".filter-btn").forEach(b =>
+      b.addEventListener("click", () => { minimo = Number(b.dataset.min); disegna(); }));
+
+    const righe = [...coppie.values()].filter(c => c.n >= minimo)
+      .sort((x, y) => (y.pt / y.n) - (x.pt / x.n));
+    body.innerHTML = righe.length ? righe.map(c => {
+      const pp = c.pt / c.n, diff = (c.gf - c.ga) / c.n;
+      return `<tr>
+        <td data-label="Coppia"><span class="player-link" data-player="${c.a}">${c.a}</span> + <span class="player-link" data-player="${c.b}">${c.b}</span></td>
+        <td data-label="Insieme">${c.n}</td>
+        <td data-label="Punti a partita"><strong>${pp.toFixed(2)}</strong></td>
+        <td data-label="Gol fatti">${(c.gf / c.n).toFixed(2)}</td>
+        <td data-label="Gol subiti">${(c.ga / c.n).toFixed(2)}</td>
+        <td data-label="Differenza" style="color:${diff >= 0 ? "var(--ok,#4ade80)" : "var(--accent)"};">${diff >= 0 ? "+" : ""}${diff.toFixed(2)}</td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="6" class="empty">Nessuna coppia con almeno ${minimo} partite insieme.</td></tr>`;
+  }
+
+  disegna();
+})();
+
 // ---- Formazione tipo: modulo fisso 3-4-1-2, portiere sempre libero ----
 // Ogni ruolo di movimento (3 difensori, 4 centrocampisti, 1 trequartista, 2 attaccanti)
 // viene SEMPRE riempito con un giocatore reale: prima si usano i dati di partita specifici
@@ -2619,7 +2845,7 @@ const PAGE_MAP = {
   overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
   rosa: "rosa", premi: "premi", crescita: "crescita", classifiche: "classifiche",
   forza: "forza", ruoli: "ruoli", formazione: "formazione", statsdivertenti: "statsdivertenti", h2h: "h2h",
-  riepilogo: "riepilogo", avversari: "avversari", partite: "partite",
+  riepilogo: "riepilogo", sessioni: "sessioni", avversari: "avversari", partite: "partite",
 };
 const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
@@ -2633,6 +2859,7 @@ const PAGES = [
   { key: "statsdivertenti", icon: "🎉", label: "Stats divertenti" },
   { key: "h2h", icon: "⚔️", label: "Testa a testa" },
   { key: "riepilogo", icon: "🎁", label: "Riepilogo" },
+  { key: "sessioni", icon: "🌙", label: "Analisi serate" },
   { key: "avversari", icon: "🆚", label: "Avversari" },
   { key: "partite", icon: "📅", label: "Partite" },
 ].filter(p => Object.values(PAGE_MAP).includes(p.key));
