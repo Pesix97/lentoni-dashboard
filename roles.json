@@ -85,6 +85,23 @@
       "etichetta_ea": "forward"
     }
   },
+  "_ex_giocatori": [
+    "Chi non fa piu' parte del gruppo. Viene escluso da TUTTA la dashboard: rosa,",
+    "classifiche, premi, indice di forza, formazione tipo.",
+    "",
+    "Serve una lista esplicita perche' EA continua a restituirli tra i membri del club",
+    "anche dopo che hanno smesso di giocare: cancellarne le righe dal database non",
+    "servirebbe, l'aggiornamento successivo le riscriverebbe identiche.",
+    "",
+    "Non e' una cancellazione: i dati restano nell'archivio e togliendo un nome da questa",
+    "lista il giocatore ricompare com'era."
+  ],
+  "ex_giocatori": [
+    "VRT_Lo_Ziio_87",
+    "CinghioKart7",
+    "VRT_ernestino",
+    "Upipp"
+  ],
   "_eccezioni_partita": [
     "EA scrive 'midfielder' sia per un COC sia per un CC: sono la stessa etichetta e non c'e'",
     "modo di distinguerle. Per un giocatore che di solito fa il COC, tutte le sue partite da",
@@ -119,9 +136,9 @@
     }
   ],
   "_da_assegnare": [
-    "Questi sono in rosa (>=30 partite) ma non hanno ancora un ruolo assegnato.",
-    "Non hanno partite archiviate, quindi al momento non compaiono nelle classifiche per ruolo:",
-    "ASRT_Filiphil23, VRT_Lo_Ziio_87, CinghioKart7"
+    "In rosa (>=30 partite) ma senza un ruolo assegnato, e senza partite archiviate:",
+    "al momento non compaiono nelle classifiche per reparto.",
+    "ASRT_Filiphil23"
   ],
   "_etichetta_ea": [
     "'etichetta_ea' e' l'etichetta che EA usa per questo giocatore quando gioca nel suo ruolo",

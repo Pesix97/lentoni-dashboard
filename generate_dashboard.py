@@ -1012,7 +1012,15 @@ const DATA = __DATA_JSON__;
 // rappresentativo (es. 2 partite giocate falsano medie e statistiche). Il filtro è
 // applicato una sola volta qui, alla fonte, così nessuna sezione può più mostrarli.
 const LEADERBOARD_MIN_GAMES = __MIN_GAMES__;
-DATA.roster = (DATA.roster || []).filter(r => r.games_played >= LEADERBOARD_MIN_GAMES);
+
+// Chi ha lasciato il gruppo. EA continua a restituirlo tra i membri del club, quindi
+// l'unico modo di toglierlo dalla dashboard e' escluderlo qui, alla fonte: da questo
+// punto in poi nessuna sezione lo vede. I suoi dati restano nell'archivio.
+const EX_GIOCATORI = new Set((DATA.roleGroups && DATA.roleGroups.exPlayers) || []);
+
+DATA.roster = (DATA.roster || [])
+  .filter(r => r.games_played >= LEADERBOARD_MIN_GAMES)
+  .filter(r => !EX_GIOCATORI.has(r.player_name));
 
 // ---- Ruolo effettivo: la posizione occupata davvero in campo ----
 // EA espone due cose diverse: "favoritePosition" (il ruolo dichiarato/archetipo del
@@ -2473,7 +2481,9 @@ function computeRoleScores(){
 
 // Giocatori che non fanno più parte del club: esclusi da tutti i suggerimenti di formazione
 // (ma restano visibili nelle altre sezioni della dashboard, es. Indice di Forza, che sono storiche).
-const EXCLUDED_FROM_FORMATION = new Set(["VRT_ernestino", "VRT_Lo_Ziio_87", "CinghioKart7", "Upipp"]);
+// Gli ex giocatori sono gia' fuori da DATA.roster (vedi EX_GIOCATORI in cima): qui resta
+// solo il riferimento, per non avere due elenchi da tenere allineati.
+const EXCLUDED_FROM_FORMATION = EX_GIOCATORI;
 
 function computeOutfieldLineup(){
   const roster = (DATA.roster || []).filter(r => !EXCLUDED_FROM_FORMATION.has(r.player_name));
@@ -3221,6 +3231,7 @@ DEFAULT_ROLE_GROUPS = {
               "forward": "ATTACCANTI", "goalkeeper": "PORTIERI"},
     "players": {},
     "eaLabels": {},
+    "exPlayers": [],
     "exceptions": {},
 }
 
@@ -3282,6 +3293,7 @@ def _load_role_groups(script_dir=None):
         print(f"  attenzione: gruppi non validi in {path.name}, ignorati: {', '.join(ignored)}")
     cfg["players"] = cleaned
     cfg["eaLabels"] = etichette
+    cfg["exPlayers"] = [n for n in (raw.get("ex_giocatori") or []) if isinstance(n, str)]
 
     # Eccezioni per singola partita. Servono dove l'etichetta EA e' ambigua: EA scrive
     # "midfielder" sia per un COC sia per un CC, quindi per un giocatore schierato COC di
