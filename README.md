@@ -1,1 +1,157 @@
-# lentoni-dashboard
+# Dashboard club "Lentoni" (EA FC, PS5)
+
+Statistiche del club Lentoni (clubId `2703620`, piattaforma `common-gen5` = PS5),
+raccolte dalle API pubbliche non ufficiali di EA e pubblicate come pagina web.
+
+**Dashboard online:** https://pesix97.github.io/lentoni-dashboard/
+
+Tutto si aggiorna da solo, **ogni ora, sui server di GitHub**. Non serve tenere acceso
+nessun computer.
+
+---
+
+## Come funziona
+
+Ad ogni esecuzione, il workflow `.github/workflows/aggiorna-dashboard.yml`:
+
+1. scarica i dati del club da proclubstracker.com;
+2. li scompone nei file che la pipeline si aspetta (`raw/`, non versionati);
+3. `ingest.py` li scrive nel database `lentoni.db`;
+4. `avversari.py` raccoglie il livello dei club affrontati (uno alla volta, senza fretta);
+5. `generate_dashboard.py` rigenera `index.html`;
+6. se qualcosa è cambiato, committa. Altrimenti non tocca nulla.
+
+### Perché proclubstracker e non EA direttamente
+
+Le API di EA rispondono **403 Access Denied** alle richieste che arrivano da un data
+center — verificato il 20/08/2026 da un runner GitHub. proclubstracker espone gli stessi
+identici dati, nella stessa forma, e risponde senza problemi. In compenso è il contrario
+in locale: `proclubstracker.com` non è leggibile senza un browser che esegua JavaScript.
+
+### Perché ogni ora
+
+EA rende disponibili solo le **ultime 10 partite**. Quelle giocate oltre quel limite tra
+un aggiornamento e l'altro spariscono per sempre: non esistono API per recuperarle.
+
+Due fatti misurati il 21/08/2026 rendono la cadenza oraria necessaria:
+
+- **EA pubblica i risultati con ore di ritardo.** Una sessione finita alle 02:10 era
+  ancora invisibile alle 03:00, e completa solo dopo le 05:00.
+- **La pianificazione di GitHub non è puntuale.** Due esecuzioni sono partite con ~60
+  minuti di ritardo e una è stata saltata del tutto: comportamento noto per i repository
+  pubblici.
+
+Girare spesso non costa nulla perché senza dati nuovi il database non cambia e non viene
+prodotto alcun commit.
+
+---
+
+## File
+
+| File | Cosa fa |
+| --- | --- |
+| `index.html` | La dashboard pubblicata. **Generata**, non modificarla a mano. |
+| `lentoni.db` | Database SQLite con tutto lo storico. |
+| `ingest.py` | Scrive i JSON scaricati nel database. Nessuna chiamata di rete. |
+| `avversari.py` | Raccoglie skill rating e record dei club affrontati. |
+| `generate_dashboard.py` | Rigenera `index.html` a partire dal database. |
+| `roles.json` | Mappa dei ruoli reali dei giocatori, scritta a mano. |
+| `raw/club_search.json` | Unica fonte di `platform` e `region_id`. Il resto di `raw/` non è versionato. |
+
+---
+
+## roles.json — la mappa dei ruoli
+
+EA conosce solo quattro etichette (`goalkeeper`, `defender`, `midfielder`, `forward`) e
+**non sa distinguere un COC da un CC**: per lei sono entrambi "midfielder". Il ruolo reale
+può quindi arrivare solo da un file mantenuto a mano.
+
+Il gruppo indicato in `giocatori` è il ruolo **abituale**. Per la singola partita vince
+invece il dato EA: se qualcuno viene schierato in una posizione diversa dalla sua, quella
+partita conta nel reparto in cui ha davvero giocato.
+
+Per i casi che EA non può distinguere esiste `eccezioni_partita`: una riga per partita,
+e l'eccezione batte qualsiasi deduzione automatica.
+
+```json
+{ "match_id": "935736622260364", "quando": "04/08 22:47 CansaditosFC",
+  "giocatore": "Pesix_97", "gruppo": "CENTROCAMPISTI" }
+```
+
+Modificare `roles.json` è sicuro: al giro successivo la dashboard si ricalcola **su tutto
+lo storico**, non solo sulle partite future.
+
+---
+
+## Struttura del database
+
+- `club_info` — nome, piattaforma, stemma, kit del club.
+- `club_stats_history` — uno snapshot per ogni cambiamento reale (W/L/T, gol, skill rating,
+  piazzamenti). Le esecuzioni che non trovano novità non lasciano traccia.
+- `member_stats_history` — stessa logica, per ogni giocatore.
+- `matches` — una riga per partita, deduplicata su `match_id`.
+- `match_player_stats` — statistiche per giocatore per partita.
+- `opponent_clubs` — livello dei club affrontati.
+
+`ingest.py` unifica automaticamente i giocatori con più account: vedi `NAME_ALIASES` in
+cima al file (attualmente "Pinosix97" confluisce in "Pesix_97").
+
+---
+
+## Backup
+
+**La cronologia di git è il backup.** Ogni commit di `lentoni.db` è uno stato completo e
+recuperabile:
+
+```bash
+git log --oneline -- lentoni.db     # trova il commit buono
+git show <commit>:lentoni.db > lentoni.db
+```
+
+Non esiste una cartella `backups/`: raddoppierebbe lo spazio occupato senza aggiungere
+niente che git non faccia già.
+
+---
+
+## Salute dell'archivio
+
+EA tiene un contatore cumulativo delle partite giocate che non perde mai nulla. La
+differenza tra quel numero e le partite effettivamente archiviate dice **quante ne sono
+andate perse**. La dashboard lo mostra nella sezione *Partite*, e il workflow lo scrive
+nel log ad ogni esecuzione.
+
+Un divario nelle ultime ore è normale: EA pubblica in ritardo. Un divario che resta anche
+il giorno dopo significa che quelle partite non sono più recuperabili.
+
+Storicamente ne sono state perse 35, quasi tutte tra il 7 e il 19 agosto 2026, quando
+l'aggiornamento girava una sola volta al giorno.
+
+---
+
+## Lavorare in locale
+
+Gli script non richiedono dipendenze esterne, solo Python 3:
+
+```bash
+python3 ingest.py --raw-dir raw --db lentoni.db
+python3 avversari.py --db lentoni.db --max-richieste 15
+python3 generate_dashboard.py --db lentoni.db --out index.html
+```
+
+Per modificare la dashboard conviene lavorare su `generate_dashboard.py` e lasciare che
+sia il workflow a rigenerare `index.html`: un `index.html` modificato a mano viene
+sovrascritto al primo aggiornamento.
+
+---
+
+## Limiti da tenere presente
+
+- Endpoint non documentati: possono cambiare o sparire senza preavviso.
+- Solo le ultime 10 partite sono recuperabili, e non esiste modo di paginare all'indietro
+  (testati `offset`, `page`, `startIndex`, `before`, `beforeTimestamp`: tutti ignorati).
+- EA elenca solo i giocatori **umani** di ogni partita, tipicamente 5 o 6: il resto sono CPU.
+- Le partite abbandonate o interrotte da disconnessione non vengono conteggiate da EA.
+- Non esistono dati su posizione in campo, minuti dei gol o errori difensivi: analisi che
+  richiedono quel livello di dettaglio non sono realizzabili.
+- Uso non ufficiale delle API EA: fuori dai termini di servizio in senso stretto, anche se
+  è la stessa tecnica usata da proclubstracker e simili.
