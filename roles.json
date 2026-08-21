@@ -14,9 +14,13 @@
     "gruppo dedotto dall'etichetta EA ed e' segnalato come 'da assegnare' nella dashboard.",
     "I gruppi validi sono quelli elencati in 'ordine'."
   ],
-
-  "ordine": ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI", "PORTIERI"],
-
+  "ordine": [
+    "DIFENSORI",
+    "CENTROCAMPISTI",
+    "ESTERNI",
+    "ATTACCANTI",
+    "PORTIERI"
+  ],
   "etichette": {
     "DIFENSORI": "Difensori",
     "CENTROCAMPISTI": "Centrocampisti",
@@ -24,7 +28,6 @@
     "ATTACCANTI": "Attaccanti",
     "PORTIERI": "Portieri"
   },
-
   "_macro_ea": "Come tradurre l'etichetta EA di una singola partita quando differisce dal ruolo abituale.",
   "macro_ea": {
     "defender": "DIFENSORI",
@@ -32,22 +35,56 @@
     "forward": "ATTACCANTI",
     "goalkeeper": "PORTIERI"
   },
-
   "giocatori": {
-    "ilmille": "CENTROCAMPISTI",
-    "gio05596": "CENTROCAMPISTI",
-    "Ocirne_1197": "CENTROCAMPISTI",
-    "Jysmu": "ESTERNI",
-    "Smilzo_87": "ESTERNI",
-    "Maverik_44_": "ESTERNI",
-    "Pesix_97": "ATTACCANTI",
-    "ktm-008": "ATTACCANTI",
-    "FFLI_Adriano": "ATTACCANTI",
-    "Ironman-6-6": "ATTACCANTI",
-    "domenicocasaburi": "ATTACCANTI",
-    "eredes": "ATTACCANTI"
+    "ilmille": {
+      "gruppo": "CENTROCAMPISTI",
+      "etichetta_ea": "midfielder"
+    },
+    "gio05596": {
+      "gruppo": "CENTROCAMPISTI",
+      "etichetta_ea": "midfielder"
+    },
+    "Ocirne_1197": {
+      "gruppo": "CENTROCAMPISTI",
+      "etichetta_ea": "midfielder"
+    },
+    "Jysmu": {
+      "gruppo": "ESTERNI",
+      "etichetta_ea": "midfielder"
+    },
+    "Smilzo_87": {
+      "gruppo": "ESTERNI",
+      "etichetta_ea": "midfielder"
+    },
+    "Maverik_44_": {
+      "gruppo": "ESTERNI",
+      "etichetta_ea": "midfielder"
+    },
+    "Pesix_97": {
+      "gruppo": "ATTACCANTI",
+      "etichetta_ea": "midfielder"
+    },
+    "ktm-008": {
+      "gruppo": "ATTACCANTI",
+      "etichetta_ea": "forward"
+    },
+    "FFLI_Adriano": {
+      "gruppo": "ATTACCANTI",
+      "etichetta_ea": "forward"
+    },
+    "Ironman-6-6": {
+      "gruppo": "ATTACCANTI",
+      "etichetta_ea": "forward"
+    },
+    "domenicocasaburi": {
+      "gruppo": "ATTACCANTI",
+      "etichetta_ea": "forward"
+    },
+    "eredes": {
+      "gruppo": "ATTACCANTI",
+      "etichetta_ea": "forward"
+    }
   },
-
   "_eccezioni_partita": [
     "EA scrive 'midfielder' sia per un COC sia per un CC: sono la stessa etichetta e non c'e'",
     "modo di distinguerle. Per un giocatore che di solito fa il COC, tutte le sue partite da",
@@ -56,10 +93,20 @@
     "Il campo 'quando' serve solo a te per rileggere la lista, il codice usa 'match_id'."
   ],
   "eccezioni_partita": [],
-
   "_da_assegnare": [
     "Questi sono in rosa (>=30 partite) ma non hanno ancora un ruolo assegnato.",
     "Non hanno partite archiviate, quindi al momento non compaiono nelle classifiche per ruolo:",
     "ASRT_Filiphil23, VRT_Lo_Ziio_87, CinghioKart7"
+  ],
+  "_etichetta_ea": [
+    "'etichetta_ea' e' l'etichetta che EA usa per questo giocatore quando gioca nel suo ruolo",
+    "abituale. Serve perche' EA non distingue un COC da un CC: entrambi risultano 'midfielder'.",
+    "",
+    "Quando l'etichetta di una partita e' DIVERSA da questa, quella partita viene conteggiata",
+    "nel reparto corrispondente all'etichetta EA: e' il caso di chi gioca fuori ruolo.",
+    "",
+    "Va dichiarata esplicitamente e non dedotta: dedurla dalla posizione piu' frequente rendeva",
+    "instabile lo storico, perche' bastava una partita per riclassificare all'indietro anche",
+    "quelle vecchie. Valori ammessi: goalkeeper, defender, midfielder, forward."
   ]
 }

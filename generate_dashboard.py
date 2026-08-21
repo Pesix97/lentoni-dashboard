@@ -1960,6 +1960,7 @@ const ROLE_CFG = DATA.roleGroups || {};
 const GROUP_ORDER = ROLE_CFG.order || ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI", "PORTIERI"];
 const GROUP_LABELS = ROLE_CFG.labels || {};
 const GROUP_OF_PLAYER = ROLE_CFG.players || {};
+const EA_LABEL_OF_PLAYER = ROLE_CFG.eaLabels || {};
 const MACRO_TO_GROUP = ROLE_CFG.macro || {};
 const ROLE_EXCEPTIONS = ROLE_CFG.exceptions || {};
 const GROUP_ICONS = { DIFENSORI: "🛡️", CENTROCAMPISTI: "🎛️", ESTERNI: "🏃", ATTACCANTI: "🎯", PORTIERI: "🧤" };
@@ -1972,12 +1973,21 @@ function mainPosOf(name){
 // Gruppo di UNA singola partita. Se l'etichetta EA di quella partita coincide con la posizione
 // abituale del giocatore vale il ruolo scritto a mano (e' li' che serve: EA direbbe "midfielder"
 // anche per un COC). Se invece differisce, ha giocato fuori ruolo e conta il dato EA.
+// Qual e' l'etichetta che EA usa normalmente per questo giocatore quando gioca nel suo
+// ruolo. Dedurla dalla posizione piu' frequente sembrava comodo, ma rendeva lo storico
+// instabile: domenicocasaburi aveva 15 partite come "midfielder" e 15 come "forward", e
+// una sola partita in piu' avrebbe riclassificato all'indietro tutte le altre. Quando
+// l'etichetta e' dichiarata in roles.json il passato non si muove piu'.
+function etichettaAttesa(name){
+  return EA_LABEL_OF_PLAYER[name] || mainPosOf(name);
+}
+
 function groupForMatch(name, pos){
   const manual = GROUP_OF_PLAYER[name] || null;
   const fromEa = MACRO_TO_GROUP[pos] || null;
   if(!manual) return fromEa;
-  const main = mainPosOf(name);
-  if(pos && main && pos !== main) return fromEa || manual;
+  const attesa = etichettaAttesa(name);
+  if(pos && attesa && pos !== attesa) return fromEa || manual;
   return manual;
 }
 
@@ -3122,11 +3132,22 @@ DEFAULT_ROLE_GROUPS = {
     "macro": {"defender": "DIFENSORI", "midfielder": "CENTROCAMPISTI",
               "forward": "ATTACCANTI", "goalkeeper": "PORTIERI"},
     "players": {},
+    "eaLabels": {},
     "exceptions": {},
 }
 
 
 def load_role_groups(script_dir=None):
+    """Wrapper difensivo: roles.json e' scritto a mano, un refuso non deve fermare tutto."""
+    try:
+        return _load_role_groups(script_dir)
+    except Exception as exc:  # noqa: BLE001 - qualsiasi errore qui e' preferibile a non pubblicare
+        print(f"  attenzione: roles.json non interpretabile ({exc.__class__.__name__}: {exc}), "
+              f"uso i ruoli EA come ripiego")
+        return dict(DEFAULT_ROLE_GROUPS)
+
+
+def _load_role_groups(script_dir=None):
     """Legge roles.json (mappa ruoli scritta a mano) accanto a questo script.
 
     EA espone solo quattro etichette e non distingue un COC da un CC, quindi il ruolo
@@ -3149,15 +3170,30 @@ def load_role_groups(script_dir=None):
     cfg["macro"] = raw.get("macro_ea") or cfg["macro"]
     players = raw.get("giocatori") or {}
     valid = set(cfg["order"])
-    cleaned, ignored = {}, []
-    for name, group in players.items():
-        if group in valid:
-            cleaned[name] = group
+    macro_valide = set(cfg["macro"].keys())
+    cleaned, etichette, ignored = {}, {}, []
+    for name, valore in players.items():
+        # Due forme accettate, cosi' il file resta leggibile anche a mano:
+        #   "ilmille": "CENTROCAMPISTI"
+        #   "Pesix_97": {"gruppo": "ATTACCANTI", "etichetta_ea": "midfielder"}
+        if isinstance(valore, dict):
+            group = valore.get("gruppo")
+            et = valore.get("etichetta_ea")
         else:
+            group, et = valore, None
+        if group not in valid:
             ignored.append(f"{name}={group}")
+            continue
+        cleaned[name] = group
+        if et:
+            if et in macro_valide:
+                etichette[name] = et
+            else:
+                ignored.append(f"{name}.etichetta_ea={et}")
     if ignored:
         print(f"  attenzione: gruppi non validi in {path.name}, ignorati: {', '.join(ignored)}")
     cfg["players"] = cleaned
+    cfg["eaLabels"] = etichette
 
     # Eccezioni per singola partita. Servono dove l'etichetta EA e' ambigua: EA scrive
     # "midfielder" sia per un COC sia per un CC, quindi per un giocatore schierato COC di
