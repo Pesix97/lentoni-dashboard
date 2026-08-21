@@ -27,6 +27,7 @@ on:
       - 'roles.json'
       - 'generate_dashboard.py'
       - 'ingest.py'
+      - 'avversari.py'
       - 'raw/club_search.json'
 
 # Due esecuzioni sovrapposte scriverebbero sullo stesso database: meglio accodarle.
@@ -76,6 +77,13 @@ jobs:
 
       - name: Aggiorna il database
         run: python3 ingest.py --raw-dir raw --db lentoni.db
+
+      # Il livello dei club affrontati: una chiamata per club, una sola volta, poi
+      # rinfrescata di rado. Se fallisce non deve fermare l'aggiornamento della
+      # dashboard, che e' la cosa importante: si riprova al giro dopo.
+      - name: Aggiorna i dati dei club affrontati
+        continue-on-error: true
+        run: python3 avversari.py --db lentoni.db --max-richieste 15
 
       - name: Rigenera la dashboard
         run: |

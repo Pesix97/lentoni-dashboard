@@ -90,7 +90,7 @@ def build_data(db_path):
 
     matches = fetch_all(
         cur,
-        """SELECT match_id, match_type, played_at, ts, opponent_name,
+        """SELECT match_id, match_type, played_at, ts, opponent_club_id, opponent_name,
                   goals_for, goals_against, win, loss, tie
            FROM matches ORDER BY ts DESC""",
     )
@@ -120,6 +120,17 @@ def build_data(db_path):
             r.pop("_pref", None)
         match_players[m["match_id"]] = rows
 
+    salute = calcola_salute_archivio(cur)
+
+    # La tabella puo' non esistere ancora: avversari.py la crea alla prima esecuzione.
+    try:
+        avversari = {
+            str(r["club_id"]): dict(r)
+            for r in cur.execute("SELECT * FROM opponent_clubs").fetchall()
+        }
+    except sqlite3.OperationalError:
+        avversari = {}
+
     con.close()
 
     return {
@@ -130,6 +141,62 @@ def build_data(db_path):
         "memberHistory": member_history,
         "matches": matches,
         "matchPlayers": match_players,
+        "saluteArchivio": salute,
+        "avversari": avversari,
+    }
+
+
+def calcola_salute_archivio(cur):
+    """Quante partite EA dice che il club ha giocato, contro quante ne abbiamo archiviate.
+
+    EA espone il dettaglio per giocatore solo delle ultime 10 partite: se tra un
+    aggiornamento e l'altro se ne giocano di piu', quelle in eccesso spariscono per
+    sempre. Il contatore "gamesPlayed" invece e' cumulativo e non perde nulla, quindi
+    la differenza tra i due dice esattamente quante partite sono andate perse.
+
+    Il divario recente e' quello che conta: qualche partita mancante nelle ultime ore
+    e' normale (EA pubblica i risultati con ore di ritardo), mentre un divario che
+    resta anche dopo un giorno significa che le abbiamo perse davvero.
+    """
+    snaps = cur.execute(
+        "SELECT fetched_at, games_played FROM club_stats_history "
+        "WHERE games_played IS NOT NULL ORDER BY fetched_at"
+    ).fetchall()
+    totale_archiviate = cur.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+    vuoto = {
+        "archiviate": totale_archiviate, "attese": None, "divario": None,
+        "divarioRecente": None, "daQuando": None, "giocateEA": None,
+    }
+    if len(snaps) < 2:
+        return vuoto
+
+    primo, ultimo = snaps[0], snaps[-1]
+    attese = (ultimo["games_played"] or 0) - (primo["games_played"] or 0)
+    archiviate_dopo = cur.execute(
+        "SELECT COUNT(*) FROM matches WHERE played_at >= ?", (primo["fetched_at"],)
+    ).fetchone()[0]
+
+    # Divario recente: ultime 48 ore, l'unico su cui si possa ancora intervenire.
+    limite = cur.execute(
+        "SELECT datetime(?, '-48 hours')", (ultimo["fetched_at"],)
+    ).fetchone()[0]
+    recenti = [r for r in snaps if r["fetched_at"] >= limite]
+    divario_recente = None
+    if len(recenti) >= 2:
+        attese_rec = (recenti[-1]["games_played"] or 0) - (recenti[0]["games_played"] or 0)
+        arch_rec = cur.execute(
+            "SELECT COUNT(*) FROM matches WHERE played_at >= ?", (recenti[0]["fetched_at"],)
+        ).fetchone()[0]
+        divario_recente = max(0, attese_rec - arch_rec)
+
+    return {
+        "archiviate": totale_archiviate,
+        "attese": attese,
+        "archiviateDaPrimoSnapshot": archiviate_dopo,
+        "divario": max(0, attese - archiviate_dopo),
+        "divarioRecente": divario_recente,
+        "daQuando": primo["fetched_at"],
+        "giocateEA": ultimo["games_played"],
     }
 
 
@@ -840,6 +907,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 <section id="avversari">
   <h2>Avversari <span class="h2-sub">— bilancio contro ogni club affrontato</span></h2>
+  <div class="panel" id="livelloAvversari" style="margin-bottom:16px;"></div>
   <div class="grid-cards" id="opponentCards" style="margin-bottom:16px;"></div>
   <div class="panel">
     <input type="text" class="filter" id="opponentFilter" placeholder="Filtra avversario...">
@@ -863,7 +931,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </section>
 
 <section id="partite">
-  <h2>Partite</h2>
+  <h2>Partite <span class="h2-sub">— storico costruito dagli aggiornamenti automatici</span></h2>
+  <div class="panel" id="salutePanel" style="margin-bottom:12px;"></div>
   <div class="panel">
     <div class="table-wrap">
       <table id="matchesTable" class="responsive-table">
@@ -1965,21 +2034,42 @@ function computeGroupScores(){
 // cambia il gruppo di confronto, quindi va ricalcolato ogni volta invece che filtrato dopo.
 function rankGroup(pool){
   if(pool.length === 0) return [];
-  function normalize(values){
-    const min = Math.min(...values), max = Math.max(...values);
-    if(max === min) return values.map(() => 0.5);
-    return values.map(v => (v - min) / (max - min));
+
+  // Una metrica su cui tutti hanno lo stesso valore non distingue nessuno. Normalizzarla
+  // darebbe 0.5 a testa, cioe' meta' del suo peso regalato a tutti: nei reparti dove
+  // nessuno ha premi MOTM questo gonfiava ogni punteggio di 7.5 punti su 100, rendendo
+  // i valori non confrontabili tra un reparto e l'altro. Qui invece la metrica viene
+  // esclusa e il suo peso ridistribuito sulle altre, in proporzione.
+  const METRICHE = [
+    { chiave: "rating",  peso: 0.40, valori: pool.map(a => a.ratingAve) },
+    { chiave: "contrib", peso: 0.20, valori: pool.map(a => a.contrib) },
+    { chiave: "motm",    peso: 0.15, valori: pool.map(a => a.motmRate) },
+    { chiave: "win",     peso: 0.10, valori: pool.map(a => a.winRate) },
+    { chiave: "tech",    peso: 0.10, valori: pool.map(a => a.techEff) },
+  ];
+  const disc = pool.map(a => a.redRate);
+  const haSpread = (v) => Math.max(...v) !== Math.min(...v);
+  const attive = METRICHE.filter(m => haSpread(m.valori));
+  const ignorate = METRICHE.filter(m => !haSpread(m.valori)).map(m => m.chiave);
+
+  if(attive.length === 0){
+    // Nessuna differenza tra i giocatori del reparto: qualsiasi punteggio sarebbe inventato.
+    return pool.map(a => ({ ...a, score: 0, metricheIgnorate: ignorate, nonDistinguibili: true }))
+               .sort((x, y) => y.games - x.games);
   }
-  const nRating  = normalize(pool.map(a => a.ratingAve));
-  const nContrib = normalize(pool.map(a => a.contrib));
-  const nMotm    = normalize(pool.map(a => a.motmRate));
-  const nWin     = normalize(pool.map(a => a.winRate));
-  const nTech    = normalize(pool.map(a => a.techEff));
-  const nDisc    = normalize(pool.map(a => a.redRate));
+
+  const pesoTotale = attive.reduce((t, m) => t + m.peso, 0);
+  const norm = (v) => {
+    const min = Math.min(...v), max = Math.max(...v);
+    return v.map(x => (x - min) / (max - min));
+  };
+  const normalizzate = attive.map(m => ({ peso: m.peso / pesoTotale * 0.95, valori: norm(m.valori) }));
+  const nDisc = haSpread(disc) ? norm(disc) : disc.map(() => 0);
+
   return pool.map((a, i) => ({ ...a,
+    metricheIgnorate: ignorate,
     score: Math.max(0, Math.min(100, 100 * (
-      0.40 * nRating[i] + 0.20 * nContrib[i] + 0.15 * nMotm[i] +
-      0.10 * nWin[i] + 0.10 * nTech[i] - 0.05 * nDisc[i]
+      normalizzate.reduce((t, m) => t + m.peso * m.valori[i], 0) - 0.05 * nDisc[i]
     ))),
   })).sort((x, y) => y.score - x.score);
 }
@@ -2030,11 +2120,20 @@ function rankGroup(pool){
         <td data-label="MOTM%">${a.motmRate.toFixed(0)}%</td>
         <td data-label="Win%">${a.winRate.toFixed(0)}%</td>
       </tr>`).join("");
+    const ignorate = (ranked[0] && ranked[0].metricheIgnorate) || [];
+    const ETICHETTE = { rating:"media voto", contrib:"gol+assist", motm:"MOTM", win:"% vittorie", tech:"efficienza tecnica" };
+    const notaIgnorate = ignorate.length
+      ? `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">In questo reparto
+         ${ignorate.map(k => ETICHETTE[k] || k).join(", ")} ${ignorate.length > 1 ? "non distinguono" : "non distingue"}
+         nessuno (tutti allo stesso valore): ${ignorate.length > 1 ? "sono state escluse" : "è stata esclusa"}
+         dal calcolo e il ${ignorate.length > 1 ? "loro peso è stato ridistribuito" : "suo peso è stato ridistribuito"}
+         sulle altre metriche.</div>`
+      : "";
     const soloNote = rankable ? "" :
       `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Un solo giocatore in questo reparto: l'indice è relativo ai pari ruolo, quindi non è calcolabile. Le statistiche qui sotto restano reali.</div>`;
     return `<div class="panel" style="margin-bottom:16px;">
       <h3 style="margin:0 0 10px; font-size:15px;">${icon} ${label} <span class="h2-sub">— ${ranked.length} ${ranked.length === 1 ? "giocatore" : "giocatori"}</span></h3>
-      ${soloNote}
+      ${notaIgnorate}${soloNote}
       <div class="table-wrap">
         <table class="responsive-table">
           <thead><tr><th>#</th><th>Giocatore</th><th>Indice</th><th>Partite nel ruolo</th><th>Gol</th><th>Assist</th><th>Media</th><th>G+A/partita</th><th>MOTM%</th><th>Win%</th></tr></thead>
@@ -2078,6 +2177,116 @@ function rankGroup(pool){
 
   renderFilters();
   draw();
+})();
+
+// ---- Livello degli avversari ----
+// Il dato della partita dice contro chi si e' giocato ma non quanto valesse: senza
+// questo, "perso 1-3" non distingue una sconfitta contro una corazzata da una contro
+// una squadra alla nostra portata. Lo skill rating dei club affrontati viene raccolto
+// a parte da avversari.py e confrontato col nostro attuale.
+const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario alla pari
+
+(function renderLivelloAvversari(){
+  const el = document.getElementById("livelloAvversari");
+  if(!el) return;
+  const avversari = DATA.avversari || {};
+  const nostro = Number((DATA.latest || {}).skill_rating) || null;
+  const conDati = (DATA.matches || []).filter(m =>
+    m.opponent_club_id && avversari[String(m.opponent_club_id)] &&
+    avversari[String(m.opponent_club_id)].skill_rating);
+
+  if(!nostro || conDati.length === 0){
+    el.innerHTML = `<div style="font-size:13px; color:var(--muted);">
+      Il livello degli avversari non è ancora disponibile: viene raccolto un club alla volta
+      dagli aggiornamenti automatici e comparirà qui man mano.</div>`;
+    return;
+  }
+
+  const fasce = [
+    { chiave:"forti",  etichetta:"Più forti di noi",  test:d => d >  SOGLIA_LIVELLO, colore:"var(--accent)" },
+    { chiave:"pari",   etichetta:"Al nostro livello", test:d => Math.abs(d) <= SOGLIA_LIVELLO, colore:"#facc15" },
+    { chiave:"deboli", etichetta:"Più deboli di noi", test:d => d < -SOGLIA_LIVELLO, colore:"var(--ok,#4ade80)" },
+  ];
+  const agg = {};
+  fasce.forEach(f => agg[f.chiave] = { n:0, v:0, p:0, s:0, gf:0, ga:0, pt:0 });
+  conDati.forEach(m => {
+    const d = Number(avversari[String(m.opponent_club_id)].skill_rating) - nostro;
+    const f = fasce.find(x => x.test(d));
+    if(!f) return;
+    const a = agg[f.chiave];
+    a.n++; a.gf += m.goals_for || 0; a.ga += m.goals_against || 0;
+    if(m.goals_for > m.goals_against){ a.v++; a.pt += 3; }
+    else if(m.goals_for === m.goals_against){ a.p++; a.pt += 1; }
+    else a.s++;
+  });
+
+  const righe = fasce.filter(f => agg[f.chiave].n > 0).map(f => {
+    const a = agg[f.chiave];
+    return `<tr>
+      <td data-label="Fascia"><span style="color:${f.colore};">●</span> ${f.etichetta}</td>
+      <td data-label="Partite">${a.n}</td>
+      <td data-label="Bilancio">${a.v}V ${a.p}P ${a.s}S</td>
+      <td data-label="Gol">${a.gf}-${a.ga}</td>
+      <td data-label="Punti a partita"><strong>${(a.pt / a.n).toFixed(2)}</strong></td>
+    </tr>`;
+  }).join("");
+
+  const senzaDati = (DATA.matches || []).length - conDati.length;
+  el.innerHTML = `
+    <div style="font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:10px;">
+      Ogni partita è classificata confrontando lo skill rating dell'avversario col nostro attuale
+      (<strong style="color:var(--text);">${nostro}</strong>). Scarti entro ${SOGLIA_LIVELLO} punti contano come
+      "al nostro livello". Il rating degli avversari è quello di oggi, non quello del giorno della
+      partita: per gli incontri più vecchi è un'approssimazione.
+    </div>
+    <div class="table-wrap">
+      <table class="responsive-table">
+        <thead><tr><th>Fascia</th><th>Partite</th><th>Bilancio</th><th>Gol</th><th>Punti a partita</th></tr></thead>
+        <tbody>${righe}</tbody>
+      </table>
+    </div>
+    ${senzaDati > 0 ? `<div style="font-size:12px; color:var(--muted); margin-top:10px;">
+      ${senzaDati} ${senzaDati === 1 ? "partita è esclusa" : "partite sono escluse"} perché il livello di
+      quell'avversario non è ancora stato raccolto.</div>` : ""}`;
+})();
+
+// ---- Salute dell'archivio ----
+// EA fornisce il dettaglio per giocatore solo delle ultime 10 partite, ma tiene un
+// contatore cumulativo di quelle giocate. La differenza tra i due dice quante partite
+// non siamo riusciti ad archiviare: e' l'unico modo di accorgersi di un buco, perche'
+// una partita persa non lascia altre tracce.
+(function renderSalute(){
+  const el = document.getElementById("salutePanel");
+  const sa = DATA.saluteArchivio;
+  if(!el) return;
+  if(!sa || sa.attese === null || sa.attese === undefined){
+    el.innerHTML = `<div style="font-size:13px; color:var(--muted);">
+      <strong style="color:var(--text);">${(DATA.matches || []).length} partite archiviate.</strong>
+      Servono almeno due aggiornamenti per stimare quante ne siano sfuggite.</div>`;
+    return;
+  }
+  const perc = sa.attese > 0 ? Math.round((sa.archiviateDaPrimoSnapshot / sa.attese) * 100) : 100;
+  const colore = perc >= 90 ? "var(--ok,#4ade80)" : (perc >= 60 ? "#facc15" : "var(--accent)");
+  const recente = sa.divarioRecente;
+  el.innerHTML = `
+    <div style="font-size:13px; line-height:1.6;">
+      <strong style="color:var(--text);">${sa.archiviate} partite archiviate</strong> in totale,
+      su ${sa.giocateEA} giocate dal club secondo EA.
+      <br>
+      Dal ${new Date(sa.daQuando).toLocaleDateString("it-IT", { day:"2-digit", month:"long" })},
+      da quando l'archivio è attivo, il club ha giocato <strong style="color:var(--text);">${sa.attese}</strong> partite
+      e ne abbiamo salvate <strong style="color:${colore};">${sa.archiviateDaPrimoSnapshot}</strong> (${perc}%).
+      ${sa.divario > 0 ? `Le altre <strong>${sa.divario}</strong> sono andate perse prima che
+        l'aggiornamento automatico diventasse abbastanza frequente: EA non le espone più.` : ``}
+      <div style="background:var(--panel-2,rgba(255,255,255,.06)); border-radius:4px; height:8px; margin:10px 0;">
+        <div style="width:${Math.min(100, perc)}%; height:8px; border-radius:4px; background:${colore};"></div>
+      </div>
+      ${recente
+        ? `<span style="color:var(--accent);"><strong>${recente} partite delle ultime 48 ore non sono ancora in archivio.</strong></span>
+           EA pubblica i risultati con qualche ora di ritardo, quindi può essere normale: se il numero
+           non scende entro il prossimo aggiornamento, quelle partite sono perse.`
+        : `<span style="color:var(--ok,#4ade80);">Nessuna partita mancante nelle ultime 48 ore.</span>`}
+    </div>`;
 })();
 
 // ---- Formazione tipo: modulo fisso 3-4-1-2, portiere sempre libero ----
@@ -2997,6 +3206,14 @@ def main():
     Path(args.out).write_text(html, encoding="utf-8")
     print(f"Dashboard generata: {args.out}")
     print(f"  club: {club_name} | snapshot storico: {len(data['history'])} | roster: {len(data['roster'])} | partite: {len(data['matches'])}")
+
+    sa = data.get("saluteArchivio") or {}
+    if sa.get("attese") is not None:
+        print(f"  salute archivio: {sa['archiviateDaPrimoSnapshot']}/{sa['attese']} partite archiviate "
+              f"dal {sa['daQuando'][:10]} (divario storico {sa['divario']})")
+        if sa.get("divarioRecente"):
+            print(f"  ATTENZIONE: {sa['divarioRecente']} partite delle ultime 48 ore non sono in archivio. "
+                  f"Se il numero non scende entro il prossimo giro, sono andate perse.")
 
 
 if __name__ == "__main__":
