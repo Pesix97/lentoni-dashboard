@@ -95,3 +95,6 @@ jobs:
           git push
 
 
+
+# 21/08/2026: EA ha pubblicato le ultime 3 partite della notte con ~3 ore di ritardo
+# rispetto a quando sono state giocate. Esecuzione forzata per archiviarle.
