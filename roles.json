@@ -66,7 +66,7 @@
     },
     "ktm-008": {
       "gruppo": "ATTACCANTI",
-      "etichetta_ea": "forward"
+      "etichetta_ea": "midfielder"
     },
     "FFLI_Adriano": {
       "gruppo": "ATTACCANTI",
@@ -78,7 +78,7 @@
     },
     "domenicocasaburi": {
       "gruppo": "ATTACCANTI",
-      "etichetta_ea": "forward"
+      "etichetta_ea": "midfielder"
     },
     "eredes": {
       "gruppo": "ATTACCANTI",
@@ -108,5 +108,17 @@
     "Va dichiarata esplicitamente e non dedotta: dedurla dalla posizione piu' frequente rendeva",
     "instabile lo storico, perche' bastava una partita per riclassificare all'indietro anche",
     "quelle vecchie. Valori ammessi: goalkeeper, defender, midfielder, forward."
+  ],
+  "_coc": [
+    "Pesix_97, ktm-008 e domenicocasaburi giocano COC a turno. EA etichetta il COC come",
+    "'midfielder', identico a un CC: per loro quindi 'etichetta_ea' e' midfielder, e quelle",
+    "partite contano tra gli ATTACCANTI, che e' come il club considera il ruolo.",
+    "",
+    "Conseguenza voluta: per questi tre nessuna partita finisce automaticamente tra i",
+    "centrocampisti. Quando uno di loro gioca davvero CC o CDC va segnato in",
+    "'eccezioni_partita', che e' l'unico modo di distinguerlo dai dati EA.",
+    "",
+    "FFLI_Adriano, Ironman-6-6 ed eredes sono punte fisse: se EA li etichetta 'midfielder'",
+    "vuol dire che sono arretrati davvero, e la partita conta a centrocampo."
   ]
 }
