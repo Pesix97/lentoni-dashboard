@@ -10,12 +10,16 @@ name: Aggiorna dashboard Lentoni
 
 on:
   schedule:
-    # Ogni due ore. Le sessioni vanno dalle 23:00 alle 02:30 italiane: con questa
-    # cadenza almeno due esecuzioni cadono DENTRO la sessione e la spezzano, cosi'
-    # tra un giro e l'altro non si accumulano mai piu' di 5 partite sulle 10 che
-    # EA rende disponibili. Girare piu' spesso non costa nulla: quando i dati sono
-    # invariati ingest.py non tocca il database e il workflow esce senza committare.
-    - cron: '0 */2 * * *'
+    # Ogni ora. Sembra troppo, ma due fatti misurati il 21/08/2026 lo rendono necessario:
+    #  1) EA pubblica i risultati con oltre un'ora di ritardo: un giro lanciato subito
+    #     dopo l'ultima partita non vede ancora nulla;
+    #  2) la pianificazione di GitHub non e' puntuale: due esecuzioni sono partite con
+    #     ~60 minuti di ritardo e una e' stata saltata del tutto (comportamento noto e
+    #     documentato per i repository pubblici).
+    # Con la cadenza a due ore questo aveva prodotto un buco di quasi 4 ore. Girare ogni
+    # ora non costa nulla: senza dati nuovi il database non cambia e non viene committato.
+    - cron: '0 * * * *'
+
   workflow_dispatch:
   push:
     paths:
@@ -91,4 +95,3 @@ jobs:
           git push
 
 
-# Esecuzione forzata del 21/08/2026 per archiviare le partite della notte.
