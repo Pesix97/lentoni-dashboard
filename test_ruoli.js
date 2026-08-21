@@ -27,10 +27,12 @@ function ritaglia(da, a) {
 }
 
 // Ricostruisce l'ambiente minimo: dati, conteggi dei ruoli, logica dei gruppi.
+// Tutto quello che serve vive tra la definizione di DATA e fmtDate: dal 21/08/2026 la
+// configurazione dei ruoli sta in cima al file, perche' il gruppo di roles.json e' il
+// ruolo ufficiale di tutta la dashboard e non piu' solo delle classifiche per reparto.
 const codice = [
   ritaglia("const DATA = {", "// ---- Ruolo effettivo"),
   ritaglia("const ROLE_COUNTS_BY_NAME", "function fmtDate"),
-  ritaglia("const ROLE_CFG", "(function renderRoleBoards"),
 ].join("\n");
 
 let ambiente;
@@ -96,6 +98,14 @@ if (puntaFissa) {
     groupForMatch(puntaFissa, "midfielder") === "CENTROCAMPISTI",
     groupForMatch(puntaFissa, "midfielder"));
 }
+
+console.log("\nUn solo ruolo in tutta la dashboard");
+verifica("ogni giocatore in rosa ha un gruppo assegnato",
+  (ambiente.DATA.roster || []).every(r => r.gruppo),
+  (ambiente.DATA.roster || []).filter(r => !r.gruppo).map(r => r.player_name).join(", "));
+verifica("il gruppo mostrato coincide con quello di roles.json",
+  (ambiente.DATA.roster || []).filter(r => GROUP_OF_PLAYER[r.player_name])
+    .every(r => r.gruppo === GROUP_OF_PLAYER[r.player_name]));
 
 console.log("\nPunteggi per reparto");
 const tutti = computeGroupScores();

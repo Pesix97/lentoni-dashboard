@@ -443,6 +443,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .role-badge.midfielder{background:rgba(80,150,230,.18); color:#7fb3f0;}
   .role-badge.defender{background:rgba(60,190,150,.18); color:#5fd6b0;}
   .role-badge.goalkeeper{background:rgba(240,185,11,.18); color:var(--accent-2);}
+  .role-badge.esterni{background:rgba(168,120,230,.18); color:#c4a0f0;}
   .role-badge.unknown{background:var(--panel-2); color:var(--muted);}
   .match-row{cursor:pointer;}
   .match-detail{display:none; background:var(--panel-2);}
@@ -811,6 +812,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 <section id="forza">
   <h2>Indice di Forza <span class="h2-sub">— chi è più forte/decisivo, calcolato da un algoritmo · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
+  <div class="panel" style="margin-bottom:12px; border-left:3px solid var(--accent);">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      <strong style="color:var(--text);">Due classifiche, due campioni diversi.</strong> Quella generale qui sotto
+      usa le <strong style="color:var(--text);">carriere complete</strong> (centinaia di partite per giocatore),
+      mescolate con la forma recente. Quella per reparto, più in basso, può usare solo le
+      <strong style="color:var(--text);">partite archiviate</strong>, perché il ruolo si conosce partita per partita
+      e il dettaglio esiste solo per quelle.
+      <br>
+      Un giocatore può quindi avere due punteggi diversi senza che ci sia alcun errore: misurano
+      cose diverse su periodi diversi.
+    </div>
+  </div>
+  <h3 style="margin:22px 0 10px; font-size:17px;">Generale <span class="h2-sub">— tutta la rosa insieme, sulle carriere complete</span></h3>
   <div class="panel" style="margin-bottom:12px;">
     <div style="font-size:12px; color:var(--muted); line-height:1.5;">
       Punteggio 0-100 calcolato combinando (pesi tra parentesi): media voto (40%), gol+assist a partita (20%),
@@ -857,10 +871,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       </table>
     </div>
   </div>
-</section>
 
-<section id="ruoli">
-  <h2>Classifiche per ruolo <span class="h2-sub">— chi è il migliore del suo reparto, confrontato solo con i pari ruolo</span></h2>
+  <h3 style="margin:34px 0 4px; font-size:17px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:24px;">
+    Reparto per reparto <span class="h2-sub">— chi incide di più tra i pari ruolo</span>
+  </h3>
   <div class="panel" style="margin-bottom:12px;">
     <div style="font-size:12px; color:var(--muted); line-height:1.5;">
       L'Indice di Forza generale mette tutti nella stessa classifica, e chi gioca dietro parte
@@ -1031,6 +1045,168 @@ function roleCountsSorted(name){
   r.role_effective = sorted.length ? sorted[0][0] : (r.favorite_position || null);
   r.role_from_matches = sorted.length > 0;
 });
+
+// ---- Classifiche per ruolo ----
+// Stessa formula dell'Indice di Forza, ma ogni giocatore viene normalizzato SOLO contro i pari
+// ruolo: cosi' un difensore non viene penalizzato dal fatto che gol e assist pesano il 20%.
+// Il ruolo abituale arriva da roles.json (EA non distingue COC da CC); per la singola partita
+// vince invece l'etichetta EA, cosi' chi gioca fuori ruolo viene conteggiato dove ha giocato.
+const ROLE_CFG = DATA.roleGroups || {};
+const GROUP_ORDER = ROLE_CFG.order || ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI", "PORTIERI"];
+const GROUP_LABELS = ROLE_CFG.labels || {};
+const GROUP_OF_PLAYER = ROLE_CFG.players || {};
+const EA_LABEL_OF_PLAYER = ROLE_CFG.eaLabels || {};
+const MACRO_TO_GROUP = ROLE_CFG.macro || {};
+const ROLE_EXCEPTIONS = ROLE_CFG.exceptions || {};
+const GROUP_ICONS = { DIFENSORI: "🛡️", CENTROCAMPISTI: "🎛️", ESTERNI: "🏃", ATTACCANTI: "🎯", PORTIERI: "🧤" };
+
+function mainPosOf(name){
+  const sorted = roleCountsSorted(name);
+  return sorted.length ? sorted[0][0] : null;
+}
+
+// Gruppo di UNA singola partita. Se l'etichetta EA di quella partita coincide con la posizione
+// abituale del giocatore vale il ruolo scritto a mano (e' li' che serve: EA direbbe "midfielder"
+// anche per un COC). Se invece differisce, ha giocato fuori ruolo e conta il dato EA.
+// Qual e' l'etichetta che EA usa normalmente per questo giocatore quando gioca nel suo
+// ruolo. Dedurla dalla posizione piu' frequente sembrava comodo, ma rendeva lo storico
+// instabile: domenicocasaburi aveva 15 partite come "midfielder" e 15 come "forward", e
+// una sola partita in piu' avrebbe riclassificato all'indietro tutte le altre. Quando
+// l'etichetta e' dichiarata in roles.json il passato non si muove piu'.
+function etichettaAttesa(name){
+  return EA_LABEL_OF_PLAYER[name] || mainPosOf(name);
+}
+
+function groupForMatch(name, pos){
+  const manual = GROUP_OF_PLAYER[name] || null;
+  const fromEa = MACRO_TO_GROUP[pos] || null;
+  if(!manual) return fromEa;
+  const attesa = etichettaAttesa(name);
+  if(pos && attesa && pos !== attesa) return fromEa || manual;
+  return manual;
+}
+
+// Il ruolo ufficiale di un giocatore nella dashboard e' il suo gruppo di roles.json.
+// Prima convivevano due nozioni diverse: le classifiche per reparto usavano i gruppi
+// veri, tutto il resto (rosa, indice di forza, scheda giocatore) l'etichetta EA piu'
+// frequente. Jysmu risultava "Centrocampo" in una sezione ed "Esterni" nell'altra.
+// Chi non e' ancora assegnato in roles.json ripiega sull'etichetta EA, tradotta in gruppo.
+function gruppoGiocatore(nome, ripiego){
+  if(GROUP_OF_PLAYER[nome]) return GROUP_OF_PLAYER[nome];
+  return MACRO_TO_GROUP[ripiego] || null;
+}
+
+const GRUPPO_CSS = {
+  DIFENSORI: "defender", CENTROCAMPISTI: "midfielder", ESTERNI: "esterni",
+  ATTACCANTI: "forward", PORTIERI: "goalkeeper",
+};
+
+function gruppoBadge(gruppo, daAssegnare){
+  const cls = GRUPPO_CSS[gruppo] || "unknown";
+  const etichetta = GROUP_LABELS[gruppo] || gruppo || "-";
+  const titolo = daAssegnare
+    ? ' title="Ruolo dedotto dai dati EA: non ancora assegnato in roles.json"' : "";
+  return `<span class="role-badge ${cls}"${titolo}>${etichetta}${daAssegnare ? " ?" : ""}</span>`;
+}
+
+(DATA.roster || []).forEach(r => {
+  r.gruppo = gruppoGiocatore(r.player_name, r.role_effective);
+  r.gruppo_da_assegnare = !GROUP_OF_PLAYER[r.player_name];
+});
+
+function computeGroupScores(){
+  const rosterNames = new Set((DATA.roster || []).map(r => r.player_name));
+  const winByMatch = new Map((DATA.matches || []).map(m => [m.match_id, m.win ? 1 : 0]));
+  const agg = {};
+  (DATA.matches || []).forEach(m => {
+    (DATA.matchPlayers[m.match_id] || []).forEach(p => {
+      if(!rosterNames.has(p.player_name)) return;
+      // Un'eccezione dichiarata a mano batte qualsiasi deduzione: e' l'unico modo di
+      // separare un COC da un CC, che per EA hanno la stessa identica etichetta.
+      const group = ROLE_EXCEPTIONS[m.match_id + "|" + p.player_name]
+                 || groupForMatch(p.player_name, p.pos);
+      if(!group) return;
+      const key = p.player_name + "|" + group;
+      if(!agg[key]){
+        agg[key] = { player_name: p.player_name, group, games: 0, sumRating: 0, sumGoals: 0,
+          sumAssists: 0, sumMom: 0, sumWin: 0, sumPassesMade: 0, sumPassAttempts: 0,
+          sumTacklesMade: 0, sumTackleAttempts: 0, sumShots: 0, sumRedCards: 0,
+          unassigned: !GROUP_OF_PLAYER[p.player_name] };
+      }
+      const a = agg[key];
+      a.games++;
+      a.sumRating        += p.rating || 0;
+      a.sumGoals         += p.goals || 0;
+      a.sumAssists       += p.assists || 0;
+      a.sumMom           += p.mom || 0;
+      a.sumWin           += winByMatch.get(m.match_id) || 0;
+      a.sumPassesMade    += p.passes_made || 0;
+      a.sumPassAttempts  += p.pass_attempts || 0;
+      a.sumTacklesMade   += p.tackles_made || 0;
+      a.sumTackleAttempts+= p.tackle_attempts || 0;
+      a.sumShots         += p.shots || 0;
+      a.sumRedCards      += p.red_cards || 0;
+    });
+  });
+  return Object.values(agg).map(a => {
+    const passSuccess   = a.sumPassAttempts > 0 ? (a.sumPassesMade / a.sumPassAttempts) * 100 : 0;
+    const tackleSuccess = a.sumTackleAttempts > 0 ? (a.sumTacklesMade / a.sumTackleAttempts) * 100 : 0;
+    const shotSuccess   = a.sumShots > 0 ? (a.sumGoals / a.sumShots) * 100 : 0;
+    return { ...a,
+      ratingAve: a.sumRating / a.games,
+      contrib:   (a.sumGoals + a.sumAssists) / a.games,
+      motmRate:  (a.sumMom / a.games) * 100,
+      winRate:   (a.sumWin / a.games) * 100,
+      techEff:   (passSuccess + tackleSuccess + shotSuccess) / 3,
+      redRate:   a.sumRedCards / a.games,
+    };
+  });
+}
+
+// Il punteggio si normalizza sui soli giocatori che superano la soglia: cambiando il minimo
+// cambia il gruppo di confronto, quindi va ricalcolato ogni volta invece che filtrato dopo.
+function rankGroup(pool){
+  if(pool.length === 0) return [];
+
+  // Una metrica su cui tutti hanno lo stesso valore non distingue nessuno. Normalizzarla
+  // darebbe 0.5 a testa, cioe' meta' del suo peso regalato a tutti: nei reparti dove
+  // nessuno ha premi MOTM questo gonfiava ogni punteggio di 7.5 punti su 100, rendendo
+  // i valori non confrontabili tra un reparto e l'altro. Qui invece la metrica viene
+  // esclusa e il suo peso ridistribuito sulle altre, in proporzione.
+  const METRICHE = [
+    { chiave: "rating",  peso: 0.40, valori: pool.map(a => a.ratingAve) },
+    { chiave: "contrib", peso: 0.20, valori: pool.map(a => a.contrib) },
+    { chiave: "motm",    peso: 0.15, valori: pool.map(a => a.motmRate) },
+    { chiave: "win",     peso: 0.10, valori: pool.map(a => a.winRate) },
+    { chiave: "tech",    peso: 0.10, valori: pool.map(a => a.techEff) },
+  ];
+  const disc = pool.map(a => a.redRate);
+  const haSpread = (v) => Math.max(...v) !== Math.min(...v);
+  const attive = METRICHE.filter(m => haSpread(m.valori));
+  const ignorate = METRICHE.filter(m => !haSpread(m.valori)).map(m => m.chiave);
+
+  if(attive.length === 0){
+    // Nessuna differenza tra i giocatori del reparto: qualsiasi punteggio sarebbe inventato.
+    return pool.map(a => ({ ...a, score: 0, metricheIgnorate: ignorate, nonDistinguibili: true }))
+               .sort((x, y) => y.games - x.games);
+  }
+
+  const pesoTotale = attive.reduce((t, m) => t + m.peso, 0);
+  const norm = (v) => {
+    const min = Math.min(...v), max = Math.max(...v);
+    return v.map(x => (x - min) / (max - min));
+  };
+  const normalizzate = attive.map(m => ({ peso: m.peso / pesoTotale * 0.95, valori: norm(m.valori) }));
+  const nDisc = haSpread(disc) ? norm(disc) : disc.map(() => 0);
+
+  return pool.map((a, i) => ({ ...a,
+    metricheIgnorate: ignorate,
+    score: Math.max(0, Math.min(100, 100 * (
+      normalizzate.reduce((t, m) => t + m.peso * m.valori[i], 0) - 0.05 * nDisc[i]
+    ))),
+  })).sort((x, y) => y.score - x.score);
+}
+
 
 function fmtDate(iso){
   if(!iso) return "-";
@@ -1329,7 +1505,7 @@ function renderRoster(){
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td data-label="Giocatore"><span class="player-link" data-player="${r.player_name}">${r.player_name}</span>${r.pro_name && r.pro_name !== r.player_name ? ` <span class="pos-badge">(${r.pro_name})</span>` : ""}</td>
-      <td data-label="Ruolo">${roleBadge(r.role_effective)}</td>
+      <td data-label="Ruolo">${gruppoBadge(r.gruppo, r.gruppo_da_assegnare)}</td>
       <td data-label="OVR">${r.pro_overall || "-"}</td>
       <td data-label="PG">${r.games_played}</td>
       <td data-label="Win%">${r.win_rate}%</td>
@@ -1853,7 +2029,7 @@ let growthChart = null;
         <tr>
           <td data-label="#"><span class="lb-rank ${rankCls}">#${i+1}</span></td>
           <td data-label="Giocatore"><span class="player-link" data-player="${r.player_name}">${r.player_name}</span></td>
-          <td data-label="Ruolo">${roleBadge(r.role_effective)}</td>
+          <td data-label="Ruolo">${gruppoBadge(r.gruppo, r.gruppo_da_assegnare)}</td>
           <td data-label="Valore" class="lb-value">${fmtStatValue(def, v)} ${def.unit}</td>
           <td data-label="Partite">${r.games_played}</td>
         </tr>
@@ -1928,7 +2104,7 @@ let growthChart = null;
         <div class="pname player-link" data-player="${s.r.player_name}">${s.r.player_name}</div>
         <div class="pscore">${s.blendedScore.toFixed(1)}</div>
         <div class="power-bar-track"><div class="power-bar-fill" style="width:${s.blendedScore}%"></div></div>
-        <div class="pwhy">${ROLE_LABELS[s.r.role_effective] || "-"} · ${topFactor(s)}</div>
+        <div class="pwhy">${GROUP_LABELS[s.r.gruppo] || "-"} · ${topFactor(s)}</div>
       </div>
     `).join("");
   }
@@ -1944,9 +2120,10 @@ let growthChart = null;
   }
 
   function renderRoleFilters(){
-    const roles = ["Tutti", ...new Set(roster.map(r => r.role_effective).filter(Boolean))];
+    const presenti = new Set(roster.map(r => r.gruppo).filter(Boolean));
+    const roles = ["Tutti", ...GROUP_ORDER.filter(g => presenti.has(g))];
     roleFiltersEl.innerHTML = roles.map(role =>
-      `<span class="filter-btn ${role===activeRole?"active":""}" data-role="${role}">${ROLE_LABELS[role] || role}</span>`).join("");
+      `<span class="filter-btn ${role===activeRole?"active":""}" data-role="${role}">${GROUP_LABELS[role] || role}</span>`).join("");
     roleFiltersEl.querySelectorAll(".filter-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         activeRole = btn.dataset.role;
@@ -1957,7 +2134,7 @@ let growthChart = null;
   }
 
   function draw(){
-    const rows = scored.filter(s => activeRole === "Tutti" || s.r.role_effective === activeRole);
+    const rows = scored.filter(s => activeRole === "Tutti" || s.r.gruppo === activeRole);
     if(rows.length === 0){
       tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun giocatore per questo ruolo.</td></tr>`;
       return;
@@ -1968,7 +2145,7 @@ let growthChart = null;
         <tr>
           <td data-label="#"><span class="lb-rank ${rankCls}">#${i+1}</span></td>
           <td data-label="Giocatore"><span class="player-link" data-player="${s.r.player_name}">${s.r.player_name}</span></td>
-          <td data-label="Ruolo">${roleBadge(s.r.role_effective)}</td>
+          <td data-label="Ruolo">${gruppoBadge(s.r.gruppo, s.r.gruppo_da_assegnare)}</td>
           <td data-label="Indice" class="lb-value">${s.blendedScore.toFixed(1)}</td>
           <td data-label="Δ">${deltaCell(s)}</td>
           <td data-label="Storico" class="career-cell">${s.historicScore.toFixed(1)}</td>
@@ -1993,139 +2170,6 @@ let growthChart = null;
   renderRoleFilters();
   recompute();
 })();
-
-// ---- Classifiche per ruolo ----
-// Stessa formula dell'Indice di Forza, ma ogni giocatore viene normalizzato SOLO contro i pari
-// ruolo: cosi' un difensore non viene penalizzato dal fatto che gol e assist pesano il 20%.
-// Il ruolo abituale arriva da roles.json (EA non distingue COC da CC); per la singola partita
-// vince invece l'etichetta EA, cosi' chi gioca fuori ruolo viene conteggiato dove ha giocato.
-const ROLE_CFG = DATA.roleGroups || {};
-const GROUP_ORDER = ROLE_CFG.order || ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI", "PORTIERI"];
-const GROUP_LABELS = ROLE_CFG.labels || {};
-const GROUP_OF_PLAYER = ROLE_CFG.players || {};
-const EA_LABEL_OF_PLAYER = ROLE_CFG.eaLabels || {};
-const MACRO_TO_GROUP = ROLE_CFG.macro || {};
-const ROLE_EXCEPTIONS = ROLE_CFG.exceptions || {};
-const GROUP_ICONS = { DIFENSORI: "🛡️", CENTROCAMPISTI: "🎛️", ESTERNI: "🏃", ATTACCANTI: "🎯", PORTIERI: "🧤" };
-
-function mainPosOf(name){
-  const sorted = roleCountsSorted(name);
-  return sorted.length ? sorted[0][0] : null;
-}
-
-// Gruppo di UNA singola partita. Se l'etichetta EA di quella partita coincide con la posizione
-// abituale del giocatore vale il ruolo scritto a mano (e' li' che serve: EA direbbe "midfielder"
-// anche per un COC). Se invece differisce, ha giocato fuori ruolo e conta il dato EA.
-// Qual e' l'etichetta che EA usa normalmente per questo giocatore quando gioca nel suo
-// ruolo. Dedurla dalla posizione piu' frequente sembrava comodo, ma rendeva lo storico
-// instabile: domenicocasaburi aveva 15 partite come "midfielder" e 15 come "forward", e
-// una sola partita in piu' avrebbe riclassificato all'indietro tutte le altre. Quando
-// l'etichetta e' dichiarata in roles.json il passato non si muove piu'.
-function etichettaAttesa(name){
-  return EA_LABEL_OF_PLAYER[name] || mainPosOf(name);
-}
-
-function groupForMatch(name, pos){
-  const manual = GROUP_OF_PLAYER[name] || null;
-  const fromEa = MACRO_TO_GROUP[pos] || null;
-  if(!manual) return fromEa;
-  const attesa = etichettaAttesa(name);
-  if(pos && attesa && pos !== attesa) return fromEa || manual;
-  return manual;
-}
-
-function computeGroupScores(){
-  const rosterNames = new Set((DATA.roster || []).map(r => r.player_name));
-  const winByMatch = new Map((DATA.matches || []).map(m => [m.match_id, m.win ? 1 : 0]));
-  const agg = {};
-  (DATA.matches || []).forEach(m => {
-    (DATA.matchPlayers[m.match_id] || []).forEach(p => {
-      if(!rosterNames.has(p.player_name)) return;
-      // Un'eccezione dichiarata a mano batte qualsiasi deduzione: e' l'unico modo di
-      // separare un COC da un CC, che per EA hanno la stessa identica etichetta.
-      const group = ROLE_EXCEPTIONS[m.match_id + "|" + p.player_name]
-                 || groupForMatch(p.player_name, p.pos);
-      if(!group) return;
-      const key = p.player_name + "|" + group;
-      if(!agg[key]){
-        agg[key] = { player_name: p.player_name, group, games: 0, sumRating: 0, sumGoals: 0,
-          sumAssists: 0, sumMom: 0, sumWin: 0, sumPassesMade: 0, sumPassAttempts: 0,
-          sumTacklesMade: 0, sumTackleAttempts: 0, sumShots: 0, sumRedCards: 0,
-          unassigned: !GROUP_OF_PLAYER[p.player_name] };
-      }
-      const a = agg[key];
-      a.games++;
-      a.sumRating        += p.rating || 0;
-      a.sumGoals         += p.goals || 0;
-      a.sumAssists       += p.assists || 0;
-      a.sumMom           += p.mom || 0;
-      a.sumWin           += winByMatch.get(m.match_id) || 0;
-      a.sumPassesMade    += p.passes_made || 0;
-      a.sumPassAttempts  += p.pass_attempts || 0;
-      a.sumTacklesMade   += p.tackles_made || 0;
-      a.sumTackleAttempts+= p.tackle_attempts || 0;
-      a.sumShots         += p.shots || 0;
-      a.sumRedCards      += p.red_cards || 0;
-    });
-  });
-  return Object.values(agg).map(a => {
-    const passSuccess   = a.sumPassAttempts > 0 ? (a.sumPassesMade / a.sumPassAttempts) * 100 : 0;
-    const tackleSuccess = a.sumTackleAttempts > 0 ? (a.sumTacklesMade / a.sumTackleAttempts) * 100 : 0;
-    const shotSuccess   = a.sumShots > 0 ? (a.sumGoals / a.sumShots) * 100 : 0;
-    return { ...a,
-      ratingAve: a.sumRating / a.games,
-      contrib:   (a.sumGoals + a.sumAssists) / a.games,
-      motmRate:  (a.sumMom / a.games) * 100,
-      winRate:   (a.sumWin / a.games) * 100,
-      techEff:   (passSuccess + tackleSuccess + shotSuccess) / 3,
-      redRate:   a.sumRedCards / a.games,
-    };
-  });
-}
-
-// Il punteggio si normalizza sui soli giocatori che superano la soglia: cambiando il minimo
-// cambia il gruppo di confronto, quindi va ricalcolato ogni volta invece che filtrato dopo.
-function rankGroup(pool){
-  if(pool.length === 0) return [];
-
-  // Una metrica su cui tutti hanno lo stesso valore non distingue nessuno. Normalizzarla
-  // darebbe 0.5 a testa, cioe' meta' del suo peso regalato a tutti: nei reparti dove
-  // nessuno ha premi MOTM questo gonfiava ogni punteggio di 7.5 punti su 100, rendendo
-  // i valori non confrontabili tra un reparto e l'altro. Qui invece la metrica viene
-  // esclusa e il suo peso ridistribuito sulle altre, in proporzione.
-  const METRICHE = [
-    { chiave: "rating",  peso: 0.40, valori: pool.map(a => a.ratingAve) },
-    { chiave: "contrib", peso: 0.20, valori: pool.map(a => a.contrib) },
-    { chiave: "motm",    peso: 0.15, valori: pool.map(a => a.motmRate) },
-    { chiave: "win",     peso: 0.10, valori: pool.map(a => a.winRate) },
-    { chiave: "tech",    peso: 0.10, valori: pool.map(a => a.techEff) },
-  ];
-  const disc = pool.map(a => a.redRate);
-  const haSpread = (v) => Math.max(...v) !== Math.min(...v);
-  const attive = METRICHE.filter(m => haSpread(m.valori));
-  const ignorate = METRICHE.filter(m => !haSpread(m.valori)).map(m => m.chiave);
-
-  if(attive.length === 0){
-    // Nessuna differenza tra i giocatori del reparto: qualsiasi punteggio sarebbe inventato.
-    return pool.map(a => ({ ...a, score: 0, metricheIgnorate: ignorate, nonDistinguibili: true }))
-               .sort((x, y) => y.games - x.games);
-  }
-
-  const pesoTotale = attive.reduce((t, m) => t + m.peso, 0);
-  const norm = (v) => {
-    const min = Math.min(...v), max = Math.max(...v);
-    return v.map(x => (x - min) / (max - min));
-  };
-  const normalizzate = attive.map(m => ({ peso: m.peso / pesoTotale * 0.95, valori: norm(m.valori) }));
-  const nDisc = haSpread(disc) ? norm(disc) : disc.map(() => 0);
-
-  return pool.map((a, i) => ({ ...a,
-    metricheIgnorate: ignorate,
-    score: Math.max(0, Math.min(100, 100 * (
-      normalizzate.reduce((t, m) => t + m.peso * m.valori[i], 0) - 0.05 * nDisc[i]
-    ))),
-  })).sort((x, y) => y.score - x.score);
-}
 
 (function renderRoleBoards(){
   const boardsEl = document.getElementById("roleBoards");
@@ -2433,7 +2477,9 @@ const EXCLUDED_FROM_FORMATION = new Set(["VRT_ernestino", "VRT_Lo_Ziio_87", "Cin
 
 function computeOutfieldLineup(){
   const roster = (DATA.roster || []).filter(r => !EXCLUDED_FROM_FORMATION.has(r.player_name));
-  const goalkeeperNames = new Set(roster.filter(r => r.role_effective === "goalkeeper").map(r => r.player_name));
+  const goalkeeperNames = new Set(roster
+    .filter(r => r.gruppo === "PORTIERI" || r.role_effective === "goalkeeper")
+    .map(r => r.player_name));
   // I punteggi di ruolo nascono dalle partite archiviate, che includono anche chi non raggiunge
   // la soglia minima di presenze: qui li scartiamo, per restare coerenti con il resto della dashboard.
   const rosterNames = new Set(roster.map(r => r.player_name));
@@ -2949,7 +2995,7 @@ function openPlayerCard(name){
         <div class="pm-name">${r.player_name}</div>
         ${subParts.length ? `<div class="pm-sub">${subParts.join(" · ")}</div>` : ""}
         <div class="pm-badges">
-          ${roleBadge(r.role_effective)}
+          ${gruppoBadge(r.gruppo, r.gruppo_da_assegnare)}
           ${r.pro_overall ? `<span class="pm-ovr">OVR ${r.pro_overall}</span>` : ""}
           ${powerEntry ? `<span class="pm-ovr">💪 Indice ${powerEntry.score.toFixed(1)}</span>` : ""}
         </div>
@@ -3018,7 +3064,7 @@ document.addEventListener("keydown", (e) => {
 const PAGE_MAP = {
   overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
   rosa: "rosa", premi: "premi", crescita: "crescita", classifiche: "classifiche",
-  forza: "forza", ruoli: "ruoli", formazione: "formazione", statsdivertenti: "statsdivertenti", h2h: "h2h",
+  forza: "forza", formazione: "formazione", statsdivertenti: "statsdivertenti", h2h: "h2h",
   riepilogo: "riepilogo", avversari: "avversari", partite: "partite",
 };
 const PAGES = [
@@ -3028,7 +3074,6 @@ const PAGES = [
   { key: "crescita", icon: "📈", label: "Crescita" },
   { key: "classifiche", icon: "📋", label: "Classifiche" },
   { key: "forza", icon: "💪", label: "Indice di Forza" },
-  { key: "ruoli", icon: "🎯", label: "Classifiche per ruolo" },
   { key: "formazione", icon: "⚽", label: "Formazione" },
   { key: "statsdivertenti", icon: "🎉", label: "Stats divertenti" },
   { key: "h2h", icon: "⚔️", label: "Testa a testa" },

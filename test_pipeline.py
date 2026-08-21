@@ -236,7 +236,7 @@ class TestDashboard(BaseConArchivio):
         try:
             (QUI / "roles.json").write_text(json.dumps(rotto), encoding="utf-8")
             html = self._genera(self.tmp / "rotto.html")
-            self.assertIn('id="ruoli"', html)
+            self.assertIn('id="forza"', html)
             self.assertIn('"skill_rating"', html)
         finally:
             (QUI / "roles.json").write_text(originale, encoding="utf-8")
@@ -247,7 +247,10 @@ class TestDashboard(BaseConArchivio):
         dati = self._dati(html)
         self.assertGreater(dati["latest"].get("skill_rating", 0), 0)
         self.assertGreater(len(dati["matches"]), 0)
-        self.assertIn('id="ruoli"', html)
+        # Dal 21/08/2026 le classifiche per reparto vivono dentro la sezione "forza":
+        # il marcatore da cercare e' quello, non piu' id="ruoli".
+        self.assertIn('id="forza"', html)
+        self.assertIn('Reparto per reparto', html)
         self.assertIn("saluteArchivio", dati)
 
     def test_salute_archivio_coerente(self):
