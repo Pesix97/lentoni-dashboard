@@ -87,26 +87,38 @@ def leggi(db, club_id, cfg):
 
 
 def sospetti(serata, cfg):
-    """Le due regole strutturali. Restituisce le osservazioni da sottoporre."""
+    """Le due regole strutturali. Restituisce le osservazioni da sottoporre.
+
+    Guardano il reparto GIA' RISOLTO, non l'etichetta grezza di EA. La differenza conta:
+    se una serata e' gia' stata corretta a mano, le sue eccezioni hanno gia' sciolto
+    l'ambiguita' e non c'e' piu' niente da chiedere. Lavorando sulle etichette grezze lo
+    script continuerebbe a segnalare cose gia' sistemate, e una segnalazione che non
+    sparisce mai si impara a ignorarla.
+    """
     note = []
 
+    # Il COC e' uno solo: due giocatori della rotazione COC conteggiati insieme tra gli
+    # attaccanti vuol dire che almeno uno dei due stava da un'altra parte.
     insieme = [p for p in serata
                if len([r for r in p["righe"] if r["nome"] in cfg["coc"]
-                       and r["pos"] == "midfielder"]) >= 2]
+                       and r["gruppo"] == "ATTACCANTI"]) >= 2]
     if insieme:
         nomi = sorted({r["nome"] for p in insieme for r in p["righe"]
-                       if r["nome"] in cfg["coc"] and r["pos"] == "midfielder"})
+                       if r["nome"] in cfg["coc"] and r["gruppo"] == "ATTACCANTI"})
         note.append(
-            f"in {len(insieme)} partite erano a centrocampo insieme {' e '.join(nomi)}: "
-            f"il COC pero' e' uno solo, quindi gli altri stavano altrove"
+            f"in {len(insieme)} partite risultano insieme tra gli attaccanti "
+            f"{', '.join(nomi)}, che fanno il COC a turno: solo uno di loro puo' averlo "
+            f"fatto, gli altri stavano altrove"
         )
 
+    # Soglia a quattro: la formazione abituale ne schiera due o tre. Tarata larga di
+    # proposito, perche' un falso allarme costa una riga e una svista un dato sbagliato.
     affollate = [p for p in serata
-                 if len([r for r in p["righe"] if r["pos"] == "midfielder"]) >= 5]
+                 if len([r for r in p["righe"] if r["gruppo"] == "CENTROCAMPISTI"]) >= 4]
     if affollate:
         note.append(
-            f"{len(affollate)} partite con cinque o piu' giocatori a centrocampo: "
-            f"il reparto e' piu' pieno del solito, qualcuno copriva un ruolo non suo"
+            f"{len(affollate)} partite con quattro o piu' giocatori conteggiati a "
+            f"centrocampo: piu' del solito, forse qualcuno copriva un ruolo non suo"
         )
     return note
 
