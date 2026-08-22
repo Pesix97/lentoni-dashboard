@@ -281,13 +281,6 @@ def calcola_salute_archivio(cur, club_id):
 # Soglia minima di partite giocate per comparire in rosa, classifiche, premi e Indice di Forza.
 MIN_GAMES = 30
 
-# Presenze minime IN UN REPARTO per prendersi un posto nella formazione tipo. Diverso da
-# MIN_GAMES, che filtra la rosa sul totale delle partite: qui conta solo quante ne hai
-# giocate proprio li'. Senza questo minimo il posto lo vinceva chi aveva il campione piu'
-# piccolo (ktm-008 entrava a centrocampo con 2 presenze, davanti a ilmille che ne ha 29).
-# Scelto a 10 dal club il 22/08/2026, sapendo che a 15 sarebbe uscito FFLI_Adriano.
-MIN_REPARTO = 10
-
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -949,25 +942,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </section>
 
 <section id="formazione">
-  <h2>Formazione tipo <span class="h2-sub">— i sei posti che giocate davvero, i migliori per reparto</span></h2>
+  <h2>Formazione tipo <span class="h2-sub">— modulo 3-4-1-2, i migliori disponibili per ruolo secondo i dati reali</span></h2>
   <div class="panel" style="margin-bottom:12px;">
     <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-      <strong style="color:var(--text);">Sei posti, non undici.</strong> In tutto l'archivio non avete mai
-      schierato un difensore umano: la difesa e il portiere li tiene la CPU, e in campo siete due esterni,
-      due centrocampisti e due attaccanti. Un undici inventato avrebbe riempito cinque caselle con giocatori
-      messi lì dall'algoritmo e mai visti in quel ruolo; questa è la formazione che scendete in campo davvero.
-      <br><br>
-      I reparti sono quelli di <code>roles.json</code>, gli stessi del resto della dashboard: il COC conta
-      come attaccante, e chi ha giocato fuori ruolo conta nel reparto in cui ha giocato quella sera. Per
-      ogni posto viene scelto chi rende di più <strong style="color:var(--text);">proprio in quel reparto</strong>,
-      con lo stesso algoritmo dell'Indice di Forza calcolato solo sulle partite giocate lì. Chi può coprire
-      due reparti finisce in quello dove il suo punteggio è più alto.
-      <br><br>
-      Servono almeno <strong style="color:var(--text);">__MIN_REPARTO__ partite giocate in quel reparto</strong>
-      per prendersi il posto: senza un minimo lo vinceva chi aveva il campione più piccolo, e due partite
-      buone non sono un rendimento. Il punteggio però si calcola sul reparto intero e solo dopo si applica
-      il minimo, altrimenti in un reparto con due soli candidati il secondo si ritrovava uno zero addosso
-      per il solo fatto di essere secondo.
+      Modulo fisso 3-4-1-2 (3 difensori, 4 centrocampisti, 1 trequartista, 2 attaccanti). Il portiere è
+      volutamente lasciato libero, per regola del gruppo. Ogni posto di movimento è sempre coperto da un
+      giocatore reale della rosa, mai vuoto: quando un ruolo ha abbastanza dati di partita specifici, viene
+      scelto chi ha il rendimento migliore proprio in quel ruolo (stesso algoritmo dell'Indice di Forza,
+      calcolato solo sulle partite giocate lì); se per un ruolo non ci sono abbastanza giocatori con dati
+      specifici, il posto viene comunque riempito con il migliore disponibile secondo l'Indice di Forza
+      generale — questi casi sono segnati con "stima" perché non si basano su partite giocate proprio in
+      quella posizione.
     </div>
   </div>
   <div class="pitch-wrap">
@@ -977,7 +962,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="table-wrap">
       <table id="formationTable" class="responsive-table">
         <thead><tr>
-          <th>Reparto</th><th>Giocatore</th><th>Indice</th><th>Partite nel reparto</th><th>Media voto</th><th>Gol</th><th>Assist</th>
+          <th>Ruolo</th><th>Giocatore</th><th>Indice</th><th>Partite nel ruolo</th><th>Media voto</th><th>Fonte</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -2462,129 +2447,184 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
     </div>`;
 })();
 
-// ---- Formazione tipo ----
-// La versione precedente costruiva un 3-4-1-2 sulle quattro etichette EA, riempiendo i
-// posti scoperti con i migliori dell'Indice generale marcati "stima". Rimossa il
-// 22/08/2026: in 42 partite il club non ha mai schierato un difensore umano, quindi
-// cinque caselle su undici mostravano giocatori in un ruolo mai giocato. Ora i posti
-// sono i sei che il club occupa davvero, e i reparti sono quelli di roles.json.
+// ---- Formazione tipo: modulo fisso 3-4-1-2, portiere sempre libero ----
+// Ogni ruolo di movimento (3 difensori, 4 centrocampisti, 1 trequartista, 2 attaccanti)
+// viene SEMPRE riempito con un giocatore reale: prima si usano i dati di partita specifici
+// per quel ruolo (stesso algoritmo pesato dell'Indice di Forza, calcolato solo sulle partite
+// giocate lì), poi — solo se non bastano candidati con dati specifici — si completa con i
+// migliori rimasti secondo l'Indice di Forza generale (segnati come "stima" in tabella).
+const OUTFIELD_ROLES = ["defender", "midfielder", "forward"];
+const FORMATION_SLOTS = { defender: 3, midfielder: 4, trequartista: 1, forward: 2 }; // portiere volutamente escluso
 
-// I posti sono quelli che il club occupa davvero. In 42 partite non e' mai sceso in campo
-// un difensore umano (mediana 0 per partita, nessuno con almeno 5 presenze in difesa):
-// dietro c'e' la CPU. Riempire tre caselle di difesa con i migliori dell'Indice generale
-// significava mostrare cinque giocatori su undici in un ruolo che non hanno mai giocato.
-const POSTI_REPARTO = [
-  { gruppo: "ATTACCANTI",     posti: 2 },
-  { gruppo: "ESTERNI",        posti: 2 },
-  { gruppo: "CENTROCAMPISTI", posti: 2 },
-];
-
-// Minimo di presenze nel reparto per potersi prendere un posto. Senza, il posto lo vince
-// chi ha il campione piu' piccolo: ktm-008 entrava a centrocampo con 2 partite e un
-// punteggio di 90, davanti a ilmille che ne ha 29. Due partite buone non sono una
-// prestazione, sono una coincidenza. Se un reparto non ha abbastanza candidati sopra
-// soglia, la soglia scende per quel reparto invece di lasciare il posto vuoto.
-const MIN_PARTITE_REPARTO = __MIN_REPARTO__;
-
-function computeGroupLineup(){
-  const rosterNames = new Set((DATA.roster || []).map(r => r.player_name));
-  const tutti = computeGroupScores().filter(a => rosterNames.has(a.player_name));
-
-  // Ogni reparto viene classificato con lo stesso algoritmo delle classifiche per reparto,
-  // cosi' il numero mostrato qui e' lo stesso che si legge la' sopra.
-  const classifiche = {};
-  POSTI_REPARTO.forEach(({ gruppo, posti }) => {
-    const nel = tutti.filter(a => a.group === gruppo);
-    let soglia = MIN_PARTITE_REPARTO;
-    while(soglia > 1 && nel.filter(a => a.games >= soglia).length < posti) soglia--;
-    // Il punteggio si calcola sul reparto INTERO e solo dopo si scarta chi non arriva
-    // alla soglia. Normalizzando sui soli ammessi, un reparto con due candidati dava per
-    // forza 100 al primo e 0 al secondo: Smilzo_87, con 39 presenze da esterno e una
-    // media piu' che buona, compariva in campo con uno zero addosso.
-    const conPunteggio = rankGroup(nel);
-    classifiche[gruppo] = conPunteggio.filter(a => a.games >= soglia);
+function computeRoleAggregates(){
+  const winByMatch = new Map((DATA.matches || []).map(m => [m.match_id, m.win]));
+  const agg = {};
+  (DATA.matches || []).forEach(m => {
+    const players = DATA.matchPlayers[m.match_id] || [];
+    const win = winByMatch.get(m.match_id) ? 1 : 0;
+    players.forEach(p => {
+      if(!OUTFIELD_ROLES.includes(p.pos)) return;
+      const key = p.player_name + "|" + p.pos;
+      if(!agg[key]){
+        agg[key] = {
+          player_name: p.player_name, role: p.pos, games: 0,
+          sumRating: 0, sumGoals: 0, sumAssists: 0, sumMom: 0, sumWin: 0,
+          sumPassesMade: 0, sumPassAttempts: 0, sumTacklesMade: 0, sumTackleAttempts: 0,
+          sumShots: 0, sumRedCards: 0,
+        };
+      }
+      const a = agg[key];
+      a.games++;
+      a.sumRating += p.rating || 0;
+      a.sumGoals += p.goals || 0;
+      a.sumAssists += p.assists || 0;
+      a.sumMom += p.mom || 0;
+      a.sumWin += win;
+      a.sumPassesMade += p.passes_made || 0;
+      a.sumPassAttempts += p.pass_attempts || 0;
+      a.sumTacklesMade += p.tackles_made || 0;
+      a.sumTackleAttempts += p.tackle_attempts || 0;
+      a.sumShots += p.shots || 0;
+      a.sumRedCards += p.red_cards || 0;
+    });
   });
-
-  // Chi ha giocato in due reparti compare in due classifiche. Va assegnato una volta sola,
-  // e al reparto in cui rende di piu': si scorrono tutte le candidature in ordine di
-  // punteggio, non reparto per reparto, altrimenti l'ordine dei reparti deciderebbe al
-  // posto dei dati.
-  const candidature = [];
-  POSTI_REPARTO.forEach(({ gruppo }) => {
-    (classifiche[gruppo] || []).forEach(a => candidature.push({ ...a, gruppo }));
+  return Object.values(agg).map(a => {
+    const passSuccess = a.sumPassAttempts > 0 ? (a.sumPassesMade / a.sumPassAttempts) * 100 : 0;
+    const tackleSuccess = a.sumTackleAttempts > 0 ? (a.sumTacklesMade / a.sumTackleAttempts) * 100 : 0;
+    const shotSuccess = a.sumShots > 0 ? (a.sumGoals / a.sumShots) * 100 : 0;
+    return {
+      ...a,
+      ratingAve: a.sumRating / a.games,
+      contrib: (a.sumGoals + a.sumAssists) / a.games,
+      motmRate: a.sumMom / a.games,
+      winRate: (a.sumWin / a.games) * 100,
+      techEff: (passSuccess + tackleSuccess + shotSuccess) / 3,
+      redRate: a.sumRedCards / a.games,
+      fallback: false,
+    };
   });
-  candidature.sort((x, y) => y.score - x.score);
+}
 
-  const presi = new Set();
-  const liberi = {};
-  POSTI_REPARTO.forEach(({ gruppo, posti }) => { liberi[gruppo] = posti; });
-  const formazione = {};
-  POSTI_REPARTO.forEach(({ gruppo }) => { formazione[gruppo] = []; });
-
-  candidature.forEach(c => {
-    if(presi.has(c.player_name)) return;
-    if(liberi[c.gruppo] <= 0) return;
-    formazione[c.gruppo].push(c);
-    presi.add(c.player_name);
-    liberi[c.gruppo]--;
+function computeRoleScores(){
+  const all = computeRoleAggregates();
+  function normalize(values){
+    const min = Math.min(...values), max = Math.max(...values);
+    if(max === min) return values.map(() => 0.5);
+    return values.map(v => (v - min) / (max - min));
+  }
+  const byRole = {};
+  OUTFIELD_ROLES.forEach(role => {
+    const pool = all.filter(a => a.role === role);
+    if(pool.length === 0){ byRole[role] = []; return; }
+    const nRating = normalize(pool.map(a => a.ratingAve));
+    const nContrib = normalize(pool.map(a => a.contrib));
+    const nMotm = normalize(pool.map(a => a.motmRate));
+    const nWin = normalize(pool.map(a => a.winRate));
+    const nTech = normalize(pool.map(a => a.techEff));
+    const nDisc = normalize(pool.map(a => a.redRate));
+    byRole[role] = pool.map((a, i) => ({
+      ...a,
+      score: Math.max(0, Math.min(100, 100 * (
+        0.40 * nRating[i] + 0.20 * nContrib[i] + 0.15 * nMotm[i] + 0.10 * nWin[i] + 0.10 * nTech[i] - 0.05 * nDisc[i]
+      ))),
+    })).sort((x, y) => y.score - x.score);
   });
-  return formazione;
+  return byRole;
+}
+
+// Giocatori che non fanno più parte del club: esclusi da tutti i suggerimenti di formazione
+// (ma restano visibili nelle altre sezioni della dashboard, es. Indice di Forza, che sono storiche).
+
+function computeOutfieldLineup(){
+  // Gli ex giocatori sono gia' fuori da DATA.roster: qui non serve rifiltrarli.
+  const roster = DATA.roster || [];
+  const goalkeeperNames = new Set(roster
+    .filter(r => r.gruppo === "PORTIERI" || r.role_effective === "goalkeeper")
+    .map(r => r.player_name));
+  // I punteggi di ruolo nascono dalle partite archiviate, che includono anche chi non raggiunge
+  // la soglia minima di presenze: qui li scartiamo, per restare coerenti con il resto della dashboard.
+  const rosterNames = new Set(roster.map(r => r.player_name));
+  const byRole = computeRoleScores();
+  const assigned = new Set();
+  const lineup = { defender: [], midfielder: [], forward: [], trequartista: null };
+
+  const genericRanked = [...POWER_SCORES]
+    .filter(s => !goalkeeperNames.has(s.r.player_name))
+    .sort((a, b) => b.score - a.score);
+
+  function fillRole(role, count){
+    const pool = (byRole[role] || []).filter(c => rosterNames.has(c.player_name) && !goalkeeperNames.has(c.player_name) && !assigned.has(c.player_name));
+    const picked = [];
+    for(const c of pool){
+      if(picked.length >= count) break;
+      picked.push(c);
+      assigned.add(c.player_name);
+    }
+    if(picked.length < count){
+      for(const s of genericRanked){
+        if(picked.length >= count) break;
+        if(assigned.has(s.r.player_name)) continue;
+        picked.push({
+          player_name: s.r.player_name, role, score: s.score, games: 0,
+          ratingAve: s.r.rating_ave, contrib: s.contrib, fallback: true,
+        });
+        assigned.add(s.r.player_name);
+      }
+    }
+    return picked;
+  }
+
+  lineup.defender = fillRole("defender", FORMATION_SLOTS.defender);
+  lineup.forward = fillRole("forward", FORMATION_SLOTS.forward);
+  const midPool = fillRole("midfielder", FORMATION_SLOTS.midfielder + FORMATION_SLOTS.trequartista);
+  const sortedByAttack = [...midPool].sort((a, b) => (b.contrib || 0) - (a.contrib || 0));
+  lineup.trequartista = sortedByAttack[0] || null;
+  lineup.midfielder = midPool.filter(p => p !== lineup.trequartista);
+
+  return lineup;
 }
 
 (function renderFormation(){
-  const formazione = computeGroupLineup();
+  const lineup = computeOutfieldLineup();
   const pitchEl = document.getElementById("pitchField");
-  const CSS = { ATTACCANTI: "forward", ESTERNI: "midfielder", CENTROCAMPISTI: "midfielder" };
 
-  function slotHtml(entry, gruppo){
+  function slotHtml(role, entry, cssRole){
     if(!entry){
-      return `<div class="pitch-player"><div class="dot empty">?</div><div class="pname">—</div>
-              <div class="pscore est">nessun dato</div></div>`;
+      return `<div class="pitch-player"><div class="dot empty">?</div><div class="pname">—</div></div>`;
     }
+    const estBadge = entry.fallback ? `<div class="pscore est">stima</div>` : `<div class="pscore">${entry.games}p · ${entry.ratingAve.toFixed(2)}</div>`;
     return `
       <div class="pitch-player player-link" data-player="${entry.player_name}">
-        <div class="dot ${CSS[gruppo] || "midfielder"}">${entry.score.toFixed(0)}</div>
+        <div class="dot ${cssRole}">${entry.score.toFixed(0)}</div>
         <div class="pname">${entry.player_name}</div>
-        <div class="pscore">${entry.games}p · ${entry.ratingAve.toFixed(2)}</div>
+        ${estBadge}
       </div>`;
   }
 
-  function fila(gruppo){
-    const posti = (POSTI_REPARTO.find(p => p.gruppo === gruppo) || {}).posti || 0;
-    const scelti = formazione[gruppo] || [];
-    let html = "";
-    for(let i = 0; i < posti; i++) html += slotHtml(scelti[i], gruppo);
-    return `<div class="pitch-row">${html}</div>`;
-  }
-
-  pitchEl.innerHTML = [
-    fila("ATTACCANTI"),
-    fila("ESTERNI"),
-    fila("CENTROCAMPISTI"),
-    `<div class="pitch-row"><div class="pitch-player">
-       <div class="dot empty">CPU</div><div class="pname">Difesa</div>
-       <div class="pscore est">mai schierata da umani</div></div></div>`,
-    `<div class="pitch-row"><div class="pitch-player">
-       <div class="dot empty">GK</div><div class="pname">Portiere</div>
-       <div class="pscore est">libero, a rotazione</div></div></div>`,
-  ].join("");
-
-  const ETICHETTE = { ATTACCANTI: "Attacco", ESTERNI: "Esterno", CENTROCAMPISTI: "Centrocampo" };
-  const righe = [];
-  POSTI_REPARTO.forEach(({ gruppo }) => {
-    (formazione[gruppo] || []).forEach(e => righe.push({ ...e, etichetta: ETICHETTE[gruppo] }));
-  });
+  const rows = [];
+  rows.push(`<div class="pitch-row">${lineup.forward.map(e => slotHtml("forward", e, "forward")).join("")}</div>`);
+  rows.push(`<div class="pitch-row">${slotHtml("trequartista", lineup.trequartista, "trequartista")}</div>`);
+  rows.push(`<div class="pitch-row">${lineup.midfielder.map(e => slotHtml("midfielder", e, "midfielder")).join("")}</div>`);
+  rows.push(`<div class="pitch-row">${lineup.defender.map(e => slotHtml("defender", e, "defender")).join("")}</div>`);
+  rows.push(`<div class="pitch-row"><div class="pitch-player"><div class="dot empty">GK</div><div class="pname">Libero</div><div class="pscore">a rotazione</div></div></div>`);
+  pitchEl.innerHTML = rows.join("");
 
   const tbody = document.querySelector("#formationTable tbody");
-  tbody.innerHTML = righe.map(e => `
+  const allSlots = [
+    ...lineup.forward.map(e => ({ ...e, roleLabel: "Attacco" })),
+    lineup.trequartista ? { ...lineup.trequartista, roleLabel: "Trequartista" } : null,
+    ...lineup.midfielder.map(e => ({ ...e, roleLabel: "Centrocampo" })),
+    ...lineup.defender.map(e => ({ ...e, roleLabel: "Difesa" })),
+  ].filter(Boolean);
+
+  tbody.innerHTML = allSlots.map(e => `
     <tr>
-      <td data-label="Reparto">${e.etichetta}</td>
+      <td data-label="Ruolo">${e.roleLabel}</td>
       <td data-label="Giocatore"><span class="player-link" data-player="${e.player_name}">${e.player_name}</span></td>
       <td data-label="Indice" class="lb-value">${e.score.toFixed(1)}</td>
-      <td data-label="Partite nel reparto">${e.games}</td>
+      <td data-label="Partite nel ruolo">${e.games}</td>
       <td data-label="Media voto">${e.ratingAve.toFixed(2)}</td>
-      <td data-label="Gol">${e.sumGoals}</td>
-      <td data-label="Assist">${e.sumAssists}</td>
+      <td data-label="Fonte">${e.fallback ? "stima (Indice di Forza generale)" : "dati di ruolo reali"}</td>
     </tr>
   `).join("");
 })();
@@ -3412,7 +3452,6 @@ def main():
         .replace("__DIVISION__", str(division))
         .replace("__UPDATED_AT__", str(updated_at))
         .replace("__MIN_GAMES__", str(MIN_GAMES))
-        .replace("__MIN_REPARTO__", str(MIN_REPARTO))
         .replace("__DATA_JSON__", json.dumps(data, ensure_ascii=False))
     )
 

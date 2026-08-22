@@ -33,9 +33,6 @@ function ritaglia(da, a) {
 const codice = [
   ritaglia("const DATA = {", "// ---- Ruolo effettivo"),
   ritaglia("const ROLE_COUNTS_BY_NAME", "function fmtDate"),
-  // Dal 22/08/2026 anche la formazione tipo nasce dai reparti di roles.json invece che
-  // dalle etichette EA, quindi va verificata con lo stesso metodo.
-  ritaglia("const POSTI_REPARTO", "(function renderFormation"),
 ].join("\n");
 
 let ambiente;
@@ -43,8 +40,7 @@ try {
   ambiente = new Function(codice + `
     return { DATA, GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, MACRO_TO_GROUP,
              groupForMatch, etichettaAttesa, mainPosOf, computeGroupScores, rankGroup,
-             GROUP_ORDER, ROLE_EXCEPTIONS,
-             computeGroupLineup, POSTI_REPARTO, MIN_PARTITE_REPARTO };`)();
+             GROUP_ORDER, ROLE_EXCEPTIONS };`)();
 } catch (e) {
   console.error("Impossibile eseguire il codice estratto:", e.message);
   process.exit(1);
@@ -130,44 +126,6 @@ for (const g of GROUP_ORDER) {
   // Una metrica su cui tutti hanno lo stesso valore non deve regalare mezzo punteggio.
   verifica(`${g}: le metriche piatte sono escluse dal calcolo`,
     Array.isArray(r[0].metricheIgnorate));
-}
-
-console.log("\nFormazione tipo");
-{
-  const { computeGroupLineup, POSTI_REPARTO, MIN_PARTITE_REPARTO } = ambiente;
-  const f = computeGroupLineup();
-  const scelti = [];
-  POSTI_REPARTO.forEach(({ gruppo, posti }) => {
-    const q = f[gruppo] || [];
-    q.forEach(e => scelti.push({ ...e, gruppo }));
-    verifica(`${gruppo}: non piu' di ${posti} posti occupati`, q.length <= posti,
-      `occupati ${q.length}`);
-  });
-
-  // Chi ha giocato in due reparti compare in due classifiche: deve essere scelto una
-  // volta sola, altrimenti la formazione schiererebbe due volte la stessa persona.
-  const nomi = scelti.map(e => e.player_name);
-  verifica("nessun giocatore occupa due posti",
-    new Set(nomi).size === nomi.length,
-    nomi.filter((n, i) => nomi.indexOf(n) !== i).join(", "));
-
-  // Il minimo puo' scendere solo se il reparto non ha abbastanza candidati sopra soglia.
-  POSTI_REPARTO.forEach(({ gruppo, posti }) => {
-    const pool = computeGroupScores().filter(a => a.group === gruppo);
-    const sopra = pool.filter(a => a.games >= MIN_PARTITE_REPARTO).length;
-    const scesi = (f[gruppo] || []).filter(e => e.games < MIN_PARTITE_REPARTO);
-    verifica(`${gruppo}: si scende sotto le ${MIN_PARTITE_REPARTO} partite solo se serve`,
-      scesi.length === 0 || sopra < posti,
-      `${scesi.length} sotto soglia con ${sopra} candidati disponibili`);
-  });
-
-  // Il punteggio si calcola sul reparto intero: in un reparto da due candidati il
-  // secondo non deve ritrovarsi uno zero solo perche' e' secondo.
-  verifica("nessun punteggio azzerato per effetto della sola soglia",
-    scelti.every(e => e.score > 0 || (f[e.gruppo] || []).length === 1),
-    scelti.filter(e => e.score === 0).map(e => e.player_name).join(", "));
-
-  verifica("ogni scelto ha partite reali nel reparto", scelti.every(e => e.games > 0));
 }
 
 console.log(falliti === 0

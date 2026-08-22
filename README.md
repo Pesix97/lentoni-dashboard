@@ -204,31 +204,6 @@ diventano falsi di nascosto.
 Le regole sono tarate larghe di proposito: un falso allarme costa una riga di risposta,
 una svista costa un dato sbagliato per sempre.
 
-### La formazione tipo sono sei posti, non undici
-
-Fino al 22/08/2026 la sezione mostrava un 3-4-1-2 costruito sulle quattro etichette EA,
-completando i posti scoperti con i migliori dell'Indice generale marcati "stima". Il
-problema è emerso misurando: **in 42 partite il club non ha mai schierato un difensore
-umano** (mediana 0 per partita, nessuno con almeno 5 presenze in difesa). Cinque caselle su
-undici mostravano quindi giocatori in un ruolo che non hanno mai giocato.
-
-Ora i posti sono i sei che il club occupa davvero — due esterni, due centrocampisti, due
-attaccanti — e i reparti sono quelli di `roles.json`. Difesa e portiere sono dichiarati
-come CPU.
-
-Due dettagli che nascono da errori visti:
-
-- servono **almeno 10 partite in quel reparto** per prendersi il posto. Senza minimo lo
-  vinceva chi aveva il campione più piccolo: ktm-008 entrava a centrocampo con 2 presenze e
-  un punteggio di 90, davanti a ilmille che ne ha 29
-- il punteggio si calcola sul **reparto intero** e solo dopo si applica il minimo.
-  Normalizzando sui soli ammessi, un reparto con due candidati dava per forza 100 al primo
-  e 0 al secondo: Smilzo_87, 39 presenze da esterno, compariva in campo con uno zero
-
-Chi ha giocato in due reparti viene assegnato a quello dove il punteggio è più alto, e una
-volta sola: le candidature si scorrono in ordine di punteggio e non reparto per reparto,
-altrimenti sarebbe l'ordine dei reparti a decidere al posto dei dati.
-
 ### Chi ha lasciato il club
 
 La voce `ex_giocatori` elenca chi non fa più parte del gruppo. Viene escluso da tutta la
