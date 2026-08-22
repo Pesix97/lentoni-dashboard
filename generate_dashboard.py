@@ -910,6 +910,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <h3 style="margin:34px 0 4px; font-size:17px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:24px;">
     Reparto per reparto <span class="h2-sub">— chi incide di più tra i pari ruolo</span>
   </h3>
+  <div id="daConfermare"></div>
   <div class="panel" style="margin-bottom:12px;">
     <div style="font-size:12px; color:var(--muted); line-height:1.5;">
       L'Indice di Forza generale mette tutti nella stessa classifica, e chi gioca dietro parte
@@ -2210,6 +2211,27 @@ let growthChart = null;
   recompute();
 })();
 
+// Serate i cui ruoli nessuno ha ancora confermato. Un fuori ruolo non lascia traccia nei
+// dati, quindi finche' non c'e' una conferma la classificazione e' un'ipotesi: meglio
+// scriverlo che lasciare che i numeri sembrino piu' solidi di quanto siano.
+(function renderDaConfermare(){
+  const el = document.getElementById("daConfermare");
+  if(!el) return;
+  const aperte = DATA.serateAperte || [];
+  if(!aperte.length) return;
+  const partite = aperte.reduce((s, x) => s + x.partite, 0);
+  const giorni = aperte.slice(-4).map(x => x.giorno).join(", ");
+  el.innerHTML = `<div class="panel" style="margin-bottom:12px; border-left:3px solid var(--warn,#e0a800);">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      <strong style="color:var(--text);">${partite} partite in attesa di conferma</strong>
+      su ${aperte.length} ${aperte.length === 1 ? "serata" : "serate"} (${giorni}${aperte.length > 4 ? " e altre" : ""}).
+      EA non distingue un COC da un CC da un esterno: per queste partite il reparto è
+      quello abituale di ciascuno, che è l'ipotesi più probabile ma resta un'ipotesi
+      finché non la conferma chi ha giocato.
+    </div>
+  </div>`;
+})();
+
 (function renderRoleBoards(){
   const boardsEl = document.getElementById("roleBoards");
   const filtersEl = document.getElementById("roleMinFilters");
@@ -3370,6 +3392,35 @@ def _load_role_groups(script_dir=None):
     return cfg
 
 
+def serate_da_confermare(matches):
+    """Le serate di gioco per cui nessuno ha ancora confermato i ruoli.
+
+    Le partite giocate fuori ruolo non lasciano traccia nei dati (verificato il
+    22/08/2026: tiri, contrasti e passaggi coincidono con quelli delle partite normali),
+    quindi la classificazione di una serata resta un'ipotesi finche' qualcuno non la
+    conferma. Segnalarlo sulla pagina evita che l'ipotesi si travesta da certezza:
+    se una mattina nessuno risponde, i numeri restano visibilmente provvisori.
+    """
+    try:
+        import ruoli as _r
+        from datetime import datetime, timedelta
+        cfg = _r.carica()
+        quando = sorted(
+            datetime.fromisoformat(m["played_at"].replace("Z", "+00:00").replace("+00:00", ""))
+            + timedelta(hours=2)
+            for m in matches if m.get("played_at")
+        )
+        aperte = []
+        for gruppo in _r.serate(quando):
+            if f"{gruppo[0]:%Y-%m-%d %H:%M}" in cfg["confermate"]:
+                continue
+            aperte.append({"giorno": f"{gruppo[0]:%d/%m %H:%M}", "partite": len(gruppo)})
+        return aperte
+    except Exception as exc:  # noqa: BLE001 - un avviso mancante non deve fermare la pagina
+        print(f"  attenzione: serate non calcolate ({exc.__class__.__name__})")
+        return []
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default="lentoni.db")
@@ -3387,6 +3438,7 @@ def main():
     # parte nel file, nemmeno tra i dati grezzi, e le righe non valide sono gia' sparite.
     data["roleGroups"] = {k: v for k, v in ruoli.items()
                           if k not in ("exPlayers", "excludedRows", "sentinelRating")}
+    data["serateAperte"] = serate_da_confermare(data["matches"])
     data["titolo"] = club.get("titolo") or ""
     club_name = (data["club"].get("name") or "Club").title()
     platform = data["club"].get("platform") or "-"

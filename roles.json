@@ -226,6 +226,20 @@
     "senza toccare il codice."
   ],
   "voto_sentinella": 3.0,
+  "_serate_confermate": [
+    "Le serate di gioco per cui qualcuno ha confermato che i ruoli sono giusti.",
+    "",
+    "Serve perche' una partita giocata fuori ruolo non lascia traccia nei dati: il",
+    "22/08/2026 ho confrontato tiri, contrasti e passaggi delle partite corrette a mano",
+    "con quelli delle partite normali e cadono nella stessa distribuzione. Quindi la",
+    "classificazione di una serata e' un'ipotesi finche' non la conferma chi ha giocato,",
+    "e la dashboard lo dichiara invece di far sembrare certi dei numeri che non lo sono.",
+    "",
+    "Formato: data e ora di inizio della serata, 'aaaa-mm-gg hh:mm' in ora italiana. L'ora",
+    "serve a distinguere due serate dello stesso giorno, che capitano: il 04/08 ce ne sono",
+    "due. Lo script serata.py stampa la chiave esatta da incollare qui."
+  ],
+  "serate_confermate": [],
   "_da_assegnare": [
     "Nessuno: tutti i giocatori in rosa hanno un ruolo assegnato, e chi ha lasciato il club",
     "e' elencato in 'ex_giocatori'. Se compare un nome nuovo, la dashboard lo segnala con un",

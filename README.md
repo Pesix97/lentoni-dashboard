@@ -162,6 +162,36 @@ ilmille            6.97 → 7.11
 domenicocasaburi   7.40 → 7.52
 ```
 
+### La domanda del mattino
+
+Il punto debole di tutto l'impianto non è tecnico: è che le eccezioni dipendono dalla
+memoria di chi ha giocato. Una serata non segnalata resta classificata male per sempre, e
+niente lo indica.
+
+Il 22/08/2026 ho provato a rilevarle dai numeri. **Non funziona**: le partite giocate
+fuori ruolo hanno tiri, contrasti e passaggi identici a quelle normali, dentro la stessa
+distribuzione. Un classificatore su quei dati produce rumore, e non va costruito.
+
+Funzionano invece i vincoli di formazione — due giocatori che fanno il COC a turno non
+possono farlo insieme, un reparto più affollato del solito vuol dire che qualcuno copre un
+ruolo non suo. Su 42 partite intercettano 8 correzioni reali su 10, con 12 falsi allarmi.
+
+Otto su dieci non basta per decidere, ma basta per **accorciare la domanda**. Da qui:
+
+```
+python3 serata.py            l'ultima serata non ancora confermata
+python3 serata.py --tutte    tutte quelle in sospeso
+```
+
+Stampa la griglia della serata — chi ha giocato dove, secondo la classificazione
+automatica — con sotto le osservazioni delle regole strutturali e la chiave da incollare
+in `serate_confermate` quando è tutto giusto. Le serate non confermate sono **marcate come
+provvisorie anche sulla dashboard**, così se una mattina nessuno risponde i numeri non
+diventano falsi di nascosto.
+
+Le regole sono tarate larghe di proposito: un falso allarme costa una riga di risposta,
+una svista costa un dato sbagliato per sempre.
+
 ### Chi ha lasciato il club
 
 La voce `ex_giocatori` elenca chi non fa più parte del gruppo. Viene escluso da tutta la

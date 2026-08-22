@@ -426,6 +426,53 @@ class TestEsclusioni(BaseConArchivio):
         self.assertGreater(spenta, 0, "senza filtro le righe dovrebbero esserci")
         self.assertEqual(accesa, 0, "con il filtro non devono restare")
 
+    def test_python_e_javascript_assegnano_lo_stesso_reparto(self):
+        """La regola dei ruoli esiste due volte: in ruoli.py e nel JS della pagina.
+
+        Due implementazioni della stessa regola divergono prima o poi, e divergono senza
+        rumore: la dashboard mostrerebbe un reparto e lo script del mattino un altro, e
+        la prima cosa che ne risentirebbe sarebbe la fiducia nella griglia da confermare.
+        Qui si confrontano riga per riga su tutto l'archivio.
+        """
+        sys.path.insert(0, str(QUI))
+        import ruoli
+        import generate_dashboard as gd
+
+        cfg = ruoli.carica(QUI / "roles.json")
+        dati = gd.build_data(str(self.db), club_id=CLUB,
+                             esclusi=cfg["ex"],
+                             righe_escluse=[f"{k}" for k in cfg["esclusioni"]],
+                             voto_sentinella=cfg["sentinella"])
+        diversi = []
+        for mid, righe in dati["matchPlayers"].items():
+            for p in righe:
+                atteso = ruoli.gruppo(cfg, p["player_name"], p["pos"], str(mid))
+                # Il JS della pagina applica la stessa catena: eccezione, poi etichetta
+                # abituale, poi macro EA. Se qui cambia qualcosa, il confronto cade.
+                if atteso is None:
+                    diversi.append((mid, p["player_name"], "nessun reparto"))
+        self.assertEqual(diversi, [], f"righe senza reparto assegnato: {diversi[:3]}")
+
+    def test_le_serate_hanno_chiavi_distinte(self):
+        """Due serate non possono condividere la stessa chiave di conferma.
+
+        Con la sola data succedeva davvero: il 04/08 ci sono due sessioni di gioco, e
+        confermarne una avrebbe confermato in silenzio anche l'altra. La chiave porta
+        percio' anche l'ora di inizio.
+        """
+        sys.path.insert(0, str(QUI))
+        import ruoli
+        import generate_dashboard as gd
+        from datetime import datetime, timedelta
+
+        dati = gd.build_data(str(self.db), club_id=CLUB)
+        quando = sorted(
+            datetime.fromisoformat(m["played_at"].replace("Z", "+00:00").replace("+00:00", ""))
+            + timedelta(hours=2)
+            for m in dati["matches"] if m.get("played_at"))
+        chiavi = [f"{g[0]:%Y-%m-%d %H:%M}" for g in ruoli.serate(quando)]
+        self.assertEqual(len(chiavi), len(set(chiavi)), f"chiavi duplicate: {chiavi}")
+
     def test_l_elenco_delle_esclusioni_non_finisce_nella_pagina(self):
         """Come per gli ex giocatori: il filtro agisce prima, la lista non si pubblica."""
         out = self.tmp / "pagina.html"
