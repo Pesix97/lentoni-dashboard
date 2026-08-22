@@ -59,7 +59,8 @@ def carica_club(script_dir=None):
         return dict(DEFAULT_CLUB)
 
 
-def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None):
+def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
+               voto_sentinella=None):
     if club_id is None:
         club_id = carica_club()["club_id"]
     # Chi ha lasciato il gruppo viene tolto QUI, prima che i dati entrino nella pagina:
@@ -71,6 +72,11 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None):
     # volta sola, cosi' ogni calcolo che parte dalle partite la ignora senza doversene
     # ricordare: classifiche per reparto, indice di forma, formazione tipo, premi.
     righe_escluse = set(righe_escluse or [])
+    # Oltre all'elenco a mano c'e' un caso riconoscibile da solo: il voto sentinella.
+    # Misurato il 22/08/2026 sull'intero archivio, i voti si distribuiscono con continuita'
+    # da 5.8 in su, e sotto c'e' il vuoto fino a un gruppo di righe tutte a 3.0 esatto, con
+    # zero tiri e una manciata di passaggi in un'ora di gioco. Non e' una scala che tocca il
+    # fondo: e' il valore che EA scrive quando un voto non c'e'. Vengono tolte come le altre.
     con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
@@ -147,6 +153,7 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None):
 
     match_players = {}
     tolte = 0
+    tolte_voto = 0
     for m in matches:
         rows = fetch_all(
             cur,
@@ -169,16 +176,22 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None):
         )
         for r in rows:
             r.pop("_pref", None)
-        tenute = [r for r in rows
-                  if f"{m['match_id']}|{r['player_name']}" not in righe_escluse]
-        tolte += len(rows) - len(tenute)
+        tenute = []
+        for r in rows:
+            if f"{m['match_id']}|{r['player_name']}" in righe_escluse:
+                tolte += 1
+            elif voto_sentinella is not None and r["rating"] == voto_sentinella:
+                tolte_voto += 1
+            else:
+                tenute.append(r)
         match_players[m["match_id"]] = tenute
 
     if righe_escluse:
         # Conta le righe davvero rimosse, non le voci elencate: se una si riferisce a una
         # partita non archiviata o a un nome sbagliato non toglie nulla, ed e' bene vederlo.
-        print(f"  prestazioni non conteggiate (CPU al controllo): "
-              f"{tolte} su {len(righe_escluse)} elencate")
+        print(f"  prestazioni escluse a mano: {tolte} su {len(righe_escluse)} elencate")
+    if tolte_voto:
+        print(f"  prestazioni senza voto (sentinella {voto_sentinella}): {tolte_voto}")
 
     salute = calcola_salute_archivio(cur, club_id)
 
@@ -3343,6 +3356,17 @@ def _load_role_groups(script_dir=None):
             continue
         esclusioni.add(f"{mid}|{who}")
     cfg["excludedRows"] = sorted(esclusioni)
+
+    # Il voto sentinella si legge da qui invece di essere scritto nel codice: se un domani
+    # EA cambiasse il valore, o se si volesse spegnere la regola, basta questo file.
+    # Assente o nullo = nessun filtro automatico, che e' il ripiego prudente: meglio
+    # pubblicare una riga in piu' che nasconderne una vera senza accorgersene.
+    voto = raw.get("voto_sentinella")
+    try:
+        cfg["sentinelRating"] = float(voto) if voto is not None else None
+    except (TypeError, ValueError):
+        print(f"  attenzione: voto_sentinella non numerico in {path.name}, ignorato: {voto!r}")
+        cfg["sentinelRating"] = None
     return cfg
 
 
@@ -3356,12 +3380,13 @@ def main():
     ruoli = load_role_groups()
     data = build_data(args.db, club_id=club["club_id"],
                       esclusi=ruoli.get("exPlayers"),
-                      righe_escluse=ruoli.get("excludedRows"))
+                      righe_escluse=ruoli.get("excludedRows"),
+                      voto_sentinella=ruoli.get("sentinelRating"))
     # Le liste di esclusione hanno gia' fatto il loro lavoro qui sopra: non vengono
     # pubblicate nella pagina, cosi' chi ha lasciato il club non compare da nessuna
     # parte nel file, nemmeno tra i dati grezzi, e le righe non valide sono gia' sparite.
     data["roleGroups"] = {k: v for k, v in ruoli.items()
-                          if k not in ("exPlayers", "excludedRows")}
+                          if k not in ("exPlayers", "excludedRows", "sentinelRating")}
     data["titolo"] = club.get("titolo") or ""
     club_name = (data["club"].get("name") or "Club").title()
     platform = data["club"].get("platform") or "-"

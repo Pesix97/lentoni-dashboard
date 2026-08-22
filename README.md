@@ -136,6 +136,32 @@ Resta invece dentro ai totali di carriera, perché quelli li somma EA e non sono
 correggibili: è un limite, non una scelta. Il `motivo` è obbligatorio — senza, fra sei mesi
 una statistica mancante sarebbe indistinguibile da una svista.
 
+**Un caso si riconosce da solo** e non va elencato. Guardando la distribuzione dei voti su
+tutto l'archivio (22/08/2026) è saltata fuori una discontinuità:
+
+```
+3.0    8 righe        ← e sotto, il vuoto
+5.8    2 righe
+6.0    3 righe
+6.1    4 righe        ← da qui in su, continuo
+```
+
+Niente tra 3.0 e 5.8. E tutte e otto le righe da 3.0 avevano zero tiri e da tre a dieci
+passaggi in un'ora di gioco. Non è il fondo di una scala: è **il valore che EA scrive
+quando un voto non c'è**. La voce `voto_sentinella` in `roles.json` le esclude in
+automatico, senza doverle segnalare una per una. Mettendola a `null` la regola si spegne e
+le righe tornano.
+
+Sulle medie pesava parecchio:
+
+```
+Pesix_97           7.36 → 7.83
+Jysmu              7.20 → 7.58
+Maverik_44_        6.43 → 6.77
+ilmille            6.97 → 7.11
+domenicocasaburi   7.40 → 7.52
+```
+
 ### Chi ha lasciato il club
 
 La voce `ex_giocatori` elenca chi non fa più parte del gruppo. Viene escluso da tutta la

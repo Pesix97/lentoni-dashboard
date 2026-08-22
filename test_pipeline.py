@@ -380,6 +380,52 @@ class TestEsclusioni(BaseConArchivio):
                     continue  # partita fuori dall'archivio del club attivo
                 self.assertNotIn(chi, [p["player_name"] for p in righe])
 
+    def test_nessun_voto_sentinella_nei_dati_pubblicati(self):
+        """Il voto sentinella non deve sopravvivere fino alla pagina.
+
+        E' il valore che EA scrive quando un voto non esiste (3.0 alla verifica del
+        22/08/2026). Lasciarlo dentro abbassa le medie di chi non ha nemmeno giocato:
+        togliendo le sue tre righe, la media di Pesix_97 passava da 7.36 a 7.83.
+        """
+        r = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        sentinella = r.get("voto_sentinella")
+        if sentinella is None:
+            self.skipTest("regola del voto sentinella disattivata")
+        out = self.tmp / "pagina.html"
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out))
+        html = out.read_text(encoding="utf-8")
+        inizio = html.index("const DATA = ") + len("const DATA = ")
+        dati = json.loads(html[inizio:html.index(";\n", inizio)])
+        colpevoli = [(mid, p["player_name"])
+                     for mid, righe in dati["matchPlayers"].items()
+                     for p in righe if p.get("rating") == sentinella]
+        self.assertEqual(colpevoli, [], f"righe con voto {sentinella} ancora presenti")
+
+    def test_il_filtro_si_puo_spegnere(self):
+        """Con voto_sentinella a null le righe tornano: la regola e' governata dal file.
+
+        Serve a garantire che sia una scelta reversibile e non un comportamento
+        cablato nel codice, dove nessuno lo ritroverebbe.
+        """
+        r = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        sentinella = r.get("voto_sentinella")
+        if sentinella is None:
+            self.skipTest("regola gia' disattivata")
+        # Si chiama build_data direttamente invece di riscrivere roles.json: quel file e'
+        # quello vero del progetto, e un test che lo sovrascrive lascerebbe il repository
+        # sporco se venisse interrotto a meta'.
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        con = gd.build_data(str(self.db), club_id=CLUB, voto_sentinella=None)
+        spenta = sum(1 for righe in con["matchPlayers"].values()
+                     for p in righe if p.get("rating") == sentinella)
+        acceso = gd.build_data(str(self.db), club_id=CLUB, voto_sentinella=sentinella)
+        accesa = sum(1 for righe in acceso["matchPlayers"].values()
+                     for p in righe if p.get("rating") == sentinella)
+        self.assertGreater(spenta, 0, "senza filtro le righe dovrebbero esserci")
+        self.assertEqual(accesa, 0, "con il filtro non devono restare")
+
     def test_l_elenco_delle_esclusioni_non_finisce_nella_pagina(self):
         """Come per gli ex giocatori: il filtro agisce prima, la lista non si pubblica."""
         out = self.tmp / "pagina.html"

@@ -212,6 +212,20 @@
       "motivo": "controllato dalla CPU"
     }
   ],
+  "_voto_sentinella": [
+    "Il voto che EA scrive quando un voto non c'e'. Le righe che lo portano vengono",
+    "escluse dai calcoli in automatico, senza doverle elencare una per una.",
+    "",
+    "Non e' una supposizione: il 22/08/2026, su tutto l'archivio, i voti risultavano",
+    "distribuiti con continuita' da 5.8 in su, e sotto il vuoto assoluto fino a otto",
+    "righe tutte a 3.0 esatto. Quelle otto avevano zero tiri e da tre a dieci passaggi",
+    "in un'ora di gioco: un pro fermo, non un giocatore in giornata storta. Se 3.0 fosse",
+    "il fondo di una scala vera, prima o poi qualcuno prenderebbe 4.",
+    "",
+    "Mettere null spegne la regola. Se un giorno EA cambiasse valore si corregge qui,",
+    "senza toccare il codice."
+  ],
+  "voto_sentinella": 3.0,
   "_da_assegnare": [
     "Nessuno: tutti i giocatori in rosa hanno un ruolo assegnato, e chi ha lasciato il club",
     "e' elencato in 'ex_giocatori'. Se compare un nome nuovo, la dashboard lo segnala con un",
