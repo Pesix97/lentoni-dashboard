@@ -200,6 +200,12 @@
   ],
   "esclusioni_partita": [
     {
+      "match_id": "993502421160220",
+      "quando": "22/08 00:57 SuperMarioBalo",
+      "giocatore": "Pesix_97",
+      "motivo": "blackout subito dopo il suo gol: il resto della partita l'ha giocata la CPU"
+    },
+    {
       "match_id": "993784040560433",
       "quando": "22/08 01:55 albasrah",
       "giocatore": "Pesix_97",
@@ -240,6 +246,7 @@
     "due. Lo script serata.py stampa la chiave esatta da incollare qui."
   ],
   "serate_confermate": [
+    "2026-08-21 00:02",
     "2026-08-22 00:57"
   ],
   "_da_assegnare": [
