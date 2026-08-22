@@ -762,7 +762,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <section class="two-col" id="andamento">
   <div>
     <h2>Andamento skill rating</h2>
-    <div class="panel"><canvas id="chartHistory"></canvas></div>
+    <div class="filter-bar" id="historyRange"></div>
+    <div class="panel">
+      <canvas id="chartHistory"></canvas>
+      <div id="historyRiepilogo" style="font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5;"></div>
+    </div>
   </div>
   <div>
     <h2>Piazzamenti per divisione (storico all-time)</h2>
@@ -1455,35 +1459,109 @@ function computeBlendedScores(windowSize, weight){
 })();
 
 // ---- History chart ----
+// I punti dello storico non sono equidistanti: ne viene salvato uno solo quando i dati
+// cambiano davvero, quindi una notte di gioco produce un punto ogni venti minuti e una
+// settimana di pausa nessuno. Su un asse temporale lineare le serate schiacciavano tutto
+// il resto; le etichette restano percio' categoriche, un punto per rilevazione, e il
+// filtro serve proprio a scegliere quanta storia guardare insieme.
 (function renderHistoryChart(){
   const ctx = document.getElementById("chartHistory");
+  const barraEl = document.getElementById("historyRange");
+  const riepilogoEl = document.getElementById("historyRiepilogo");
   const hist = DATA.history || [];
   if(hist.length === 0){
     ctx.parentElement.innerHTML = '<div class="empty">Ancora nessuno storico: servono più aggiornamenti nel tempo per vedere il grafico.</div>';
+    if(barraEl) barraEl.remove();
     return;
   }
-  new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: hist.map(h => fmtDate(h.fetched_at)),
-      datasets: [{
-        label: "Skill rating",
-        data: hist.map(h => h.skill_rating),
-        borderColor: "#d5203a",
-        backgroundColor: "rgba(213,32,58,.18)",
-        tension: 0.25,
-        fill: true,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: "#b99aa0" }, grid: { color: "#4a232a" } },
-        y: { ticks: { color: "#b99aa0" }, grid: { color: "#4a232a" } },
+
+  const PERIODI = [
+    { id: "24h",  label: "24 ore",     ore: 24 },
+    { id: "7g",   label: "7 giorni",   ore: 24 * 7 },
+    { id: "30g",  label: "30 giorni",  ore: 24 * 30 },
+    { id: "tutto",label: "Tutto",      ore: null },
+  ];
+
+  const ora = Date.now();
+  const conTempo = hist.map(h => ({ ...h, t: new Date(h.fetched_at).getTime() }))
+                       .filter(h => !isNaN(h.t));
+
+  function puntiDi(periodo){
+    if(periodo.ore === null) return conTempo;
+    const da = ora - periodo.ore * 3600 * 1000;
+    return conTempo.filter(h => h.t >= da);
+  }
+
+  // Un periodo con meno di due punti non disegna una linea: il bottone resta visibile ma
+  // spento, cosi' si capisce che quel periodo esiste e semplicemente non ha ancora dati,
+  // invece di sembrare un grafico rotto.
+  const disponibili = PERIODI.filter(p => puntiDi(p).length >= 2);
+  let scelto = disponibili.find(p => p.id === "30g") || disponibili[disponibili.length - 1]
+            || PERIODI[PERIODI.length - 1];
+
+  let grafico = null;
+
+  function disegna(){
+    const punti = puntiDi(scelto);
+    if(grafico) grafico.destroy();
+    grafico = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: punti.map(h => fmtDate(h.fetched_at)),
+        datasets: [{
+          label: "Skill rating",
+          data: punti.map(h => h.skill_rating),
+          borderColor: "#d5203a",
+          backgroundColor: "rgba(213,32,58,.18)",
+          tension: 0.25,
+          fill: true,
+          pointRadius: punti.length > 40 ? 0 : 3,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#b99aa0", maxTicksLimit: 8 }, grid: { color: "#4a232a" } },
+          y: { ticks: { color: "#b99aa0" }, grid: { color: "#4a232a" } },
+        }
       }
-    }
-  });
+    });
+
+    const valori = punti.map(h => h.skill_rating).filter(v => v != null);
+    if(valori.length === 0){ riepilogoEl.textContent = ""; return; }
+    const primo = valori[0], ultimo = valori[valori.length - 1];
+    const delta = ultimo - primo;
+    const segno = delta > 0 ? "+" : "";
+    const colore = delta > 0 ? "var(--ok,#4ade80)" : (delta < 0 ? "var(--accent)" : "var(--muted)");
+    riepilogoEl.innerHTML =
+      `Nel periodo selezionato: da <strong style="color:var(--text);">${primo}</strong> a ` +
+      `<strong style="color:var(--text);">${ultimo}</strong>, ` +
+      `<strong style="color:${colore};">${segno}${delta}</strong>. ` +
+      `Minimo ${Math.min(...valori)}, massimo ${Math.max(...valori)}, su ${valori.length} rilevazioni.`;
+  }
+
+  function disegnaBarra(){
+    barraEl.innerHTML = PERIODI.map(p => {
+      const attivo = p.id === scelto.id;
+      const vuoto = !disponibili.some(d => d.id === p.id);
+      return `<span class="filter-btn ${attivo ? "active" : ""}" data-id="${p.id}"
+                    ${vuoto ? 'style="opacity:.35; cursor:default;"' : ""}
+                    title="${vuoto ? "Non ci sono ancora abbastanza rilevazioni in questo periodo" : ""}">${p.label}</span>`;
+    }).join("");
+    barraEl.querySelectorAll(".filter-btn").forEach(b => {
+      b.addEventListener("click", () => {
+        const p = PERIODI.find(x => x.id === b.dataset.id);
+        if(!p || !disponibili.some(d => d.id === p.id)) return;
+        scelto = p;
+        disegnaBarra();
+        disegna();
+      });
+    });
+  }
+
+  disegnaBarra();
+  disegna();
 })();
 
 // ---- Finishes per division chart ----

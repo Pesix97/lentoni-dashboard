@@ -57,6 +57,7 @@ python3 generate_dashboard.py --db lentoni.db --out index.html || { echo "  gene
 grep -q '"skill_rating": [1-9]' index.html || { echo "  dashboard senza skill rating, non pubblico"; exit 0; }
 grep -q 'id="forza"' index.html          || { echo "  sezione Indice di Forza mancante, non pubblico"; exit 0; }
 grep -q 'Reparto per reparto' index.html || { echo "  classifiche per reparto mancanti, non pubblico"; exit 0; }
+grep -q 'id="historyRange"' index.html    || { echo "  filtro periodo dello skill rating mancante, non pubblico"; exit 0; }
 
 git add index.html lentoni.db
 if git diff --staged --quiet; then
