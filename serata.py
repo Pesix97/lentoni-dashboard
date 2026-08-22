@@ -97,30 +97,37 @@ def sospetti(serata, cfg):
     """
     note = []
 
-    # Il COC e' uno solo: due giocatori della rotazione COC conteggiati insieme tra gli
-    # attaccanti vuol dire che almeno uno dei due stava da un'altra parte.
-    insieme = [p for p in serata
-               if len([r for r in p["righe"] if r["nome"] in cfg["coc"]
-                       and r["gruppo"] == "ATTACCANTI"]) >= 2]
-    if insieme:
-        nomi = sorted({r["nome"] for p in insieme for r in p["righe"]
-                       if r["nome"] in cfg["coc"] and r["gruppo"] == "ATTACCANTI"})
+    # La fascia scoperta. Il club gioca con due esterni: quando ne risulta uno solo, o
+    # l'altro lato lo teneva la CPU, oppure lo copriva un umano che di solito gioca
+    # altrove. Il secondo caso e' esattamente cio' che va segnalato.
+    #
+    # Misurata sull'archivio il 22/08/2026, a eccezioni rimosse: intercetta 10 delle 12
+    # correzioni note, con 12 falsi allarmi su 42 partite. La precisione e' bassa di
+    # proposito, perche' i costi non sono simmetrici: un falso allarme costa una riga di
+    # risposta, una svista costa un dato sbagliato per sempre.
+    scoperte = [p for p in serata
+                if len([r for r in p["righe"] if r["gruppo"] == "ESTERNI"]) < 2]
+    if scoperte:
+        quante = (f"in 1 partita su {len(serata)}" if len(scoperte) == 1
+                  else f"in {len(scoperte)} partite su {len(serata)}")
         note.append(
-            f"in {len(insieme)} partite risultano insieme tra gli attaccanti "
-            f"{', '.join(nomi)}, che fanno il COC a turno: solo uno di loro puo' averlo "
-            f"fatto, gli altri stavano altrove"
-        )
-
-    # Soglia a quattro: la formazione abituale ne schiera due o tre. Tarata larga di
-    # proposito, perche' un falso allarme costa una riga e una svista un dato sbagliato.
-    affollate = [p for p in serata
-                 if len([r for r in p["righe"] if r["gruppo"] == "CENTROCAMPISTI"]) >= 4]
-    if affollate:
-        note.append(
-            f"{len(affollate)} partite con quattro o piu' giocatori conteggiati a "
-            f"centrocampo: piu' del solito, forse qualcuno copriva un ruolo non suo"
+            f"{quante} risulta un solo esterno: l'altra fascia la teneva la CPU, "
+            f"oppure qualcuno che di solito gioca altrove. Chi era?"
         )
     return note
+
+# Regole scartate, per non riprovarle:
+#
+# "Due della rotazione COC insieme tra gli attaccanti." Sembrava solida - il COC e' uno
+# solo - ma poggiava su un presupposto sbagliato: quando giocano insieme uno fa il COC e
+# l'altro la punta, quindi sono entrambi attaccanti e la classificazione e' gia' giusta.
+# Segnalava 27 partite senza che ci fosse niente da correggere. Smontata da una frase di
+# chi ci gioca, non dai dati.
+#
+# "Quattro o piu' a centrocampo." Misurata: zero correzioni intercettate su dodici.
+#
+# "Tiri, contrasti e passaggi anomali per il ruolo." Le partite giocate fuori ruolo hanno
+# valori dentro la distribuzione di quelle normali: non c'e' segnale da estrarre.
 
 
 def stampa(serata, cfg, confermata):

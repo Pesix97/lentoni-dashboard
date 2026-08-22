@@ -239,7 +239,9 @@
     "serve a distinguere due serate dello stesso giorno, che capitano: il 04/08 ce ne sono",
     "due. Lo script serata.py stampa la chiave esatta da incollare qui."
   ],
-  "serate_confermate": [],
+  "serate_confermate": [
+    "2026-08-22 00:57"
+  ],
   "_da_assegnare": [
     "Nessuno: tutti i giocatori in rosa hanno un ruolo assegnato, e chi ha lasciato il club",
     "e' elencato in 'ex_giocatori'. Se compare un nome nuovo, la dashboard lo segnala con un",

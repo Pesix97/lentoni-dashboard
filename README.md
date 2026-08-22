@@ -172,11 +172,23 @@ Il 22/08/2026 ho provato a rilevarle dai numeri. **Non funziona**: le partite gi
 fuori ruolo hanno tiri, contrasti e passaggi identici a quelle normali, dentro la stessa
 distribuzione. Un classificatore su quei dati produce rumore, e non va costruito.
 
-Funzionano invece i vincoli di formazione — due giocatori che fanno il COC a turno non
-possono farlo insieme, un reparto più affollato del solito vuol dire che qualcuno copre un
-ruolo non suo. Su 42 partite intercettano 8 correzioni reali su 10, con 12 falsi allarmi.
+Funziona invece un vincolo di formazione: **il club gioca con due esterni**, quindi quando
+ne risulta uno solo o l'altra fascia la teneva la CPU, oppure la copriva un umano che di
+solito gioca altrove. Misurata su 42 partite a eccezioni rimosse, intercetta 10 delle 12
+correzioni note con 12 falsi allarmi.
 
-Otto su dieci non basta per decidere, ma basta per **accorciare la domanda**. Da qui:
+Due regole che sembravano buone sono state scartate, ed è utile sapere perché:
+
+| regola | esito |
+|---|---|
+| due della rotazione COC insieme tra gli attaccanti | segnalava 27 partite senza che ci fosse nulla da correggere: quando giocano insieme uno fa il COC e l'altro la punta, quindi sono attaccanti entrambi |
+| quattro o più conteggiati a centrocampo | zero correzioni intercettate su dodici |
+| tiri, contrasti e passaggi anomali per il ruolo | nessun segnale: i valori cadono dentro la distribuzione normale |
+
+La prima è stata smontata da una frase di chi ci gioca, non dai dati. È il motivo per cui
+lo strumento chiede invece di decidere.
+
+Dieci su dodici non basta per decidere, ma basta per **accorciare la domanda**. Da qui:
 
 ```
 python3 serata.py            l'ultima serata non ancora confermata
