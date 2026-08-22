@@ -59,13 +59,18 @@ def carica_club(script_dir=None):
         return dict(DEFAULT_CLUB)
 
 
-def build_data(db_path, club_id=None, esclusi=None):
+def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None):
     if club_id is None:
         club_id = carica_club()["club_id"]
     # Chi ha lasciato il gruppo viene tolto QUI, prima che i dati entrino nella pagina:
     # filtrarlo solo lato browser lascerebbe comunque i suoi nomi e le sue statistiche
     # dentro il file pubblicato.
     esclusi = set(esclusi or [])
+    # Singole prestazioni da non conteggiare: quando il CPU ha preso il controllo di un pro,
+    # EA attribuisce comunque voto, gol e passaggi alla persona. Si toglie la riga qui, una
+    # volta sola, cosi' ogni calcolo che parte dalle partite la ignora senza doversene
+    # ricordare: classifiche per reparto, indice di forma, formazione tipo, premi.
+    righe_escluse = set(righe_escluse or [])
     con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
@@ -141,6 +146,7 @@ def build_data(db_path, club_id=None, esclusi=None):
     )
 
     match_players = {}
+    tolte = 0
     for m in matches:
         rows = fetch_all(
             cur,
@@ -163,7 +169,16 @@ def build_data(db_path, club_id=None, esclusi=None):
         )
         for r in rows:
             r.pop("_pref", None)
-        match_players[m["match_id"]] = rows
+        tenute = [r for r in rows
+                  if f"{m['match_id']}|{r['player_name']}" not in righe_escluse]
+        tolte += len(rows) - len(tenute)
+        match_players[m["match_id"]] = tenute
+
+    if righe_escluse:
+        # Conta le righe davvero rimosse, non le voci elencate: se una si riferisce a una
+        # partita non archiviata o a un nome sbagliato non toglie nulla, ed e' bene vederlo.
+        print(f"  prestazioni non conteggiate (CPU al controllo): "
+              f"{tolte} su {len(righe_escluse)} elencate")
 
     salute = calcola_salute_archivio(cur, club_id)
 
@@ -3314,6 +3329,20 @@ def _load_role_groups(script_dir=None):
     cfg["exceptions"] = exceptions
     if exceptions:
         print(f"  eccezioni di ruolo per partita caricate: {len(exceptions)}")
+
+    # Prestazioni da non conteggiare affatto. Diverse dalle eccezioni: quelle correggono il
+    # reparto, queste dicono che la riga non appartiene alla persona (CPU al controllo dopo
+    # una disconnessione, tipicamente). La riga viene tolta dai dati prima che finiscano
+    # nella pagina, quindi non serve pubblicare la lista.
+    esclusioni = set()
+    for item in raw.get("esclusioni_partita") or []:
+        try:
+            mid = str(item["match_id"]); who = item["giocatore"]
+        except (KeyError, TypeError):
+            print(f"  attenzione: esclusione malformata in {path.name}, ignorata: {item!r}")
+            continue
+        esclusioni.add(f"{mid}|{who}")
+    cfg["excludedRows"] = sorted(esclusioni)
     return cfg
 
 
@@ -3325,11 +3354,14 @@ def main():
 
     club = carica_club()
     ruoli = load_role_groups()
-    data = build_data(args.db, club_id=club["club_id"], esclusi=ruoli.get("exPlayers"))
-    # La lista degli ex giocatori ha gia' fatto il suo lavoro qui sopra: non viene
-    # pubblicata nella pagina, cosi' chi ha lasciato il club non compare da nessuna
-    # parte nel file, nemmeno tra i dati grezzi.
-    data["roleGroups"] = {k: v for k, v in ruoli.items() if k != "exPlayers"}
+    data = build_data(args.db, club_id=club["club_id"],
+                      esclusi=ruoli.get("exPlayers"),
+                      righe_escluse=ruoli.get("excludedRows"))
+    # Le liste di esclusione hanno gia' fatto il loro lavoro qui sopra: non vengono
+    # pubblicate nella pagina, cosi' chi ha lasciato il club non compare da nessuna
+    # parte nel file, nemmeno tra i dati grezzi, e le righe non valide sono gia' sparite.
+    data["roleGroups"] = {k: v for k, v in ruoli.items()
+                          if k not in ("exPlayers", "excludedRows")}
     data["titolo"] = club.get("titolo") or ""
     club_name = (data["club"].get("name") or "Club").title()
     platform = data["club"].get("platform") or "-"

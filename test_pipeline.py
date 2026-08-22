@@ -339,6 +339,53 @@ class TestConfigurazione(unittest.TestCase):
                 self.assertIn("giocatore", e)
                 self.assertIn(e.get("gruppo"), gruppi)
 
+    def test_esclusioni_partita_ben_formate(self):
+        """Ogni esclusione dice chi, quale partita e perche'.
+
+        Il motivo e' obbligatorio: una riga tolta dalle statistiche senza una ragione
+        scritta e' indistinguibile da un errore, e fra sei mesi nessuno sapra' dire se
+        quella prestazione manca per un motivo o per una svista.
+        """
+        r = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        for e in r.get("esclusioni_partita", []):
+            with self.subTest(esclusione=e):
+                self.assertIn("match_id", e)
+                self.assertIn("giocatore", e)
+                self.assertTrue((e.get("motivo") or "").strip(), "manca il motivo")
+
+
+class TestEsclusioni(BaseConArchivio):
+    """Le prestazioni escluse non devono comparire nella pagina pubblicata.
+
+    Nasce dal caso di Pesix_97 il 22/08/2026: disconnesso, il CPU ha giocato al suo posto
+    e EA gli ha attribuito comunque voto e statistiche. Se la riga restasse, sporcherebbe
+    medie, classifiche per reparto e formazione tipo senza che nulla lo segnali.
+    """
+
+    def test_le_righe_escluse_spariscono_dai_dati(self):
+        r = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        elenco = r.get("esclusioni_partita") or []
+        if not elenco:
+            self.skipTest("nessuna esclusione configurata")
+        out = self.tmp / "pagina.html"
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out))
+        html = out.read_text(encoding="utf-8")
+        inizio = html.index("const DATA = ") + len("const DATA = ")
+        dati = json.loads(html[inizio:html.index(";\n", inizio)])
+        for e in elenco:
+            mid, chi = str(e["match_id"]), e["giocatore"]
+            with self.subTest(partita=mid, giocatore=chi):
+                righe = dati["matchPlayers"].get(mid)
+                if righe is None:
+                    continue  # partita fuori dall'archivio del club attivo
+                self.assertNotIn(chi, [p["player_name"] for p in righe])
+
+    def test_l_elenco_delle_esclusioni_non_finisce_nella_pagina(self):
+        """Come per gli ex giocatori: il filtro agisce prima, la lista non si pubblica."""
+        out = self.tmp / "pagina.html"
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out))
+        self.assertNotIn("excludedRows", out.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

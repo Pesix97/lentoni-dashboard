@@ -135,6 +135,75 @@
       "quando": "18/08 02:05 Al Omal",
       "giocatore": "ktm-008",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "993502421160220",
+      "quando": "22/08 00:57 SuperMarioBalo",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "993428913960433",
+      "quando": "22/08 01:33 FC BRATUNAC",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "993784040560433",
+      "quando": "22/08 01:55 albasrah",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "993834212130306",
+      "quando": "22/08 02:13 SAPLAYANG",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "993858374010348",
+      "quando": "22/08 02:33 Fc Placa",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "993786663470144",
+      "quando": "22/08 02:53 ginjager",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "993858732910233",
+      "quando": "22/08 03:10 13xx1",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "993846932310299",
+      "quando": "22/08 03:30 Montet Bornala",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    }
+  ],
+  "_esclusioni_partita": [
+    "Partite in cui le statistiche di un giocatore NON sono sue: tipicamente quando e'",
+    "stato disconnesso o inattivo e il CPU ha preso il controllo del suo pro. EA le",
+    "attribuisce comunque alla persona, quindi voto, gol e passaggi finirebbero nelle",
+    "sue medie falsandole.",
+    "",
+    "Diverso dalle eccezioni: quelle correggono il REPARTO, queste tolgono del tutto la",
+    "riga dalle statistiche calcolate dalle partite (classifiche per reparto, indice di",
+    "forma, formazione tipo).",
+    "",
+    "Restano invece nei totali di carriera, perche' quelli li calcola EA e non possiamo",
+    "correggerli: e' un limite, non una scelta."
+  ],
+  "esclusioni_partita": [
+    {
+      "match_id": "993784040560433",
+      "quando": "22/08 01:55 albasrah",
+      "giocatore": "Pesix_97",
+      "motivo": "controllato dalla CPU"
     }
   ],
   "_da_assegnare": [

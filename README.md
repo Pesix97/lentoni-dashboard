@@ -116,6 +116,26 @@ Modificare `roles.json` è sicuro: al giro successivo la dashboard si ricalcola 
 lo storico**, non solo sulle partite future. Se il file è malformato, la generazione non
 si ferma: ripiega sulle etichette EA e lo segnala nel log.
 
+### Prestazioni che non contano
+
+Quando qualcuno si disconnette, il CPU prende il controllo del suo pro ma EA continua ad
+attribuire voto, gol e passaggi alla persona. Quella riga non racconta niente di vero, e
+lasciandola dentro sposta le medie. Va elencata in `esclusioni_partita`:
+
+```json
+{ "match_id": "993784040560433", "quando": "22/08 01:55 albasrah",
+  "giocatore": "Pesix_97", "motivo": "controllato dalla CPU" }
+```
+
+È una cosa diversa dalle eccezioni: quelle **correggono il reparto**, questa **toglie del
+tutto la riga** dai calcoli che partono dalle partite — classifiche per reparto, indice di
+forma, formazione tipo, premi. La riga sparisce dai dati prima che finiscano nella pagina,
+quindi non c'è modo di dimenticarsene in un calcolo.
+
+Resta invece dentro ai totali di carriera, perché quelli li somma EA e non sono
+correggibili: è un limite, non una scelta. Il `motivo` è obbligatorio — senza, fra sei mesi
+una statistica mancante sarebbe indistinguibile da una svista.
+
 ### Chi ha lasciato il club
 
 La voce `ex_giocatori` elenca chi non fa più parte del gruppo. Viene escluso da tutta la
