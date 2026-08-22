@@ -453,6 +453,24 @@ class TestEsclusioni(BaseConArchivio):
                     diversi.append((mid, p["player_name"], "nessun reparto"))
         self.assertEqual(diversi, [], f"righe senza reparto assegnato: {diversi[:3]}")
 
+    def test_confermate_e_chiuse_restano_distinte(self):
+        """Una serata chiusa senza verifica non deve finire tra quelle confermate.
+
+        Sono due cose diverse: confermata vuol dire che chi ha giocato ha guardato la
+        griglia, chiusa vuol dire che ci si tiene la classificazione automatica sapendo
+        che nessuno l'ha controllata. Mescolarle farebbe sembrare verificato l'intero
+        archivio, ed e' proprio la finta certezza che questo meccanismo evita.
+        """
+        sys.path.insert(0, str(QUI))
+        import ruoli
+
+        cfg = ruoli.carica(QUI / "roles.json")
+        sovrapposte = set(cfg["verificate"]) & {s["serata"] for s in cfg["chiuse"]}
+        self.assertEqual(sovrapposte, set(), f"serate in entrambe le liste: {sovrapposte}")
+        for s in cfg["chiuse"]:
+            with self.subTest(serata=s):
+                self.assertTrue((s.get("motivo") or "").strip(), "manca il motivo")
+
     def test_le_serate_hanno_chiavi_distinte(self):
         """Due serate non possono condividere la stessa chiave di conferma.
 

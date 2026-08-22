@@ -38,7 +38,14 @@ def carica(percorso=None):
                        for e in (raw.get("esclusioni_partita") or [])},
         "ex": set(raw.get("ex_giocatori") or []),
         "sentinella": raw.get("voto_sentinella"),
-        "confermate": list(raw.get("serate_confermate") or []),
+        # Confermata e chiusa non sono la stessa cosa - la prima e' stata verificata da
+        # chi ha giocato, la seconda no - ma per chi deve decidere se riproporre una
+        # serata valgono uguale: in entrambi i casi non c'e' piu' niente da chiedere.
+        "confermate": (list(raw.get("serate_confermate") or [])
+                       + [s["serata"] for s in (raw.get("serate_chiuse") or [])
+                          if isinstance(s, dict) and "serata" in s]),
+        "verificate": list(raw.get("serate_confermate") or []),
+        "chiuse": [s for s in (raw.get("serate_chiuse") or []) if isinstance(s, dict)],
         "coc": {n for n, d in giocatori.items()
                 if isinstance(d, dict) and d.get("gruppo") == "ATTACCANTI"
                 and d.get("etichetta_ea") == "midfielder"},

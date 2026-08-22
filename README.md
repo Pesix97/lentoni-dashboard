@@ -204,6 +204,16 @@ diventano falsi di nascosto.
 Le regole sono tarate larghe di proposito: un falso allarme costa una riga di risposta,
 una svista costa un dato sbagliato per sempre.
 
+**Confermata e chiusa non sono la stessa cosa.** `serate_confermate` elenca le serate che
+qualcuno ha guardato e dichiarato giuste. `serate_chiuse` elenca quelle di cui nessuno
+ricorda più niente: ci si tiene la classificazione automatica sapendo che non è stata
+verificata. Per la domanda del mattino valgono uguale — non le ripropone né l'una né
+l'altra — ma restano separate nel file, perché mescolarle farebbe sembrare controllato
+tutto l'archivio, che è esattamente la finta certezza che questo meccanismo evita.
+
+Le 26 partite anteriori al 21/08/2026 sono chiuse così: sono quelle giocate quando ancora
+niente chiedeva i ruoli il giorno dopo.
+
 ### Chi ha lasciato il club
 
 La voce `ex_giocatori` elenca chi non fa più parte del gruppo. Viene escluso da tutta la

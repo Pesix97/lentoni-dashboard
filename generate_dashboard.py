@@ -3482,6 +3482,8 @@ def serate_da_confermare(matches):
     try:
         import ruoli as _r
         from datetime import datetime, timedelta
+        # cfg["confermate"] comprende sia le serate verificate sia quelle chiuse senza
+        # verifica: su entrambe non c'e' piu' niente da chiedere, quindi non vanno segnalate.
         cfg = _r.carica()
         quando = sorted(
             datetime.fromisoformat(m["played_at"].replace("Z", "+00:00").replace("+00:00", ""))

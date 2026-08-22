@@ -191,7 +191,10 @@ def main():
         scelte = aperte[-1:] if aperte else []
 
     if not scelte:
-        print("Tutte le serate in archivio sono gia' state confermate.")
+        chiuse = len(cfg["chiuse"])
+        coda = (f" ({len(cfg['verificate'])} confermate, "
+                f"{chiuse} chiuse senza verifica)") if chiuse else ""
+        print(f"Nessuna serata da confermare{coda}.")
         return 0
 
     for s in scelte:

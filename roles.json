@@ -249,6 +249,51 @@
     "2026-08-21 00:02",
     "2026-08-22 00:57"
   ],
+  "_serate_chiuse": [
+    "Serate che non verranno mai confermate perche' nessuno ricorda piu' come si e'",
+    "giocato. Vengono trattate come chiuse - la domanda del mattino non le ripropone e",
+    "la dashboard non le segnala piu' come provvisorie - ma restano elencate qui, e",
+    "separate da 'serate_confermate', perche' le due cose non sono la stessa.",
+    "",
+    "Confermata vuol dire che qualcuno ha guardato la griglia e ha detto che e' giusta.",
+    "Chiusa vuol dire che ci si tiene la classificazione automatica sapendo che nessuno",
+    "l'ha verificata. Mescolarle avrebbe fatto sembrare controllato l'intero archivio.",
+    "",
+    "Chiuse il 22/08/2026: sono le partite anteriori alla domanda del mattino, quando",
+    "ancora niente chiedeva i ruoli il giorno dopo."
+  ],
+  "serate_chiuse": [
+    {
+      "serata": "2026-08-04 01:11",
+      "partite": 3,
+      "motivo": "nessuno se le ricorda: chiusa senza verifica"
+    },
+    {
+      "serata": "2026-08-04 23:19",
+      "partite": 7,
+      "motivo": "nessuno se le ricorda: chiusa senza verifica"
+    },
+    {
+      "serata": "2026-08-05 23:24",
+      "partite": 6,
+      "motivo": "nessuno se le ricorda: chiusa senza verifica"
+    },
+    {
+      "serata": "2026-08-18 01:48",
+      "partite": 2,
+      "motivo": "nessuno se le ricorda: chiusa senza verifica"
+    },
+    {
+      "serata": "2026-08-18 16:05",
+      "partite": 3,
+      "motivo": "nessuno se le ricorda: chiusa senza verifica"
+    },
+    {
+      "serata": "2026-08-19 01:15",
+      "partite": 5,
+      "motivo": "nessuno se le ricorda: chiusa senza verifica"
+    }
+  ],
   "_da_assegnare": [
     "Nessuno: tutti i giocatori in rosa hanno un ruolo assegnato, e chi ha lasciato il club",
     "e' elencato in 'ex_giocatori'. Se compare un nome nuovo, la dashboard lo segnala con un",
