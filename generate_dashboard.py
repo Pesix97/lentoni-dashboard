@@ -3482,8 +3482,10 @@ def serate_da_confermare(matches):
     try:
         import ruoli as _r
         from datetime import datetime, timedelta
-        # cfg["confermate"] comprende sia le serate verificate sia quelle chiuse senza
-        # verifica: su entrambe non c'e' piu' niente da chiedere, quindi non vanno segnalate.
+        # da_chiedere() tratta insieme le serate verificate e quelle chiuse senza verifica
+        # - su entrambe non c'e' piu' niente da chiedere - ma riapre quelle cresciute dopo
+        # la chiusura, perche' EA pubblica in ritardo e le partite arrivate dopo non le ha
+        # guardate nessuno.
         cfg = _r.carica()
         quando = sorted(
             datetime.fromisoformat(m["played_at"].replace("Z", "+00:00").replace("+00:00", ""))
@@ -3492,7 +3494,7 @@ def serate_da_confermare(matches):
         )
         aperte = []
         for gruppo in _r.serate(quando):
-            if f"{gruppo[0]:%Y-%m-%d %H:%M}" in cfg["confermate"]:
+            if not _r.da_chiedere(cfg, f"{gruppo[0]:%Y-%m-%d %H:%M}", len(gruppo)):
                 continue
             aperte.append({"giorno": f"{gruppo[0]:%d/%m %H:%M}", "partite": len(gruppo)})
         return aperte

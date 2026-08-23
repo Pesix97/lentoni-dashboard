@@ -204,6 +204,19 @@ diventano falsi di nascosto.
 Le regole sono tarate larghe di proposito: un falso allarme costa una riga di risposta,
 una svista costa un dato sbagliato per sempre.
 
+**Una serata chiusa può riaprirsi.** Di ogni conferma si registra anche quante partite
+aveva quel giorno:
+
+```json
+{ "serata": "2026-08-23 01:21", "partite": 7 }
+```
+
+Serve perché EA pubblica in ritardo. Il 23/08/2026 una serata è stata confermata con sei
+partite e la settima è arrivata mezz'ora dopo, finendo dentro una serata già chiusa: tre
+giocatori su cinque erano classificati male e **nessuno avrebbe più chiesto niente**. Ora
+se il conteggio cresce la serata torna in coda, con un avviso che dice quante partite sono
+arrivate dopo.
+
 **Confermata e chiusa non sono la stessa cosa.** `serate_confermate` elenca le serate che
 qualcuno ha guardato e dichiarato giuste. `serate_chiuse` elenca quelle di cui nessuno
 ricorda più niente: ci si tiene la classificazione automatica sapendo che non è stata

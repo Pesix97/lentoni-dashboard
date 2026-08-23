@@ -453,6 +453,41 @@ class TestEsclusioni(BaseConArchivio):
                     diversi.append((mid, p["player_name"], "nessun reparto"))
         self.assertEqual(diversi, [], f"righe senza reparto assegnato: {diversi[:3]}")
 
+    def test_una_serata_cresciuta_torna_in_coda(self):
+        """Se una serata chiusa riceve partite nuove, va richiesta di nuovo.
+
+        Successo davvero il 23/08/2026: serata confermata con sei partite, la settima
+        pubblicata da EA mezz'ora dopo. Senza questo controllo nessuno avrebbe piu'
+        chiesto niente e i ruoli di quella partita - tre giocatori su cinque
+        classificati male - sarebbero rimasti sbagliati per sempre.
+        """
+        sys.path.insert(0, str(QUI))
+        import ruoli
+
+        finto = {"confermate": {"2026-08-23 01:21": 6}, "chiuse": []}
+        self.assertFalse(ruoli.da_chiedere(finto, "2026-08-23 01:21", 6),
+                         "una serata invariata non va richiesta")
+        self.assertTrue(ruoli.da_chiedere(finto, "2026-08-23 01:21", 7),
+                        "una serata cresciuta deve tornare in coda")
+        self.assertTrue(ruoli.da_chiedere(finto, "2026-08-24 00:00", 3),
+                        "una serata mai vista va richiesta")
+        # Chiuse senza verifica: stesso trattamento, contano anche loro.
+        finto2 = {"confermate": {}, "chiuse": [{"serata": "2026-08-04 01:11", "partite": 3}]}
+        self.assertFalse(ruoli.da_chiedere(finto2, "2026-08-04 01:11", 3))
+        self.assertTrue(ruoli.da_chiedere(finto2, "2026-08-04 01:11", 4))
+
+    def test_ogni_serata_chiusa_dichiara_quante_partite_aveva(self):
+        """Senza il conteggio non si puo' sapere se la serata e' cresciuta dopo."""
+        sys.path.insert(0, str(QUI))
+        import ruoli
+
+        cfg = ruoli.carica(QUI / "roles.json")
+        senza = [k for k, v in cfg["confermate"].items() if v is None]
+        self.assertEqual(senza, [], f"serate confermate senza conteggio: {senza}")
+        for s in cfg["chiuse"]:
+            with self.subTest(serata=s):
+                self.assertIsInstance(s.get("partite"), int)
+
     def test_confermate_e_chiuse_restano_distinte(self):
         """Una serata chiusa senza verifica non deve finire tra quelle confermate.
 

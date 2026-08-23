@@ -136,12 +136,14 @@ def sospetti(serata, cfg):
 # valori dentro la distribuzione di quelle normali: non c'e' segnale da estrarre.
 
 
-def stampa(serata, cfg, confermata):
+def stampa(serata, cfg, confermata, partite_alla_conferma=None):
     inizio, fine = serata[0]["quando"], serata[-1]["quando"]
     v = sum(1 for p in serata if p["gol_fatti"] > p["gol_subiti"])
     n = sum(1 for p in serata if p["gol_fatti"] == p["gol_subiti"])
     s = len(serata) - v - n
     stato = "gia' confermata" if confermata else "DA CONFERMARE"
+    cresciuta = (partite_alla_conferma is not None
+                 and len(serata) > partite_alla_conferma and not confermata)
     print(f"\nSerata del {inizio:%d/%m} — {len(serata)} partite dalle {inizio:%H:%M} "
           f"alle {fine:%H:%M} — {v}V {n}P {s}S  [{stato}]\n")
 
@@ -162,8 +164,14 @@ def stampa(serata, cfg, confermata):
     else:
         print("\n  Niente di anomalo nella composizione, ma un fuori ruolo puo' non lasciare")
         print("    traccia nei dati: se qualcosa non torna nella griglia, dimmelo.")
+    if cresciuta:
+        print(f"\n  ATTENZIONE: questa serata era gia' stata confermata con "
+              f"{partite_alla_conferma} partite, adesso ne ha {len(serata)}. EA ha")
+        print(f"  pubblicato in ritardo: le ultime {len(serata) - partite_alla_conferma} "
+              f"non le ha ancora guardate nessuno.")
     if not confermata:
-        print(f"\n  Se la griglia e' giusta, in roles.json -> serate_confermate: \"{inizio:%Y-%m-%d %H:%M}\"")
+        print(f"\n  Se la griglia e' giusta, in roles.json -> serate_confermate: "
+              f"{{\"serata\": \"{inizio:%Y-%m-%d %H:%M}\", \"partite\": {len(serata)}}}")
 
 
 def main():
@@ -188,12 +196,18 @@ def main():
     def chiave(s):
         return f"{s[0]['quando']:%Y-%m-%d %H:%M}"
 
+    # Una serata torna in coda anche se e' gia' stata chiusa ma nel frattempo e'
+    # cresciuta: EA pubblica in ritardo, e le partite arrivate dopo la conferma non le
+    # ha guardate nessuno.
+    def aperta(s):
+        return ruoli.da_chiedere(cfg, chiave(s), len(s))
+
     if args.serata:
         scelte = [s for s in serate if f"{s[0]['quando']:%d/%m}" == args.serata]
     elif args.tutte:
-        scelte = [s for s in serate if chiave(s) not in cfg["confermate"]]
+        scelte = [s for s in serate if aperta(s)]
     else:
-        aperte = [s for s in serate if chiave(s) not in cfg["confermate"]]
+        aperte = [s for s in serate if aperta(s)]
         scelte = aperte[-1:] if aperte else []
 
     if not scelte:
@@ -204,7 +218,7 @@ def main():
         return 0
 
     for s in scelte:
-        stampa(s, cfg, chiave(s) in cfg["confermate"])
+        stampa(s, cfg, not ruoli.da_chiedere(cfg, chiave(s), len(s)), cfg["confermate"].get(chiave(s)))
     print()
     return 0
 

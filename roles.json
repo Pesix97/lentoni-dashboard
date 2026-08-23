@@ -291,6 +291,24 @@
       "quando": "23/08 03:11 213 SQUAD",
       "giocatore": "Smilzo_87",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "997002734950333",
+      "quando": "23/08 03:30 L mkhaakh",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "997002734950333",
+      "quando": "23/08 03:30 L mkhaakh",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "997002734950333",
+      "quando": "23/08 03:30 L mkhaakh",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -354,9 +372,18 @@
     "due. Lo script serata.py stampa la chiave esatta da incollare qui."
   ],
   "serate_confermate": [
-    "2026-08-21 00:02",
-    "2026-08-22 00:57",
-    "2026-08-23 01:21"
+    {
+      "serata": "2026-08-21 00:02",
+      "partite": 7
+    },
+    {
+      "serata": "2026-08-22 00:57",
+      "partite": 9
+    },
+    {
+      "serata": "2026-08-23 01:21",
+      "partite": 7
+    }
   ],
   "_serate_chiuse": [
     "Serate che non verranno mai confermate perche' nessuno ricorda piu' come si e'",

@@ -21,6 +21,37 @@ from pathlib import Path
 QUI = Path(__file__).resolve().parent
 
 
+def _conteggi(voci):
+    """Da una lista di serate chiuse a {chiave: quante partite aveva alla chiusura}.
+
+    Accetta anche le stringhe nude del formato vecchio: valgono "chiusa senza sapere
+    quante partite aveva", cioe' non verra' mai riaperta. Meglio dichiararlo che
+    trattarle come zero, che le riaprirebbe tutte.
+    """
+    out = {}
+    for v in voci or []:
+        if isinstance(v, str):
+            out[v] = None
+        elif isinstance(v, dict) and "serata" in v:
+            out[v["serata"]] = v.get("partite")
+    return out
+
+
+def da_chiedere(cfg, chiave, quante):
+    """True se questa serata va ancora sottoposta a chi ha giocato."""
+    chiuse = dict(cfg["confermate"])
+    for s in cfg["chiuse"]:
+        chiuse[s["serata"]] = s.get("partite")
+    if chiave not in chiuse:
+        return True
+    alla_chiusura = chiuse[chiave]
+    if alla_chiusura is None:
+        return False
+    # La serata e' cresciuta dopo essere stata chiusa: le partite arrivate dopo non le
+    # ha guardate nessuno, quindi torna in coda.
+    return quante > alla_chiusura
+
+
 def carica(percorso=None):
     """Legge roles.json e restituisce la configurazione gia' indicizzata."""
     p = Path(percorso) if percorso else QUI / "roles.json"
@@ -41,10 +72,14 @@ def carica(percorso=None):
         # Confermata e chiusa non sono la stessa cosa - la prima e' stata verificata da
         # chi ha giocato, la seconda no - ma per chi deve decidere se riproporre una
         # serata valgono uguale: in entrambi i casi non c'e' piu' niente da chiedere.
-        "confermate": (list(raw.get("serate_confermate") or [])
-                       + [s["serata"] for s in (raw.get("serate_chiuse") or [])
-                          if isinstance(s, dict) and "serata" in s]),
-        "verificate": list(raw.get("serate_confermate") or []),
+        #
+        # Di ognuna si tiene anche QUANTE partite aveva quando e' stata chiusa. Serve
+        # perche' EA pubblica i risultati con ore di ritardo: il 23/08/2026 una serata e'
+        # stata confermata con sei partite e la settima e' arrivata dopo, gia' dentro una
+        # serata "chiusa". Nessuno avrebbe piu' chiesto niente, e i ruoli di quella
+        # partita sarebbero rimasti sbagliati per sempre.
+        "confermate": _conteggi(raw.get("serate_confermate")),
+        "verificate": _conteggi(raw.get("serate_confermate")),
         "chiuse": [s for s in (raw.get("serate_chiuse") or []) if isinstance(s, dict)],
         "coc": {n for n, d in giocatori.items()
                 if isinstance(d, dict) and d.get("gruppo") == "ATTACCANTI"
