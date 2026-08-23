@@ -2776,10 +2776,32 @@ function computeOutfieldLineup(){
   const topScorerPeriod = Object.entries(perPlayer).sort((a,b)=> b[1].goals - a[1].goals)[0];
   const mvpPeriod = Object.entries(perPlayer).sort((a,b)=> b[1].mom - a[1].mom)[0];
 
+  // Strisce e porta inviolata. Si calcolano scorrendo le partite in ordine di gioco: il
+  // record e' il piu' lungo mai raggiunto, la striscia in corso quella che sta durando
+  // adesso. Le due cose coincidono solo finche' il record e' quello attuale.
+  const inOrdine = matches.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  let recordV = 0, recordI = 0, correnteV = 0, correnteI = 0;
+  inOrdine.forEach(m => {
+    correnteV = m.win ? correnteV + 1 : 0;
+    correnteI = m.loss ? 0 : correnteI + 1;
+    recordV = Math.max(recordV, correnteV);
+    recordI = Math.max(recordI, correnteI);
+  });
+  const inviolate = inOrdine.filter(m => (m.goals_against || 0) === 0).length;
+  const ultima = inOrdine[inOrdine.length - 1];
+  const strisciaOra = !ultima ? "—"
+    : correnteV >= 2 ? `${correnteV} vittorie di fila`
+    : correnteI >= 2 ? `${correnteI} risultati utili`
+    : ultima.win ? "1 vittoria" : (ultima.loss ? "nessuna, ultima persa" : "1 pareggio");
+
   const cards = [
     ["Partite tracciate", matches.length],
     ["Bilancio nel periodo", `${wins}V ${ties}P ${losses}S`],
     ["Gol fatti / subiti", `${totalGoalsFor} / ${totalGoalsAgainst}`],
+    ["Striscia di vittorie (record)", recordV > 0 ? `${recordV} di fila` : "-"],
+    ["Imbattibilità (record)", recordI > 0 ? `${recordI} partite` : "-"],
+    ["Striscia in corso", strisciaOra],
+    ["Porta inviolata", matches.length ? `${inviolate} partite · ${Math.round(100 * inviolate / matches.length)}%` : "-"],
     ["Miglior vittoria", bestWin ? `${bestWin.goals_for}-${bestWin.goals_against} vs ${bestWin.opponent_name||"?"}` : "-"],
     ["Peggior sconfitta", worstLoss ? `${worstLoss.goals_for}-${worstLoss.goals_against} vs ${worstLoss.opponent_name||"?"}` : "-"],
     ["Capocannoniere del periodo", topScorerPeriod && topScorerPeriod[1].goals > 0 ? `${topScorerPeriod[0]} (${topScorerPeriod[1].goals} gol)` : "-"],
