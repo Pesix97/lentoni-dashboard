@@ -62,6 +62,52 @@ def carica_club(script_dir=None):
         return dict(DEFAULT_CLUB)
 
 
+PIATTAFORME = {
+    "common-gen5": "PS5 / Xbox Series · PC",
+    "common-gen4": "PS4 / Xbox One",
+    "nx": "Nintendo Switch",
+}
+
+
+def etichetta_piattaforma(codice):
+    """Il codice EA in una forma leggibile, senza perdere l'originale se sconosciuto."""
+    if not codice:
+        return "-"
+    return PIATTAFORME.get(codice, codice)
+
+
+def controlla_identita(cur, club_id):
+    """Segnala quando la stessa persona compare con due nomi diversi.
+
+    Tutto il progetto identifica i giocatori dal NOME: nella pagina il nome e' la chiave
+    69 volte, roles.json e' indicizzato per nome, e l'id numerico che EA assegna a ogni
+    persona viene usato solo per deduplicare le vecchie righe ricostruite.
+
+    Se qualcuno cambia il nome PSN, quindi, lo storico si spezza in due persone diverse:
+    la nuova compare senza ruolo tra i "da assegnare", e le medie di entrambe diventano
+    sbagliate. Tutto in silenzio. Riscrivere l'identita' sull'id EA vorrebbe dire toccare
+    ogni chiave del progetto per un guasto che non e' ancora successo; segnalarlo il
+    giorno stesso costa dieci righe e lascia il tempo di rimediare.
+
+    Gli id 'recovered_*' sono sintetici, nati dalla ricostruzione manuale del 06/08/2026:
+    vanno ignorati, altrimenti segnalerebbero ogni giocatore per sempre.
+    """
+    righe = fetch_all(
+        cur,
+        """SELECT ea_player_id, GROUP_CONCAT(DISTINCT player_name) AS nomi
+           FROM match_player_stats
+           WHERE club_id = ? AND ea_player_id NOT LIKE 'recovered\\_%' ESCAPE '\\'
+           GROUP BY ea_player_id
+           HAVING COUNT(DISTINCT player_name) > 1""",
+        (club_id,),
+    )
+    for r in righe:
+        print(f"  ATTENZIONE: l'id EA {r['ea_player_id']} compare con piu' nomi: {r['nomi']}."
+              f" Probabile cambio di nome: lo storico risultera' spezzato in due giocatori"
+              f" e il ruolo in roles.json non verra' piu' riconosciuto.")
+    return [dict(r) for r in righe]
+
+
 def assottiglia(storico, giorni_pieni=7, giorni_giornalieri=60):
     """Riduce le istantanee vecchie senza toccare quelle recenti.
 
@@ -242,6 +288,7 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
         print(f"  prestazioni senza voto (sentinella {voto_sentinella}): {tolte_voto}")
 
     salute = calcola_salute_archivio(cur, club_id)
+    data_identita = controlla_identita(cur, club_id)
 
     # La tabella puo' non esistere ancora: avversari.py la crea alla prima esecuzione.
     try:
@@ -570,7 +617,13 @@ def main():
     data["serate"] = elenco_serate(data["matches"])
     data["titolo"] = club.get("titolo") or ""
     club_name = (data["club"].get("name") or "Club").title()
-    platform = data["club"].get("platform") or "-"
+    # La piattaforma viene da club.json, non da raw/club_search.json. Quel file e' una
+    # fotografia presa a mano del club di FC 26: al passaggio a un titolo nuovo avrebbe
+    # continuato a dichiarare la piattaforma di quello vecchio, contraddicendo la regola
+    # per cui club.json e' l'unico file da toccare. La piattaforma la conosciamo gia': e'
+    # il parametro che passiamo a ogni chiamata.
+    platform = etichetta_piattaforma(club.get("piattaforma")
+                                     or data["club"].get("platform"))
     division = data["latest"].get("best_division") or "-"
     updated_at = data["history"][-1]["fetched_at"] if data["history"] else "-"
 

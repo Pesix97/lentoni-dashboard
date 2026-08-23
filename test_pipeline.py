@@ -349,6 +349,87 @@ class TestAssottigliamento(unittest.TestCase):
             self.assertEqual(len(gd.assottiglia(serie)), len(serie))
 
 
+class TestIdentita(BaseConArchivio):
+    """I giocatori sono identificati dal nome, non dall'id EA.
+
+    Nella pagina il nome e' la chiave 69 volte e roles.json e' indicizzato per nome. Se
+    qualcuno cambia il nome PSN, lo storico si spezza in due persone diverse, la nuova
+    resta senza ruolo e le medie di entrambe sbagliano — tutto senza un errore. Non si
+    puo' riscrivere l'identita' di tutto il progetto per un guasto che non e' ancora
+    successo, ma si puo' pretendere che il giorno che succede lo si sappia subito.
+    """
+
+    def test_oggi_nessun_nome_doppio(self):
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        con = sqlite3.connect(self.db)
+        con.row_factory = sqlite3.Row
+        doppi = gd.controlla_identita(con.cursor(), CLUB)
+        con.close()
+        self.assertEqual(doppi, [], f"stessa persona con nomi diversi: {doppi}")
+
+    def test_un_cambio_di_nome_viene_segnalato(self):
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        con = sqlite3.connect(self.db)
+        con.row_factory = sqlite3.Row
+        riga = con.execute(
+            "SELECT match_id, ea_player_id, player_name FROM match_player_stats "
+            "WHERE club_id=? AND ea_player_id NOT LIKE 'recovered\\_%' ESCAPE '\\' LIMIT 1",
+            (CLUB,)).fetchone()
+        if not riga:
+            con.close(); self.skipTest("nessuna riga con id EA reale")
+        con.execute(
+            "UPDATE match_player_stats SET player_name=? WHERE match_id=? AND ea_player_id=?",
+            (riga["player_name"] + "_nuovo", riga["match_id"], riga["ea_player_id"]))
+        con.commit()
+        doppi = gd.controlla_identita(con.cursor(), CLUB)
+        con.close()
+        self.assertTrue(doppi, "il cambio di nome non e' stato rilevato")
+        self.assertIn(riga["ea_player_id"], [d["ea_player_id"] for d in doppi])
+
+    def test_gli_id_ricostruiti_non_fanno_rumore(self):
+        """Gli id 'recovered_*' sono sintetici: segnalerebbero ogni giocatore per sempre."""
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        con = sqlite3.connect(self.db)
+        con.row_factory = sqlite3.Row
+        quanti = con.execute(
+            "SELECT COUNT(*) FROM match_player_stats WHERE ea_player_id LIKE 'recovered%'"
+        ).fetchone()[0]
+        doppi = gd.controlla_identita(con.cursor(), CLUB)
+        con.close()
+        if quanti == 0:
+            self.skipTest("nessuna riga ricostruita in archivio")
+        self.assertEqual(doppi, [], "gli id ricostruiti non devono generare segnalazioni")
+
+
+class TestPiattaforma(unittest.TestCase):
+    """La piattaforma viene da club.json, non dalla fotografia in raw/club_search.json."""
+
+    def test_codici_noti_e_sconosciuti(self):
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        self.assertIn("PS5", gd.etichetta_piattaforma("common-gen5"))
+        self.assertIn("Switch", gd.etichetta_piattaforma("nx"))
+        # Un codice nuovo non deve sparire: meglio mostrarlo grezzo che mostrare "-".
+        self.assertEqual(gd.etichetta_piattaforma("common-gen6"), "common-gen6")
+        self.assertEqual(gd.etichetta_piattaforma(None), "-")
+
+    def test_la_pagina_dichiara_la_piattaforma_del_club_attivo(self):
+        if not (QUI / "index.html").exists():
+            self.skipTest("index.html non presente")
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        attesa = gd.etichetta_piattaforma(gd.carica_club().get("piattaforma"))
+        self.assertIn(attesa, (QUI / "index.html").read_text(encoding="utf-8"))
+
+
 class TestFusoOrario(unittest.TestCase):
     """Il fuso era cablato a +2, cioe' l'ora legale.
 

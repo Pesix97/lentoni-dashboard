@@ -151,7 +151,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `test_pipeline.py` | 32 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello. |
 | `test_ruoli.js` | 34 controlli su ruoli, formazione e scheda osservatore, eseguiti sulla pagina generata. |
-| `raw/club_search.json` | Unica fonte di `platform` e `region_id`. Il resto di `raw/` non è versionato. |
+| `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
 
@@ -162,7 +162,10 @@ L'archivio tiene **tutti i titoli insieme**, distinti da `club_id`, e la dashboa
 mostra uno alla volta: quello indicato in `attivo`.
 
 Al passaggio a FC 27 si sposta il club corrente in `storico`, si scrive il nuovo in
-`attivo`, e non serve toccare nient'altro. **La transizione è stata provata a vuoto il
+`attivo`, e non serve toccare nient'altro. La **piattaforma mostrata viene da qui**, non da
+`raw/club_search.json`: quel file è una fotografia presa a mano del club di FC 26 e avrebbe
+continuato a dichiarare la piattaforma di quello vecchio, contraddicendo proprio la regola
+dell'unico file da toccare. **La transizione è stata provata a vuoto il
 23/08/2026**: con un club nuovo e zero partite la pagina si genera comunque, tutte e 15 le
 sezioni ci sono, le guardie di pubblicazione passano e non compaiono `NaN` o valori vuoti.
 `serata.py` risponde "Nessuna partita in archivio" invece di rompersi. Ogni query di `generate_dashboard.py` filtra
@@ -367,6 +370,24 @@ gli avversari:
   livello che aveva quando è stato interrogato, non quello di stasera;
 - **16 partite su 49 non hanno l'id dell'avversario** nei dati EA, quindi restano fuori da
   ogni confronto per forza dell'avversario. Compaiono in tutto il resto.
+
+## L'identità dei giocatori è il nome, non l'id
+
+Nella pagina il nome del giocatore è la chiave **69 volte**; l'id numerico che EA assegna a
+ogni persona compare **due volte in tutto**, solo per deduplicare le vecchie righe
+ricostruite. Anche `roles.json` è indicizzato per nome.
+
+Se qualcuno cambia il nome PSN, lo storico si spezza in due persone diverse: la nuova
+compare senza ruolo tra i "da assegnare", e le medie di entrambe diventano sbagliate. Senza
+alcun errore da nessuna parte.
+
+Riscrivere l'identità sull'id EA vorrebbe dire toccare ogni chiave del progetto per un
+guasto che non è ancora successo. Al suo posto c'è un **rilevamento**: se un id EA compare
+con più di un nome, la generazione lo scrive nel log e un test lo verifica. Provato
+simulando un cambio di nome su due partite — segnalato correttamente.
+
+Il giorno che succede, la soluzione sarà una riga: rinominare a mano le righe vecchie, o
+aggiungere una mappa di alias.
 
 ## Il peso del repository
 
