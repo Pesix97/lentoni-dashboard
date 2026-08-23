@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__CLUB_NAME__ — Club Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>__STILE__</style>
+</head>
+<body>
+
+<nav id="topNav">
+  <button id="hamburgerBtn" aria-label="Apri menu">☰</button>
+  <span class="brand">__CLUB_NAME__</span>
+</nav>
+
+<div id="drawerOverlay"></div>
+<aside id="sideDrawer">
+  <div class="drawer-head">
+    <span class="drawer-title">__CLUB_NAME__</span>
+    <button id="drawerClose" aria-label="Chiudi menu">✕</button>
+  </div>
+  <div id="navSearchWrap">
+    <input type="text" id="navSearch" placeholder="🔍 Cerca giocatore o avversario...">
+    <div id="navSearchResults"></div>
+  </div>
+  <div id="navLinks"></div>
+</aside>
+
+<div id="playerModalOverlay">
+  <div id="playerModal" role="dialog" aria-modal="true"></div>
+</div>
+
+<div class="header-row">
+  <div class="crest" id="crestBadge"></div>
+  <div>
+    <h1>__CLUB_NAME__</h1>
+    <div class="sub">__PLATFORM__ · Divisione __DIVISION__ · Aggiornato al __UPDATED_AT__</div>
+  </div>
+</div>
+
+<section id="overview">
+  <div class="grid-cards" id="cards"></div>
+</section>
+
+<section id="novita">
+  <h2>Novità dall'ultimo aggiornamento <span class="h2-sub">— differenza tra gli ultimi due snapshot</span></h2>
+  <div id="newsBody"></div>
+</section>
+
+<section id="forma">
+  <h2>Forma recente</h2>
+  <div class="panel">
+    <div class="form-strip" id="formStrip"></div>
+  </div>
+</section>
+
+<section id="condividi">
+  <h2>Condividi <span class="h2-sub">— genera un'immagine da mandare nel gruppo</span></h2>
+  <div class="panel">
+    <div class="share-row">
+      <button class="share-btn" id="shareDownloadBtn">📥 Scarica immagine</button>
+      <button class="share-btn ghost" id="shareNativeBtn" style="display:none;">📤 Condividi</button>
+      <button class="share-btn ghost" id="shareCopyBtn">🔗 Copia link</button>
+      <span id="shareMsg" style="font-size:12.5px; color:var(--muted);"></span>
+    </div>
+    <div class="share-preview"><canvas id="shareCanvas" width="1000" height="1000"></canvas></div>
+  </div>
+</section>
+
+<section class="two-col" id="andamento">
+  <div>
+    <h2>Andamento skill rating</h2>
+    <div class="filter-bar" id="historyRange"></div>
+    <div class="panel">
+      <canvas id="chartHistory"></canvas>
+      <div id="historyRiepilogo" style="font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5;"></div>
+    </div>
+  </div>
+  <div>
+    <h2>Piazzamenti per divisione (storico all-time)</h2>
+    <div class="panel"><canvas id="chartFinishes"></canvas></div>
+  </div>
+</section>
+
+<section class="two-col" id="rosa">
+  <div>
+    <h2>Rosa <span class="h2-sub">— solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
+    <div class="panel">
+      <input type="text" class="filter" id="rosterFilter" placeholder="Filtra giocatore...">
+      <div class="filter-bar" id="rosterQuickFilters">
+        <span class="pos-badge">Ordina per:</span>
+        <span class="filter-btn" data-key="games_played">Partite giocate</span>
+        <span class="filter-btn" data-key="goals">Gol fatti</span>
+        <span class="filter-btn" data-key="assists">Assist fatti</span>
+        <span class="filter-btn" data-key="rating_ave">Media migliore</span>
+      </div>
+      <div class="table-wrap">
+        <table id="rosterTable" class="responsive-table">
+          <thead><tr>
+            <th data-key="player_name">Giocatore</th>
+            <th data-key="role_effective">Ruolo</th>
+            <th data-key="pro_overall">OVR</th>
+            <th data-key="games_played">PG</th>
+            <th data-key="win_rate">Win%</th>
+            <th data-key="goals">Gol</th>
+            <th data-key="assists">Assist</th>
+            <th data-key="rating_ave">Media</th>
+            <th data-key="man_of_the_match">MOTM</th>
+            <th data-key="red_cards">Rossi</th>
+            <th>Forma (ultime partite)</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div>
+    <h2>Top marcatori</h2>
+    <div class="panel"><canvas id="chartScorers"></canvas></div>
+  </div>
+</section>
+
+<section id="crescita">
+  <h2>Crescita nel tempo <span class="h2-sub">— i totali di carriera a ogni aggiornamento: dati sempre completi</span></h2>
+  <div class="panel">
+    <div class="lb-controls">
+      <select class="h2h-select" id="growthPlayer"></select>
+      <select class="h2h-select" id="growthStat"></select>
+      <span class="filter-btn" id="growthMode" data-mode="total">Vista: totali</span>
+    </div>
+    <div id="growthWrap"><canvas id="growthChart"></canvas></div>
+    <div id="growthSummary" style="margin-top:12px;"></div>
+  </div>
+</section>
+
+<section id="classifiche">
+  <h2>Classifiche complete <span class="h2-sub">— tutte le statistiche · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
+  <div class="panel">
+    <div class="lb-controls">
+      <select class="h2h-select" id="lbStat"></select>
+      <span class="filter-btn" id="lbDirToggle" data-dir="-1">Ordine: dal più alto</span>
+    </div>
+    <div class="table-wrap">
+      <table id="lbTable" class="responsive-table">
+        <thead><tr><th>#</th><th>Giocatore</th><th>Ruolo</th><th>Valore</th><th>Partite</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="forza">
+  <h2>Indice di Forza <span class="h2-sub">— chi è più forte/decisivo, calcolato da un algoritmo · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
+  <div class="panel" style="margin-bottom:12px; border-left:3px solid var(--accent);">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      <strong style="color:var(--text);">Due classifiche, due campioni diversi.</strong> Quella generale qui sotto
+      usa le <strong style="color:var(--text);">carriere complete</strong> (centinaia di partite per giocatore),
+      mescolate con la forma recente. Quella per reparto, più in basso, può usare solo le
+      <strong style="color:var(--text);">partite archiviate</strong>, perché il ruolo si conosce partita per partita
+      e il dettaglio esiste solo per quelle.
+      <br>
+      Un giocatore può quindi avere due punteggi diversi senza che ci sia alcun errore: misurano
+      cose diverse su periodi diversi.
+    </div>
+  </div>
+  <h3 style="margin:22px 0 10px; font-size:17px;">Generale <span class="h2-sub">— tutta la rosa insieme, sulle carriere complete</span></h3>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Punteggio 0-100 calcolato combinando (pesi tra parentesi): media voto (40%), gol+assist a partita (20%),
+      frequenza MOTM (15%), % vittorie (10%), efficienza tecnica media tra passaggi/contrasti/tiro (10%),
+      con una piccola penalità per i cartellini rossi a partita (5%). Ogni componente è normalizzato rispetto
+      al resto della rosa, quindi il punteggio è relativo a questa squadra, non un valore assoluto universale.
+      <br><br>
+      <strong style="color:var(--text);">Peso della forma recente.</strong> Come per i coefficienti UEFA, il valore storico da
+      solo reagisce troppo lentamente. Il punteggio finale è quindi una media pesata tra l'<strong style="color:var(--text);">indice
+      storico</strong> (tutta la carriera) e l'<strong style="color:var(--text);">indice di forma</strong>, ricalcolato con gli stessi
+      pesi ma solo sulle ultime partite archiviate. La colonna <strong style="color:var(--text);">Δ</strong> mostra quanto la forma
+      recente sposta il giocatore rispetto al suo storico. Chi ha meno di 4 presenze nella finestra
+      resta al 100% storico ed è segnalato in tabella.
+    </div>
+  </div>
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="lb-controls">
+      <span style="font-size:12px; color:var(--muted);">Finestra recente:</span>
+      <div class="filter-bar" id="formWindowFilters" style="display:inline-flex;"></div>
+      <span style="font-size:12px; color:var(--muted); margin-left:10px;">Peso:</span>
+      <div class="filter-bar" id="formWeightFilters" style="display:inline-flex;"></div>
+    </div>
+    <div id="formCoverage" style="font-size:12px; color:var(--muted); margin-top:10px;"></div>
+  </div>
+  <div class="power-podium" id="powerPodium"></div>
+  <div class="panel">
+    <div class="filter-bar" id="powerRoleFilters"></div>
+    <div class="table-wrap">
+      <table id="powerTable" class="responsive-table">
+        <thead><tr>
+          <th data-key="score">#</th>
+          <th>Giocatore</th>
+          <th>Ruolo</th>
+          <th data-key="score">Indice</th>
+          <th>Δ</th>
+          <th>Storico</th>
+          <th>Forma</th>
+          <th data-key="rating_ave">Media</th>
+          <th data-key="contrib">G+A/partita</th>
+          <th data-key="motmRate">MOTM%</th>
+          <th data-key="win_rate">Win%</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3 style="margin:34px 0 4px; font-size:17px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:24px;">
+    Reparto per reparto <span class="h2-sub">— chi incide di più tra i pari ruolo</span>
+  </h3>
+  <div id="daConfermare"></div>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      L'Indice di Forza generale mette tutti nella stessa classifica, e chi gioca dietro parte
+      svantaggiato: gol e assist pesano il 20% del punteggio. Qui invece ogni giocatore è
+      <strong style="color:var(--text);">normalizzato dentro il proprio reparto</strong>, quindi un difensore compete
+      solo con altri difensori. Pesi e formula sono identici all'Indice di Forza: cambia solo il gruppo
+      di confronto.
+      <br><br>
+      <strong style="color:var(--text);">Come viene deciso il ruolo.</strong> EA conosce solo quattro etichette
+      (portiere/difensore/centrocampista/attaccante) e non sa distinguere un COC da un CC: il ruolo
+      abituale di ogni giocatore arriva quindi da <code>roles.json</code>, scritto a mano. Per la singola
+      partita però vince il dato EA: se uno viene schierato fuori ruolo, <strong style="color:var(--text);">quella partita
+      conta nel reparto in cui ha davvero giocato</strong>. Un attaccante con 3 presenze da difensore compare
+      anche tra i difensori, con quelle 3 partite.
+      <br><br>
+      Il calcolo usa solo le <strong style="color:var(--text);">partite archiviate</strong> (quelle di cui esiste il dettaglio
+      per giocatore), non le carriere complete: è l'unico modo per sapere in che ruolo si è giocato.
+      Il campione è quindi piccolo e cresce ad ogni aggiornamento.
+    </div>
+  </div>
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="lb-controls">
+      <span style="font-size:12px; color:var(--muted);">Minimo partite nel ruolo:</span>
+      <div class="filter-bar" id="roleMinFilters" style="display:inline-flex;"></div>
+    </div>
+    <div id="roleCoverage" style="font-size:12px; color:var(--muted); margin-top:10px;"></div>
+  </div>
+  <div id="roleBoards"></div>
+</section>
+
+<section id="formazione">
+  <h2>Formazione tipo <span class="h2-sub">— modulo 3-4-1-2, i migliori disponibili per ruolo secondo i dati reali</span></h2>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Modulo fisso 3-4-1-2 (3 difensori, 4 centrocampisti, 1 trequartista, 2 attaccanti). Il portiere è
+      volutamente lasciato libero, per regola del gruppo. Ogni posto di movimento è sempre coperto da un
+      giocatore reale della rosa, mai vuoto: quando un ruolo ha abbastanza dati di partita specifici, viene
+      scelto chi ha il rendimento migliore proprio in quel ruolo (stesso algoritmo dell'Indice di Forza,
+      calcolato solo sulle partite giocate lì); se per un ruolo non ci sono abbastanza giocatori con dati
+      specifici, il posto viene comunque riempito con il migliore disponibile secondo l'Indice di Forza
+      generale — questi casi sono segnati con "stima" perché non si basano su partite giocate proprio in
+      quella posizione.
+    </div>
+  </div>
+  <div class="pitch-wrap">
+    <div class="pitch" id="pitchField"></div>
+  </div>
+  <div class="panel" style="margin-top:16px;">
+    <div class="table-wrap">
+      <table id="formationTable" class="responsive-table">
+        <thead><tr>
+          <th>Ruolo</th><th>Giocatore</th><th>Indice</th><th>Partite nel ruolo</th><th>Media voto</th><th>Fonte</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="h2h">
+  <h2>Confronto giocatori (testa a testa)</h2>
+  <div class="panel">
+    <div class="h2h-controls">
+      <select class="h2h-select" id="h2hA"></select>
+      <span class="h2h-vs">VS</span>
+      <select class="h2h-select" id="h2hB"></select>
+    </div>
+    <canvas id="chartH2H"></canvas>
+  </div>
+</section>
+
+<section id="riepilogo">
+  <h2>Riepilogo periodo tracciato <span class="h2-sub">— dalle partite presenti nel database</span></h2>
+  <div class="wrapped-grid" id="wrappedGrid"></div>
+  <div class="panel" style="margin-top:16px;">
+    <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Distribuzione dei risultati per margine di gol</div>
+    <canvas id="chartResultsDist"></canvas>
+  </div>
+</section>
+
+<section id="avversari">
+  <h2>Avversari <span class="h2-sub">— bilancio contro ogni club affrontato</span></h2>
+  <div class="panel" id="livelloAvversari" style="margin-bottom:16px;"></div>
+  <div class="grid-cards" id="opponentCards" style="margin-bottom:16px;"></div>
+  <div class="panel">
+    <input type="text" class="filter" id="opponentFilter" placeholder="Filtra avversario...">
+    <div class="table-wrap">
+      <table id="opponentsTable" class="responsive-table">
+        <thead><tr>
+          <th data-key="name">Avversario</th>
+          <th data-key="games">Partite</th>
+          <th data-key="wins">V</th>
+          <th data-key="ties">P</th>
+          <th data-key="losses">S</th>
+          <th data-key="goalsFor">GF</th>
+          <th data-key="goalsAgainst">GS</th>
+          <th data-key="goalDiff">DR</th>
+          <th data-key="lastTs">Ultima</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="diagnosi">
+  <h2>Vittorie e sconfitte <span class="h2-sub">— cosa cambia davvero quando perdiamo</span></h2>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Gli stessi indicatori, misurati separatamente nelle partite vinte, pareggiate e perse.
+      Non serve a stabilire di chi è la colpa: serve a vedere quali numeri si muovono davvero
+      quando la partita gira male, e quali invece restano identici.
+    </div>
+  </div>
+  <div id="diagnosiLettura"></div>
+  <div class="panel">
+    <div class="table-wrap">
+      <table id="diagnosiTabella" class="responsive-table">
+        <thead><tr><th>Indicatore</th><th>Vittoria</th><th>Pareggio</th><th>Sconfitta</th><th>Differenza</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="osservatore">
+  <h2>Scheda osservatore <span class="h2-sub">— che giocatore è, non quanto vale</span></h2>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Un osservatore non dice "il terzo è più bravo del quinto": dice che uno finalizza e non
+      lega il gioco, che un altro fa girare la squadra ma non tira mai. Qui ogni giocatore è
+      descritto per <strong style="color:var(--text);">come gioca</strong>, non per dove
+      arriverebbe in una classifica.
+      <br><br>
+      L'<strong style="color:var(--text);">oscillazione</strong> non è un pregio né un difetto:
+      chi oscilla poco non fa mai una partita brutta e raramente una decisiva, chi oscilla molto
+      è il contrario. Sono due mestieri, e una squadra ha bisogno di entrambi.
+    </div>
+  </div>
+  <div class="filter-bar" id="ossGiocatori"></div>
+  <div id="ossCuriosita"></div>
+  <h3 style="margin:26px 0 4px; font-size:16px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:22px;">
+    Confronto <span class="h2-sub">— scegli con chi</span>
+  </h3>
+  <div class="filter-bar" id="ossMetro"></div>
+  <div id="ossConfronto"></div>
+</section>
+
+<section id="serate">
+  <h2>Serate <span class="h2-sub">— com'è andata sessione per sessione</span></h2>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Una serata è un blocco di partite giocate di seguito: oltre tre ore di pausa comincia
+      una sessione nuova. È l'unità in cui si gioca davvero, e quasi sempre anche l'unità in cui
+      si sbaglia — un modulo diverso o un ruolo scambiato valgono per tutta la serata, non per
+      una partita sola.
+    </div>
+  </div>
+  <div class="filter-bar" id="serateFiltri"></div>
+  <div id="serataDettaglio"></div>
+</section>
+
+<section id="partite">
+  <h2>Partite <span class="h2-sub">— storico costruito dagli aggiornamenti automatici</span></h2>
+  <div class="panel" id="salutePanel" style="margin-bottom:12px;"></div>
+  <div class="panel">
+    <div class="table-wrap">
+      <table id="matchesTable" class="responsive-table">
+        <thead><tr>
+          <th>Data</th><th>Tipo</th><th>Avversario</th><th>Risultato</th><th>Esito</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="footer-note">Dati dalle API pubbliche (non ufficiali) di EA — proclubs.ea.com. Generato localmente, nessun dato inviato a terzi.</div>
+
+<script>__SCRIPT__</script>
+</body>
+</html>

@@ -71,7 +71,10 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `lentoni.db` | Database SQLite con tutto lo storico. |
 | `ingest.py` | Scrive i JSON scaricati nel database. Nessuna chiamata di rete. |
 | `avversari.py` | Raccoglie skill rating e record dei club affrontati. |
-| `generate_dashboard.py` | Rigenera `index.html` a partire dal database. |
+| `generate_dashboard.py` | Legge il database e assembla `index.html` dai pezzi in `modello/`. |
+| `modello/pagina.html` | Struttura della pagina, con i segnaposto `__STILE__` e `__SCRIPT__`. |
+| `modello/stile.css` | Tutto il CSS. |
+| `modello/pagina.js` | Tutta la logica che gira nel browser. **File .js vero**: `node --check` lo verifica. |
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
@@ -260,6 +263,20 @@ le funzioni dalla pagina generata** ed eseguono quelle, non una copia che potreb
 divergere.
 
 ---
+
+## Perché il modello sta in tre file
+
+Fino al 23/08/2026 la pagina intera viveva dentro una stringa Python di 3711 righe, con
+dentro 2903 righe di JavaScript. Il problema non era la lunghezza: **dentro una stringa
+nessun editor sa che quel testo è JavaScript**, quindi un tag mai chiuso o una parentesi
+di troppo non venivano segnalati da niente e si scoprivano solo aprendo la pagina.
+
+Ora `modello/pagina.js` è un file `.js` vero e `node --check` lo verifica a ogni giro di
+test. Il risultato pubblicato non cambia: `index.html` resta un unico file autonomo.
+
+La separazione è stata fatta con una garanzia verificabile — **hash identico prima e
+dopo**. Chiunque la rifaccia dovrebbe pretendere lo stesso: se `index.html` cambia anche
+di un byte, qualcosa è andato storto.
 
 ## Cosa si aggiorna, e quando
 

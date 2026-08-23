@@ -303,6 +303,40 @@ class TestQualitaDati(BaseConArchivio):
         self.assertEqual(vuote, 0, f"{vuote} partite senza alcun giocatore registrato")
 
 
+class TestModello(unittest.TestCase):
+    """Il modello della pagina vive in tre file separati dal 23/08/2026."""
+
+    def test_i_tre_pezzi_esistono_e_si_incastrano(self):
+        pagina = (QUI / "modello" / "pagina.html").read_text(encoding="utf-8")
+        for f in ("pagina.html", "stile.css", "pagina.js"):
+            self.assertTrue((QUI / "modello" / f).exists(), f"manca modello/{f}")
+        self.assertIn("__STILE__", pagina, "il segnaposto del CSS e' sparito")
+        self.assertIn("__SCRIPT__", pagina, "il segnaposto del JavaScript e' sparito")
+
+    def test_nessun_segnaposto_sopravvive_nella_pagina(self):
+        """Un segnaposto non sostituito arriverebbe fino al browser come testo."""
+        if not (QUI / "index.html").exists():
+            self.skipTest("index.html non presente")
+        html = (QUI / "index.html").read_text(encoding="utf-8")
+        rimasti = [s for s in ("__STILE__", "__SCRIPT__", "__DATA_JSON__", "__CLUB_NAME__",
+                               "__MIN_GAMES__", "__MIN_REPARTO__", "__PLATFORM__",
+                               "__DIVISION__", "__UPDATED_AT__") if s in html]
+        self.assertEqual(rimasti, [], f"segnaposto non sostituiti: {rimasti}")
+
+    def test_il_javascript_e_sintatticamente_valido(self):
+        """Ora che e' un file .js vero, node lo puo' controllare da solo.
+
+        Prima viveva dentro una stringa Python: nessuno strumento sapeva che fosse
+        JavaScript, e un errore di sintassi si scopriva solo aprendo la pagina.
+        """
+        js = QUI / "modello" / "pagina.js"
+        try:
+            r = subprocess.run(["node", "--check", str(js)], capture_output=True, text=True)
+        except FileNotFoundError:
+            self.skipTest("node non disponibile")
+        self.assertEqual(r.returncode, 0, f"errore di sintassi in pagina.js:\n{r.stderr}")
+
+
 class TestConfigurazione(unittest.TestCase):
 
     def test_club_json_valido(self):
