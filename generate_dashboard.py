@@ -1027,6 +1027,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
 </section>
 
+<section id="serate">
+  <h2>Serate <span class="h2-sub">— com'è andata sessione per sessione</span></h2>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Una serata è un blocco di partite giocate di seguito: oltre tre ore di pausa comincia
+      una sessione nuova. È l'unità in cui si gioca davvero, e quasi sempre anche l'unità in cui
+      si sbaglia — un modulo diverso o un ruolo scambiato valgono per tutta la serata, non per
+      una partita sola.
+    </div>
+  </div>
+  <div class="filter-bar" id="serateFiltri"></div>
+  <div id="serataDettaglio"></div>
+</section>
+
 <section id="partite">
   <h2>Partite <span class="h2-sub">— storico costruito dagli aggiornamenti automatici</span></h2>
   <div class="panel" id="salutePanel" style="margin-bottom:12px;"></div>
@@ -3001,6 +3015,156 @@ function computeOutfieldLineup(){
 })();
 
 // ---- Matches table ----
+// ---- Serate ----
+// Le serate arrivano gia' raggruppate da Python (stessa regola di serata.py); qui si
+// ricostruisce il resto dai dati che la pagina ha comunque, senza duplicare niente.
+(function renderSerate(){
+  const filtriEl = document.getElementById("serateFiltri");
+  const detEl = document.getElementById("serataDettaglio");
+  if(!filtriEl || !detEl) return;
+  const serate = DATA.serate || [];
+  if(serate.length === 0){
+    detEl.innerHTML = '<div class="empty">Nessuna serata in archivio.</div>';
+    filtriEl.remove();
+    return;
+  }
+
+  const matchById = new Map((DATA.matches || []).map(m => [m.match_id, m]));
+  const storico = (DATA.history || [])
+    .map(h => ({ t: new Date(h.fetched_at).getTime(), v: h.skill_rating }))
+    .filter(h => !isNaN(h.t) && h.v != null)
+    .sort((a, b) => a.t - b.t);
+
+  const soloOra = iso => new Date(iso).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+
+  // Lo skill rating non viene rilevato a ogni partita ma a ogni giro riuscito. Per la
+  // serata si prende l'ultimo valore noto PRIMA che cominciasse e l'ultimo prima che
+  // cominci la serata successiva.
+  //
+  // Non il primo valore dopo l'ultima partita: EA pubblica in ritardo, quindi il rating
+  // continua a muoversi anche dopo che avete spento. La sera del 23/08/2026 il rilevamento
+  // subito dopo l'ultima partita diceva 1883, e cinque minuti dopo - registrata la settima
+  // partita - 1892. Fermarsi al primo valore avrebbe attribuito alla serata nove punti in
+  // meno di quelli che ha prodotto.
+  function variazione(partite, limite){
+    const t0 = new Date(partite[0].played_at).getTime();
+    const t1 = new Date(partite[partite.length - 1].played_at).getTime();
+    const prima = storico.filter(h => h.t <= t0).pop();
+    const dopo = storico.filter(h => h.t >= t1 && h.t < limite).pop();
+    if(!prima || !dopo) return null;
+    return { da: prima.v, a: dopo.v, delta: dopo.v - prima.v };
+  }
+
+  function scheda(s, limite){
+    const partite = s.matchIds.map(id => matchById.get(id)).filter(Boolean);
+    if(partite.length === 0) return '<div class="empty">Partite non disponibili.</div>';
+    let v = 0, n = 0, gf = 0, gs = 0;
+    partite.forEach(m => {
+      gf += m.goals_for || 0; gs += m.goals_against || 0;
+      if(m.goals_for > m.goals_against) v++; else if(m.goals_for === m.goals_against) n++;
+    });
+    const p = partite.length - v - n;
+
+    const agg = {};
+    partite.forEach(m => {
+      (DATA.matchPlayers[m.match_id] || []).forEach(x => {
+        const a = agg[x.player_name] = agg[x.player_name] ||
+          { nome: x.player_name, n: 0, somma: 0, gol: 0, ass: 0, mom: 0, gruppi: {} };
+        a.n++; a.somma += x.rating || 0; a.gol += x.goals || 0;
+        a.ass += x.assists || 0; a.mom += x.mom || 0;
+        const g = ROLE_EXCEPTIONS[m.match_id + "|" + x.player_name]
+               || groupForMatch(x.player_name, x.pos);
+        if(g) a.gruppi[g] = (a.gruppi[g] || 0) + 1;
+      });
+    });
+    const giocatori = Object.values(agg).map(a => ({ ...a, media: a.somma / a.n }))
+      .sort((x, y) => y.media - x.media);
+
+    const sr = variazione(partite, limite);
+    const srHtml = sr
+      ? `<span style="color:${sr.delta > 0 ? "var(--ok,#4ade80)" : sr.delta < 0 ? "var(--accent)" : "var(--muted)"};">
+           ${sr.da} → ${sr.a} (${sr.delta > 0 ? "+" : ""}${sr.delta})</span>`
+      : `<span style="color:var(--muted);">variazione non rilevata</span>`;
+
+    const badge = s.daConfermare
+      ? `<span style="font-size:11px; color:var(--muted); border:1px solid var(--border); border-radius:4px; padding:2px 7px; margin-left:8px;">ruoli da confermare</span>`
+      : "";
+
+    const esito = m => m.goals_for > m.goals_against ? ["V", "var(--ok,#4ade80)"]
+                     : m.goals_for === m.goals_against ? ["P", "var(--muted)"]
+                     : ["S", "var(--accent)"];
+
+    return `
+      <div class="panel" style="margin-bottom:12px;">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; margin-bottom:10px;">
+          <strong style="font-size:16px;">${s.giorno}</strong>
+          <span style="font-size:12px; color:var(--muted);">dalle ${s.inizio} alle ${s.fine}</span>
+          ${badge}
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:18px; font-size:13px; margin-bottom:14px;">
+          <span><strong>${partite.length}</strong> partite</span>
+          <span><strong>${v}</strong>V <strong>${n}</strong>P <strong>${p}</strong>S</span>
+          <span>${gf} gol fatti, ${gs} subiti</span>
+          <span>Skill rating: ${srHtml}</span>
+        </div>
+        <div class="table-wrap" style="margin-bottom:14px;">
+          <table class="responsive-table">
+            <thead><tr><th>Ora</th><th>Avversario</th><th>Risultato</th><th>Esito</th></tr></thead>
+            <tbody>${partite.map(m => {
+              const [e, c] = esito(m);
+              return `<tr>
+                <td data-label="Ora">${soloOra(m.played_at)}</td>
+                <td data-label="Avversario">${m.opponent_name || "—"}</td>
+                <td data-label="Risultato" class="lb-value">${m.goals_for}-${m.goals_against}</td>
+                <td data-label="Esito"><span style="color:${c}; font-weight:600;">${e}</span></td>
+              </tr>`;
+            }).join("")}</tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table class="responsive-table">
+            <thead><tr>
+              <th>Giocatore</th><th>Reparto</th><th>Presenze</th><th>Media voto</th>
+              <th>Gol</th><th>Assist</th><th>MOTM</th>
+            </tr></thead>
+            <tbody>${giocatori.map(a => {
+              const rep = Object.entries(a.gruppi).sort((x, y) => y[1] - x[1])
+                .map(([g, q]) => (GROUP_LABELS[g] || g) + (Object.keys(a.gruppi).length > 1 ? ` ${q}` : ""))
+                .join(", ");
+              return `<tr>
+                <td data-label="Giocatore"><span class="player-link" data-player="${a.nome}">${a.nome}</span></td>
+                <td data-label="Reparto" style="color:var(--muted); font-size:12px;">${rep || "—"}</td>
+                <td data-label="Presenze">${a.n}</td>
+                <td data-label="Media voto" class="lb-value">${a.media.toFixed(2)}</td>
+                <td data-label="Gol">${a.gol}</td>
+                <td data-label="Assist">${a.ass}</td>
+                <td data-label="MOTM">${a.mom || "—"}</td>
+              </tr>`;
+            }).join("")}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  let scelta = serate[0].chiave;
+  function disegna(){
+    filtriEl.innerHTML = serate.map(s =>
+      `<span class="filter-btn ${s.chiave === scelta ? "active" : ""}" data-k="${s.chiave}">${s.giorno}
+       <span style="opacity:.65;">${s.matchIds.length}</span></span>`).join("");
+    filtriEl.querySelectorAll(".filter-btn").forEach(b =>
+      b.addEventListener("click", () => { scelta = b.dataset.k; disegna(); }));
+    const i = Math.max(0, serate.findIndex(x => x.chiave === scelta));
+    const s = serate[i];
+    // L'elenco e' dal piu' recente: la serata successiva nel tempo e' quella prima.
+    const prossima = serate[i - 1];
+    const limite = prossima
+      ? new Date(matchById.get(prossima.matchIds[0]).played_at).getTime()
+      : Infinity;
+    detEl.innerHTML = scheda(s, limite);
+  }
+  disegna();
+})();
+
 (function renderMatches(){
   const tbody = document.querySelector("#matchesTable tbody");
   const matches = DATA.matches || [];
@@ -3204,7 +3368,7 @@ const PAGE_MAP = {
   overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
   rosa: "rosa", premi: "premi", crescita: "crescita", classifiche: "classifiche",
   forza: "forza", formazione: "formazione", statsdivertenti: "statsdivertenti", h2h: "h2h",
-  riepilogo: "riepilogo", avversari: "avversari", partite: "partite",
+  riepilogo: "riepilogo", avversari: "avversari", serate: "serate", partite: "partite",
 };
 const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
@@ -3218,6 +3382,7 @@ const PAGES = [
   { key: "h2h", icon: "⚔️", label: "Testa a testa" },
   { key: "riepilogo", icon: "🎁", label: "Riepilogo" },
   { key: "avversari", icon: "🆚", label: "Avversari" },
+  { key: "serate", icon: "🌙", label: "Serate" },
   { key: "partite", icon: "📅", label: "Partite" },
 ].filter(p => Object.values(PAGE_MAP).includes(p.key));
 
@@ -3470,6 +3635,45 @@ def _load_role_groups(script_dir=None):
     return cfg
 
 
+def elenco_serate(matches):
+    """Le partite raggruppate in serate di gioco, dalla più recente.
+
+    Il raggruppamento sta qui e non nel JavaScript perché la regola dello stacco - oltre
+    tre ore di pausa comincia un'altra serata - è la stessa che usano serata.py e la
+    marcatura delle serate da confermare. Averla in due posti significa vederla cambiare
+    in uno solo. La pagina riceve solo gli elenchi di match_id e ricostruisce il resto
+    con i dati che ha già.
+    """
+    try:
+        import ruoli as _r
+        from datetime import datetime, timedelta
+        quando = {}
+        for m in matches:
+            if not m.get("played_at"):
+                continue
+            t = (datetime.fromisoformat(m["played_at"].replace("Z", "+00:00").replace("+00:00", ""))
+                 + timedelta(hours=2))
+            quando[t] = m["match_id"]
+        gruppi = _r.serate(sorted(quando))
+        cfg = _r.carica()
+        out = []
+        for g in gruppi:
+            chiave = f"{g[0]:%Y-%m-%d %H:%M}"
+            out.append({
+                "chiave": chiave,
+                "giorno": f"{g[0]:%d/%m}",
+                "inizio": f"{g[0]:%H:%M}",
+                "fine": f"{g[-1]:%H:%M}",
+                "daConfermare": _r.da_chiedere(cfg, chiave, len(g)),
+                "matchIds": [quando[t] for t in g],
+            })
+        out.reverse()
+        return out
+    except Exception as exc:  # noqa: BLE001 - una sezione in meno, non una pagina rotta
+        print(f"  attenzione: elenco serate non costruito ({exc.__class__.__name__}: {exc})")
+        return []
+
+
 def serate_da_confermare(matches):
     """Le serate di gioco per cui nessuno ha ancora confermato i ruoli.
 
@@ -3521,6 +3725,7 @@ def main():
     data["roleGroups"] = {k: v for k, v in ruoli.items()
                           if k not in ("exPlayers", "excludedRows", "sentinelRating")}
     data["serateAperte"] = serate_da_confermare(data["matches"])
+    data["serate"] = elenco_serate(data["matches"])
     data["titolo"] = club.get("titolo") or ""
     club_name = (data["club"].get("name") or "Club").title()
     platform = data["club"].get("platform") or "-"
