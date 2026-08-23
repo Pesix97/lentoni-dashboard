@@ -2865,9 +2865,17 @@ function computeOutfieldLineup(){
 
   let scelta = serate[0].chiave;
   function disegna(){
-    filtriEl.innerHTML = serate.map(s =>
-      `<span class="filter-btn ${s.chiave === scelta ? "active" : ""}" data-k="${s.chiave}">${s.giorno}
-       <span style="opacity:.65;">${s.matchIds.length}</span></span>`).join("");
+    // Una serata e' un blocco di partite di seguito, senza riguardo all'ora del giorno:
+    // se si gioca il pomeriggio e poi la sera, sono due sessioni con la stessa data. Nei
+    // giorni con piu' di una sessione il bottone porta anche l'ora di inizio, altrimenti
+    // due bottoni identici sceglierebbero cose diverse.
+    const perGiorno = {};
+    serate.forEach(s => { perGiorno[s.giorno] = (perGiorno[s.giorno] || 0) + 1; });
+    filtriEl.innerHTML = serate.map(s => {
+      const etichetta = perGiorno[s.giorno] > 1 ? `${s.giorno} ${s.inizio}` : s.giorno;
+      return `<span class="filter-btn ${s.chiave === scelta ? "active" : ""}" data-k="${s.chiave}">${etichetta}
+       <span style="opacity:.65;">${s.matchIds.length}</span></span>`;
+    }).join("");
     filtriEl.querySelectorAll(".filter-btn").forEach(b =>
       b.addEventListener("click", () => { scelta = b.dataset.k; disegna(); }));
     const i = Math.max(0, serate.findIndex(x => x.chiave === scelta));
