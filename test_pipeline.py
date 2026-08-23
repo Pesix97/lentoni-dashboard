@@ -407,6 +407,39 @@ class TestIdentita(BaseConArchivio):
         self.assertEqual(doppi, [], "gli id ricostruiti non devono generare segnalazioni")
 
 
+class TestSpiegazioniRichiuse(unittest.TestCase):
+    """Dietro un clic ci va solo il testo, mai i numeri.
+
+    Le spiegazioni sono 4195 caratteri di grigio senza un dato dentro: preziose la prima
+    volta, rumore dalla terza. Richiuderle libera spazio senza costi. Richiudere una
+    tabella invece farebbe perdere il colpo d'occhio, che e' il motivo per cui la
+    dashboard esiste — quindi la regola va difesa da un test, non dalla buona volonta'.
+    """
+
+    def _pagina(self):
+        p = QUI / "index.html"
+        if not p.exists():
+            self.skipTest("index.html non presente")
+        return p.read_text(encoding="utf-8")
+
+    def test_nessuna_spiegazione_nasconde_dati(self):
+        import re
+
+        for blocco in re.findall(r'<details class="spiega">(.*?)</details>', self._pagina(), re.S):
+            with self.subTest(inizio=re.sub(r"<[^>]+>", " ", blocco)[:50].strip()):
+                self.assertNotRegex(blocco, r"<table", "una tabella non va nascosta")
+                self.assertNotRegex(blocco, r"<canvas", "un grafico non va nascosto")
+                self.assertNotRegex(blocco, r'id="', "un contenitore riempito dal JS non va nascosto")
+
+    def test_restano_chiuse_di_default(self):
+        self.assertNotIn('<details class="spiega" open', self._pagina())
+
+    def test_le_sezioni_restano_tutte(self):
+        modello = (QUI / "modello" / "pagina.html").read_text(encoding="utf-8")
+        self.assertEqual(self._pagina().count("<section id="),
+                         modello.count("<section id="))
+
+
 class TestPiattaforma(unittest.TestCase):
     """La piattaforma viene da club.json, non dalla fotografia in raw/club_search.json."""
 

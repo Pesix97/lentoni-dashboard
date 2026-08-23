@@ -154,34 +154,40 @@
 
 <section id="forza">
   <h2>Indice di Forza <span class="h2-sub">— chi è più forte/decisivo, calcolato da un algoritmo · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
-  <div class="panel" style="margin-bottom:12px; border-left:3px solid var(--accent);">
-    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-      <strong style="color:var(--text);">Due classifiche, due campioni diversi.</strong> Quella generale qui sotto
-      usa le <strong style="color:var(--text);">carriere complete</strong> (centinaia di partite per giocatore),
-      mescolate con la forma recente. Quella per reparto, più in basso, può usare solo le
-      <strong style="color:var(--text);">partite archiviate</strong>, perché il ruolo si conosce partita per partita
-      e il dettaglio esiste solo per quelle.
-      <br>
-      Un giocatore può quindi avere due punteggi diversi senza che ci sia alcun errore: misurano
-      cose diverse su periodi diversi.
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px; border-left:3px solid var(--accent);">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        <strong style="color:var(--text);">Due classifiche, due campioni diversi.</strong> Quella generale qui sotto
+        usa le <strong style="color:var(--text);">carriere complete</strong> (centinaia di partite per giocatore),
+        mescolate con la forma recente. Quella per reparto, più in basso, può usare solo le
+        <strong style="color:var(--text);">partite archiviate</strong>, perché il ruolo si conosce partita per partita
+        e il dettaglio esiste solo per quelle.
+        <br>
+        Un giocatore può quindi avere due punteggi diversi senza che ci sia alcun errore: misurano
+        cose diverse su periodi diversi.
+      </div>
     </div>
-  </div>
+  </details>
   <h3 style="margin:22px 0 10px; font-size:17px;">Generale <span class="h2-sub">— tutta la rosa insieme, sulle carriere complete</span></h3>
-  <div class="panel" style="margin-bottom:12px;">
-    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-      Punteggio 0-100 calcolato combinando (pesi tra parentesi): media voto (40%), gol+assist a partita (20%),
-      frequenza MOTM (15%), % vittorie (10%), efficienza tecnica media tra passaggi/contrasti/tiro (10%),
-      con una piccola penalità per i cartellini rossi a partita (5%). Ogni componente è normalizzato rispetto
-      al resto della rosa, quindi il punteggio è relativo a questa squadra, non un valore assoluto universale.
-      <br><br>
-      <strong style="color:var(--text);">Peso della forma recente.</strong> Come per i coefficienti UEFA, il valore storico da
-      solo reagisce troppo lentamente. Il punteggio finale è quindi una media pesata tra l'<strong style="color:var(--text);">indice
-      storico</strong> (tutta la carriera) e l'<strong style="color:var(--text);">indice di forma</strong>, ricalcolato con gli stessi
-      pesi ma solo sulle ultime partite archiviate. La colonna <strong style="color:var(--text);">Δ</strong> mostra quanto la forma
-      recente sposta il giocatore rispetto al suo storico. Chi ha meno di 4 presenze nella finestra
-      resta al 100% storico ed è segnalato in tabella.
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Punteggio 0-100 calcolato combinando (pesi tra parentesi): media voto (40%), gol+assist a partita (20%),
+        frequenza MOTM (15%), % vittorie (10%), efficienza tecnica media tra passaggi/contrasti/tiro (10%),
+        con una piccola penalità per i cartellini rossi a partita (5%). Ogni componente è normalizzato rispetto
+        al resto della rosa, quindi il punteggio è relativo a questa squadra, non un valore assoluto universale.
+        <br><br>
+        <strong style="color:var(--text);">Peso della forma recente.</strong> Come per i coefficienti UEFA, il valore storico da
+        solo reagisce troppo lentamente. Il punteggio finale è quindi una media pesata tra l'<strong style="color:var(--text);">indice
+        storico</strong> (tutta la carriera) e l'<strong style="color:var(--text);">indice di forma</strong>, ricalcolato con gli stessi
+        pesi ma solo sulle ultime partite archiviate. La colonna <strong style="color:var(--text);">Δ</strong> mostra quanto la forma
+        recente sposta il giocatore rispetto al suo storico. Chi ha meno di 4 presenze nella finestra
+        resta al 100% storico ed è segnalato in tabella.
+      </div>
     </div>
-  </div>
+  </details>
   <div class="panel" style="margin-bottom:12px;">
     <div class="lb-controls">
       <span style="font-size:12px; color:var(--muted);">Finestra recente:</span>
@@ -218,26 +224,29 @@
     Reparto per reparto <span class="h2-sub">— chi incide di più tra i pari ruolo</span>
   </h3>
   <div id="daConfermare"></div>
-  <div class="panel" style="margin-bottom:12px;">
-    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-      L'Indice di Forza generale mette tutti nella stessa classifica, e chi gioca dietro parte
-      svantaggiato: gol e assist pesano il 20% del punteggio. Qui invece ogni giocatore è
-      <strong style="color:var(--text);">normalizzato dentro il proprio reparto</strong>, quindi un difensore compete
-      solo con altri difensori. Pesi e formula sono identici all'Indice di Forza: cambia solo il gruppo
-      di confronto.
-      <br><br>
-      <strong style="color:var(--text);">Come viene deciso il ruolo.</strong> EA conosce solo quattro etichette
-      (portiere/difensore/centrocampista/attaccante) e non sa distinguere un COC da un CC: il ruolo
-      abituale di ogni giocatore arriva quindi da <code>roles.json</code>, scritto a mano. Per la singola
-      partita però vince il dato EA: se uno viene schierato fuori ruolo, <strong style="color:var(--text);">quella partita
-      conta nel reparto in cui ha davvero giocato</strong>. Un attaccante con 3 presenze da difensore compare
-      anche tra i difensori, con quelle 3 partite.
-      <br><br>
-      Il calcolo usa solo le <strong style="color:var(--text);">partite archiviate</strong> (quelle di cui esiste il dettaglio
-      per giocatore), non le carriere complete: è l'unico modo per sapere in che ruolo si è giocato.
-      Il campione è quindi piccolo e cresce ad ogni aggiornamento.
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        L'Indice di Forza generale mette tutti nella stessa classifica, e chi gioca dietro parte
+        svantaggiato: gol e assist pesano il 20% del punteggio. Qui invece ogni giocatore è
+        <strong style="color:var(--text);">normalizzato dentro il proprio reparto</strong>, quindi un difensore compete
+        solo con altri difensori. Pesi e formula sono identici all'Indice di Forza: cambia solo il gruppo
+        di confronto.
+        <br><br>
+        <strong style="color:var(--text);">Come viene deciso il ruolo.</strong> EA conosce solo quattro etichette
+        (portiere/difensore/centrocampista/attaccante) e non sa distinguere un COC da un CC: il ruolo
+        abituale di ogni giocatore arriva quindi da <code>roles.json</code>, scritto a mano. Per la singola
+        partita però vince il dato EA: se uno viene schierato fuori ruolo, <strong style="color:var(--text);">quella partita
+        conta nel reparto in cui ha davvero giocato</strong>. Un attaccante con 3 presenze da difensore compare
+        anche tra i difensori, con quelle 3 partite.
+        <br><br>
+        Il calcolo usa solo le <strong style="color:var(--text);">partite archiviate</strong> (quelle di cui esiste il dettaglio
+        per giocatore), non le carriere complete: è l'unico modo per sapere in che ruolo si è giocato.
+        Il campione è quindi piccolo e cresce ad ogni aggiornamento.
+      </div>
     </div>
-  </div>
+  </details>
   <div class="panel" style="margin-bottom:12px;">
     <div class="lb-controls">
       <span style="font-size:12px; color:var(--muted);">Minimo partite nel ruolo:</span>
@@ -250,18 +259,21 @@
 
 <section id="formazione">
   <h2>Formazione tipo <span class="h2-sub">— modulo 3-4-1-2, i migliori disponibili per ruolo secondo i dati reali</span></h2>
-  <div class="panel" style="margin-bottom:12px;">
-    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-      Modulo fisso 3-4-1-2 (3 difensori, 4 centrocampisti, 1 trequartista, 2 attaccanti). Il portiere è
-      volutamente lasciato libero, per regola del gruppo. Ogni posto di movimento è sempre coperto da un
-      giocatore reale della rosa, mai vuoto: quando un ruolo ha abbastanza dati di partita specifici, viene
-      scelto chi ha il rendimento migliore proprio in quel ruolo (stesso algoritmo dell'Indice di Forza,
-      calcolato solo sulle partite giocate lì); se per un ruolo non ci sono abbastanza giocatori con dati
-      specifici, il posto viene comunque riempito con il migliore disponibile secondo l'Indice di Forza
-      generale — questi casi sono segnati con "stima" perché non si basano su partite giocate proprio in
-      quella posizione.
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Modulo fisso 3-4-1-2 (3 difensori, 4 centrocampisti, 1 trequartista, 2 attaccanti). Il portiere è
+        volutamente lasciato libero, per regola del gruppo. Ogni posto di movimento è sempre coperto da un
+        giocatore reale della rosa, mai vuoto: quando un ruolo ha abbastanza dati di partita specifici, viene
+        scelto chi ha il rendimento migliore proprio in quel ruolo (stesso algoritmo dell'Indice di Forza,
+        calcolato solo sulle partite giocate lì); se per un ruolo non ci sono abbastanza giocatori con dati
+        specifici, il posto viene comunque riempito con il migliore disponibile secondo l'Indice di Forza
+        generale — questi casi sono segnati con "stima" perché non si basano su partite giocate proprio in
+        quella posizione.
+      </div>
     </div>
-  </div>
+  </details>
   <div class="pitch-wrap">
     <div class="pitch" id="pitchField"></div>
   </div>
@@ -325,13 +337,16 @@
 
 <section id="diagnosi">
   <h2>Vittorie e sconfitte <span class="h2-sub">— cosa cambia davvero quando perdiamo</span></h2>
-  <div class="panel" style="margin-bottom:12px;">
-    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-      Gli stessi indicatori, misurati separatamente nelle partite vinte, pareggiate e perse.
-      Non serve a stabilire di chi è la colpa: serve a vedere quali numeri si muovono davvero
-      quando la partita gira male, e quali invece restano identici.
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Gli stessi indicatori, misurati separatamente nelle partite vinte, pareggiate e perse.
+        Non serve a stabilire di chi è la colpa: serve a vedere quali numeri si muovono davvero
+        quando la partita gira male, e quali invece restano identici.
+      </div>
     </div>
-  </div>
+  </details>
   <div id="diagnosiLettura"></div>
   <div class="panel">
     <div class="table-wrap">
@@ -345,18 +360,21 @@
 
 <section id="osservatore">
   <h2>Scheda osservatore <span class="h2-sub">— che giocatore è, non quanto vale</span></h2>
-  <div class="panel" style="margin-bottom:12px;">
-    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-      Un osservatore non dice "il terzo è più bravo del quinto": dice che uno finalizza e non
-      lega il gioco, che un altro fa girare la squadra ma non tira mai. Qui ogni giocatore è
-      descritto per <strong style="color:var(--text);">come gioca</strong>, non per dove
-      arriverebbe in una classifica.
-      <br><br>
-      L'<strong style="color:var(--text);">oscillazione</strong> non è un pregio né un difetto:
-      chi oscilla poco non fa mai una partita brutta e raramente una decisiva, chi oscilla molto
-      è il contrario. Sono due mestieri, e una squadra ha bisogno di entrambi.
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Un osservatore non dice "il terzo è più bravo del quinto": dice che uno finalizza e non
+        lega il gioco, che un altro fa girare la squadra ma non tira mai. Qui ogni giocatore è
+        descritto per <strong style="color:var(--text);">come gioca</strong>, non per dove
+        arriverebbe in una classifica.
+        <br><br>
+        L'<strong style="color:var(--text);">oscillazione</strong> non è un pregio né un difetto:
+        chi oscilla poco non fa mai una partita brutta e raramente una decisiva, chi oscilla molto
+        è il contrario. Sono due mestieri, e una squadra ha bisogno di entrambi.
+      </div>
     </div>
-  </div>
+  </details>
   <div class="filter-bar" id="ossGiocatori"></div>
   <div id="ossCuriosita"></div>
   <h3 style="margin:26px 0 4px; font-size:16px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:22px;">
@@ -368,14 +386,17 @@
 
 <section id="serate">
   <h2>Serate <span class="h2-sub">— com'è andata sessione per sessione</span></h2>
-  <div class="panel" style="margin-bottom:12px;">
-    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-      Una serata è un blocco di partite giocate di seguito: oltre tre ore di pausa comincia
-      una sessione nuova. È l'unità in cui si gioca davvero, e quasi sempre anche l'unità in cui
-      si sbaglia — un modulo diverso o un ruolo scambiato valgono per tutta la serata, non per
-      una partita sola.
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Una serata è un blocco di partite giocate di seguito: oltre tre ore di pausa comincia
+        una sessione nuova. È l'unità in cui si gioca davvero, e quasi sempre anche l'unità in cui
+        si sbaglia — un modulo diverso o un ruolo scambiato valgono per tutta la serata, non per
+        una partita sola.
+      </div>
     </div>
-  </div>
+  </details>
   <div class="filter-bar" id="serateFiltri"></div>
   <div id="serataDettaglio"></div>
 </section>

@@ -186,6 +186,43 @@
     text-transform:none; letter-spacing:0; font-weight:400; font-size:12px;
   }
   details.pieghevole > *:not(summary){margin-top:12px;}
+
+  /* Le spiegazioni. Misurate il 23/08/2026: 4195 caratteri di testo grigio senza un solo
+     dato dentro, circa sei schermate di telefono sparse per la dashboard. Sono preziose
+     la prima volta che si apre una sezione e diventano rumore dalla terza in poi, quindi
+     stanno chiuse dietro un invito discreto invece che occupare il posto dei numeri.
+     Si nasconde solo testo: nessuna cifra finisce mai dietro un clic. */
+  details.spiega{margin:0 0 12px;}
+  details.spiega > summary{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11.5px; letter-spacing:.02em; color:var(--muted);
+    padding:5px 11px; border:1px solid var(--border); border-radius:999px;
+    cursor:pointer; list-style:none; user-select:none;
+    transition:color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  details.spiega > summary::-webkit-details-marker{display:none;}
+  details.spiega > summary::before{content:"ⓘ"; font-size:12px; opacity:.75;}
+  details.spiega > summary::after{
+    content:"▾"; font-size:10px; opacity:.7; transition:transform .18s ease;
+  }
+  details.spiega > summary:hover{
+    color:var(--text); border-color:var(--accent-2);
+    background:var(--panel-2, rgba(255,255,255,.04));
+  }
+  details.spiega[open] > summary{color:var(--text); border-color:var(--accent-2);}
+  details.spiega[open] > summary::after{transform:rotate(180deg);}
+  details.spiega > *:not(summary){
+    margin-top:10px;
+    animation:spiegaEntra .18s ease both;
+  }
+  @keyframes spiegaEntra{
+    from{opacity:0; transform:translateY(-4px);}
+    to{opacity:1; transform:none;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    details.spiega > *:not(summary){animation:none;}
+    details.spiega > summary::after{transition:none;}
+  }
   .panel{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px;}
   .two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:16px;}
   @media (max-width:900px){.two-col{grid-template-columns:1fr;}}
