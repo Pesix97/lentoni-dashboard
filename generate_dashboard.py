@@ -1027,6 +1027,45 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
 </section>
 
+<section id="diagnosi">
+  <h2>Vittorie e sconfitte <span class="h2-sub">— cosa cambia davvero quando perdiamo</span></h2>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Gli stessi indicatori, misurati separatamente nelle partite vinte, pareggiate e perse.
+      Non serve a stabilire di chi è la colpa: serve a vedere quali numeri si muovono davvero
+      quando la partita gira male, e quali invece restano identici.
+    </div>
+  </div>
+  <div id="diagnosiLettura"></div>
+  <div class="panel">
+    <div class="table-wrap">
+      <table id="diagnosiTabella" class="responsive-table">
+        <thead><tr><th>Indicatore</th><th>Vittoria</th><th>Pareggio</th><th>Sconfitta</th><th>Differenza</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="osservatore">
+  <h2>Scheda osservatore <span class="h2-sub">— che giocatore è, non quanto vale</span></h2>
+  <div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+      Un osservatore non dice "il terzo è più bravo del quinto": dice che uno finalizza e non
+      lega il gioco, che un altro fa girare la squadra ma non tira mai. Qui ogni giocatore è
+      descritto per <strong style="color:var(--text);">come gioca</strong>, non per dove
+      arriverebbe in una classifica.
+      <br><br>
+      L'<strong style="color:var(--text);">oscillazione</strong> non è un pregio né un difetto:
+      chi oscilla poco non fa mai una partita brutta e raramente una decisiva, chi oscilla molto
+      è il contrario. Sono due mestieri, e una squadra ha bisogno di entrambi.
+    </div>
+  </div>
+  <div class="filter-bar" id="ossMetro"></div>
+  <div class="filter-bar" id="ossGiocatori"></div>
+  <div id="ossScheda"></div>
+</section>
+
 <section id="serate">
   <h2>Serate <span class="h2-sub">— com'è andata sessione per sessione</span></h2>
   <div class="panel" style="margin-bottom:12px;">
@@ -3015,6 +3054,301 @@ function computeOutfieldLineup(){
 })();
 
 // ---- Matches table ----
+// ---- Vittorie e sconfitte: cosa cambia ----
+// Misurato il 23/08/2026 sull'archivio: tiri, passaggi e precisione sono quasi identici
+// nelle vittorie e nelle sconfitte. Cambiano solo la conversione dei tiri e i gol subiti.
+// La sezione esiste per rendere visibile questo tipo di cosa, non per assegnare colpe.
+(function renderDiagnosi(){
+  const tbody = document.querySelector("#diagnosiTabella tbody");
+  const letturaEl = document.getElementById("diagnosiLettura");
+  if(!tbody) return;
+
+  const esiti = { vittoria: [], pareggio: [], sconfitta: [] };
+  (DATA.matches || []).forEach(m => {
+    const e = m.win ? "vittoria" : (m.tie ? "pareggio" : "sconfitta");
+    esiti[e].push(m);
+  });
+
+  function medie(partite){
+    if(partite.length === 0) return null;
+    let gf = 0, gs = 0, tiri = 0, gol = 0, pm = 0, pt = 0, tm = 0, tt = 0, voto = 0, righe = 0;
+    partite.forEach(m => {
+      gf += m.goals_for || 0; gs += m.goals_against || 0;
+      (DATA.matchPlayers[m.match_id] || []).forEach(p => {
+        righe++; tiri += p.shots || 0; gol += p.goals || 0;
+        pm += p.passes_made || 0; pt += p.pass_attempts || 0;
+        tm += p.tackles_made || 0; tt += p.tackle_attempts || 0;
+        voto += p.rating || 0;
+      });
+    });
+    const n = partite.length;
+    return {
+      n, golFatti: gf / n, golSubiti: gs / n, tiri: tiri / n,
+      conversione: tiri ? 100 * gol / tiri : 0,
+      passaggi: pm / n, precisione: pt ? 100 * pm / pt : 0,
+      contrasti: tt / n, riuscita: tt ? 100 * tm / tt : 0,
+      voto: righe ? voto / righe : 0,
+    };
+  }
+
+  const V = medie(esiti.vittoria), P = medie(esiti.pareggio), S = medie(esiti.sconfitta);
+  if(!V || !S){
+    letturaEl.innerHTML = '<div class="empty">Servono partite vinte e perse per il confronto.</div>';
+    return;
+  }
+
+  const VOCI = [
+    { k: "n",           lab: "Partite",                  f: x => x, quanto: null },
+    { k: "golFatti",    lab: "Gol fatti",                f: x => x.toFixed(1) },
+    { k: "golSubiti",   lab: "Gol subiti",               f: x => x.toFixed(1) },
+    { k: "tiri",        lab: "Tiri",                     f: x => x.toFixed(1) },
+    { k: "conversione", lab: "Gol per tiro",             f: x => Math.round(x) + "%" },
+    { k: "passaggi",    lab: "Passaggi riusciti",        f: x => Math.round(x) },
+    { k: "precisione",  lab: "Precisione passaggi",      f: x => Math.round(x) + "%" },
+    { k: "contrasti",   lab: "Contrasti tentati",        f: x => x.toFixed(1) },
+    { k: "riuscita",    lab: "Contrasti riusciti",       f: x => Math.round(x) + "%" },
+    { k: "voto",        lab: "Voto medio",               f: x => x.toFixed(2) },
+  ];
+
+  tbody.innerHTML = VOCI.map(v => {
+    const a = V[v.k], b = P ? P[v.k] : null, c = S[v.k];
+    let diff = "";
+    if(v.quanto !== null && a){
+      const scarto = 100 * (c - a) / Math.abs(a);
+      const col = Math.abs(scarto) < 8 ? "var(--muted)"
+                : (scarto > 0 ? "var(--accent)" : "var(--accent)");
+      diff = Math.abs(scarto) < 8
+        ? `<span style="color:var(--muted);">quasi uguale</span>`
+        : `<span style="color:${col};">${scarto > 0 ? "+" : ""}${Math.round(scarto)}%</span>`;
+    }
+    return `<tr>
+      <td data-label="Indicatore">${v.lab}</td>
+      <td data-label="Vittoria" class="lb-value">${v.f(a)}</td>
+      <td data-label="Pareggio">${b == null ? "—" : v.f(b)}</td>
+      <td data-label="Sconfitta">${v.f(c)}</td>
+      <td data-label="Differenza" style="font-size:12px;">${diff}</td>
+    </tr>`;
+  }).join("");
+
+  // La lettura si costruisce dai numeri, non e' scritta a mano: se un giorno cambiassero
+  // - per esempio se cominciaste a tirare molto meno nelle sconfitte - cambierebbe anche
+  // la frase, invece di restare una diagnosi vecchia travestita da conclusione.
+  const uguali = [], diversi = [];
+  VOCI.filter(v => v.quanto !== null && v.k !== "voto").forEach(v => {
+    const scarto = 100 * (S[v.k] - V[v.k]) / Math.abs(V[v.k] || 1);
+    (Math.abs(scarto) < 8 ? uguali : diversi).push({ lab: v.lab.toLowerCase(), scarto });
+  });
+  diversi.sort((a, b) => Math.abs(b.scarto) - Math.abs(a.scarto));
+  const elenco = a => a.map(x => x.lab).join(", ");
+  letturaEl.innerHTML = `<div class="panel" style="margin-bottom:12px;">
+    <div style="font-size:13px; line-height:1.6;">
+      ${uguali.length ? `Nelle sconfitte restano praticamente invariati <strong>${elenco(uguali)}</strong>: la squadra costruisce come sempre.` : ""}
+      ${diversi.length ? ` Cambiano invece ${diversi.slice(0, 3).map(x => `<strong>${x.lab} (${x.scarto > 0 ? "+" : ""}${Math.round(x.scarto)}%)</strong>`).join(", ")}.` : ""}
+    </div>
+  </div>`;
+})();
+
+// ---- Scheda osservatore ----
+// Descrive come gioca una persona, non quanto vale. Tre metri di confronto, scelti da chi
+// guarda: il proprio reparto, tutta la rosa, oppure se stesso nelle ultime partite.
+(function renderOsservatore(){
+  const metroEl = document.getElementById("ossMetro");
+  const listaEl = document.getElementById("ossGiocatori");
+  const schedaEl = document.getElementById("ossScheda");
+  if(!metroEl) return;
+
+  const inRosa = new Set((DATA.roster || []).map(r => r.player_name));
+  const raccolta = {};
+  const ordinate = (DATA.matches || []).slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  ordinate.forEach(m => {
+    (DATA.matchPlayers[m.match_id] || []).forEach(p => {
+      if(!inRosa.has(p.player_name)) return;
+      const a = raccolta[p.player_name] = raccolta[p.player_name] || { nome: p.player_name, righe: [] };
+      a.righe.push({ ...p, ts: m.ts,
+        gruppo: ROLE_EXCEPTIONS[m.match_id + "|" + p.player_name] || groupForMatch(p.player_name, p.pos) });
+    });
+  });
+
+  function sintesi(righe){
+    const n = righe.length;
+    if(n === 0) return null;
+    const s = (f) => righe.reduce((t, r) => t + (f(r) || 0), 0);
+    const voti = righe.map(r => r.rating || 0);
+    const media = voti.reduce((a, b) => a + b, 0) / n;
+    const varianza = voti.reduce((t, v) => t + (v - media) ** 2, 0) / n;
+    const tiri = s(r => r.shots), pt = s(r => r.pass_attempts), tt = s(r => r.tackle_attempts);
+    return {
+      n, voto: media, oscillazione: Math.sqrt(varianza),
+      tiri: tiri / n, conversione: tiri ? 100 * s(r => r.goals) / tiri : 0,
+      assist: s(r => r.assists) / n, passaggi: s(r => r.passes_made) / n,
+      precisione: pt ? 100 * s(r => r.passes_made) / pt : 0,
+      contrasti: tt / n, riuscita: tt ? 100 * s(r => r.tackles_made) / tt : 0,
+      motm: 100 * s(r => r.mom) / n,
+      // I denominatori servono a sapere quanto fidarsi delle percentuali: una riuscita
+      // nei contrasti calcolata su otto tentativi non e' un dato, e' un caso.
+      tiriTot: tiri, passTot: pt, contrTot: tt,
+    };
+  }
+
+  // Le percentuali si confrontano in PUNTI, non in variazione relativa. Passare dal 7% al
+  // 20% e' "+186%" ma sono tredici punti: espresso cosi' dominava ogni sintesi e faceva
+  // sembrare straordinario chiunque avesse pochi contrasti tentati e due riusciti.
+  const DIM = [
+    { k: "voto",         lab: "Voto medio",           f: x => x.toFixed(2) },
+    { k: "oscillazione", lab: "Oscillazione del voto",f: x => x.toFixed(2), neutra: true },
+    { k: "tiri",         lab: "Tiri a partita",       f: x => x.toFixed(1) },
+    { k: "conversione",  lab: "Gol per tiro",         f: x => Math.round(x) + "%", perc: true, minimo: s => s.tiriTot >= 15 },
+    { k: "assist",       lab: "Assist a partita",     f: x => x.toFixed(2) },
+    { k: "passaggi",     lab: "Passaggi a partita",   f: x => Math.round(x) },
+    { k: "precisione",   lab: "Precisione passaggi",  f: x => Math.round(x) + "%", perc: true, minimo: s => s.passTot >= 100 },
+    { k: "contrasti",    lab: "Contrasti tentati",    f: x => x.toFixed(1) },
+    { k: "riuscita",     lab: "Contrasti riusciti",   f: x => Math.round(x) + "%", perc: true, minimo: s => s.contrTot >= 25 },
+    { k: "motm",         lab: "Migliore in campo",    f: x => Math.round(x) + "%", perc: true },
+  ];
+
+  const METRI = [
+    { id: "reparto", lab: "vs il proprio reparto" },
+    { id: "rosa",    lab: "vs tutta la rosa" },
+    { id: "tempo",   lab: "vs sé stesso nel tempo" },
+  ];
+  const MIN_RIGHE = 5;
+  const FINESTRA = 10;   // quante partite recenti guarda il metro "nel tempo"
+
+  const giocatori = Object.values(raccolta).filter(a => a.righe.length >= MIN_RIGHE)
+    .map(a => ({ ...a, s: sintesi(a.righe),
+      gruppo: (() => {
+        const c = {}; a.righe.forEach(r => { if(r.gruppo) c[r.gruppo] = (c[r.gruppo] || 0) + 1; });
+        return Object.entries(c).sort((x, y) => y[1] - x[1])[0]?.[0];
+      })() }))
+    .sort((a, b) => b.s.n - a.s.n);
+
+  if(giocatori.length === 0){
+    schedaEl.innerHTML = `<div class="empty">Servono almeno ${MIN_RIGHE} partite archiviate per giocatore.</div>`;
+    metroEl.remove(); listaEl.remove();
+    return;
+  }
+
+  let metro = "reparto";
+  let scelto = giocatori[0].nome;
+
+  function riferimento(g){
+    if(metro === "tempo"){
+      if(g.righe.length < MIN_RIGHE * 2) return null;
+      const recenti = g.righe.slice(-FINESTRA);
+      const prima = g.righe.slice(0, g.righe.length - recenti.length);
+      if(prima.length < MIN_RIGHE) return null;
+      return { s: sintesi(prima), etichetta: `le sue prime ${prima.length} partite`,
+               attuale: sintesi(recenti), etichettaAttuale: `ultime ${recenti.length}` };
+    }
+    const pool = metro === "reparto"
+      ? giocatori.filter(x => x.gruppo === g.gruppo && x.nome !== g.nome)
+      : giocatori.filter(x => x.nome !== g.nome);
+    if(pool.length === 0) return null;
+    const tutte = pool.flatMap(x => x.righe);
+    return { s: sintesi(tutte),
+             etichetta: metro === "reparto"
+               ? `gli altri ${GROUP_LABELS[g.gruppo] ? GROUP_LABELS[g.gruppo].toLowerCase() : "del reparto"} (${pool.length})`
+               : `il resto della rosa (${pool.length})`,
+             attuale: g.s, etichettaAttuale: "lui" };
+  }
+
+  // Quanto e' distante un giocatore dal riferimento, in una misura confrontabile tra
+  // indicatori diversi: lo scarto diviso per quanto quell'indicatore varia normalmente
+  // nella rosa. Senza, +186% su una percentuale e +40% su un volume finivano nella stessa
+  // classifica come se volessero dire la stessa cosa.
+  const dispersione = {};
+  DIM.forEach(d => {
+    const v = giocatori.map(g => g.s[d.k]).filter(x => isFinite(x));
+    const m = v.reduce((a, b) => a + b, 0) / Math.max(v.length, 1);
+    dispersione[d.k] = Math.sqrt(v.reduce((t, x) => t + (x - m) ** 2, 0) / Math.max(v.length, 1)) || 1;
+  });
+
+  function scartoDi(d, suo, base){
+    return d.perc ? { valore: suo - base, testo: `${suo - base > 0 ? "+" : ""}${Math.round(suo - base)} punti` }
+                  : { valore: suo - base, testo: base ? `${suo > base ? "+" : ""}${Math.round(100 * (suo - base) / Math.abs(base))}%` : "—" };
+  }
+
+  function frase(g, rif){
+    if(!rif) return "";
+    const scarti = DIM.filter(d => !d.neutra && d.k !== "voto")
+      .filter(d => !d.minimo || d.minimo(rif.attuale))
+      .map(d => {
+        const suo = rif.attuale[d.k], base = rif.s[d.k];
+        return { d, s: scartoDi(d, suo, base), forza: (suo - base) / dispersione[d.k] };
+      }).sort((a, b) => b.forza - a.forza);
+    const forti = scarti.filter(x => x.forza > 0.7).slice(0, 2);
+    const deboli = scarti.filter(x => x.forza < -0.7).slice(-2).reverse();
+    const dice = a => a.map(x => `<strong>${x.d.lab.toLowerCase()}</strong> (${x.s.testo})`).join(" e ");
+    const parti = [];
+    if(forti.length) parti.push(`Si distingue per ${dice(forti)}`);
+    if(deboli.length) parti.push(`resta indietro su ${dice(deboli)}`);
+    if(parti.length === 0) return `Nessuno scarto rilevante rispetto a ${rif.etichetta}: un profilo in linea.`;
+    return parti.join(", ") + ".";
+  }
+
+  function disegna(){
+    metroEl.innerHTML = METRI.map(m =>
+      `<span class="filter-btn ${m.id === metro ? "active" : ""}" data-m="${m.id}">${m.lab}</span>`).join("");
+    metroEl.querySelectorAll(".filter-btn").forEach(b =>
+      b.addEventListener("click", () => { metro = b.dataset.m; disegna(); }));
+
+    listaEl.innerHTML = giocatori.map(g =>
+      `<span class="filter-btn ${g.nome === scelto ? "active" : ""}" data-n="${g.nome}">${g.nome}
+       <span style="opacity:.65;">${g.s.n}</span></span>`).join("");
+    listaEl.querySelectorAll(".filter-btn").forEach(b =>
+      b.addEventListener("click", () => { scelto = b.dataset.n; disegna(); }));
+
+    const g = giocatori.find(x => x.nome === scelto) || giocatori[0];
+    const rif = riferimento(g);
+
+    if(!rif){
+      schedaEl.innerHTML = `<div class="panel"><div class="empty">
+        ${metro === "tempo"
+          ? `Servono almeno ${MIN_RIGHE * 2} partite archiviate per confrontare ${g.nome} con sé stesso: ne ha ${g.s.n}.`
+          : `Nessun altro giocatore nel reparto di ${g.nome} con cui confrontarlo.`}
+      </div></div>`;
+      return;
+    }
+
+    const righe = DIM.map(d => {
+      const suo = rif.attuale[d.k], base = rif.s[d.k];
+      const sc = scartoDi(d, suo, base);
+      const forza = (suo - base) / dispersione[d.k];
+      const scarso = d.minimo && !d.minimo(rif.attuale);
+      const col = d.neutra || Math.abs(forza) < 0.4 ? "var(--muted)"
+                : forza > 0 ? "var(--ok,#4ade80)" : "var(--accent)";
+      const larghezza = Math.min(100, Math.abs(forza) * 45);
+      return `<tr>
+        <td data-label="Indicatore">${d.lab}${d.neutra ? ` <span style="color:var(--muted); font-size:11px;">(né bene né male)</span>` : ""}</td>
+        <td data-label="${rif.etichettaAttuale}" class="lb-value">${d.f(suo)}${scarso ? ` <span style="color:var(--muted); font-size:11px;" title="Troppi pochi tentativi perché la percentuale significhi qualcosa">·  pochi dati</span>` : ""}</td>
+        <td data-label="Riferimento" style="color:var(--muted);">${d.f(base)}</td>
+        <td data-label="Scarto">
+          <span style="color:${col}; font-size:12px;">${sc.testo}</span>
+          <div style="height:4px; border-radius:2px; background:${col}; opacity:.5; width:${larghezza}%; margin-top:3px;"></div>
+        </td>
+      </tr>`;
+    }).join("");
+
+    schedaEl.innerHTML = `<div class="panel">
+      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; margin-bottom:6px;">
+        <strong style="font-size:17px;">${g.nome}</strong>
+        <span style="font-size:12px; color:var(--muted);">${GROUP_LABELS[g.gruppo] || "—"} · ${g.s.n} partite in archivio</span>
+      </div>
+      <div style="font-size:13px; line-height:1.6; margin-bottom:14px;">${frase(g, rif)}</div>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">
+        Confronto con ${rif.etichetta}.${g.s.n < 15 ? ` Campione ridotto: con ${g.s.n} partite qualche scarto può essere casuale.` : ""}
+      </div>
+      <div class="table-wrap">
+        <table class="responsive-table">
+          <thead><tr><th>Indicatore</th><th>${rif.etichettaAttuale}</th><th>Riferimento</th><th>Scarto</th></tr></thead>
+          <tbody>${righe}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  disegna();
+})();
+
 // ---- Serate ----
 // Le serate arrivano gia' raggruppate da Python (stessa regola di serata.py); qui si
 // ricostruisce il resto dai dati che la pagina ha comunque, senza duplicare niente.
@@ -3398,7 +3732,8 @@ const PAGE_MAP = {
   overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
   rosa: "rosa", premi: "premi", crescita: "crescita", classifiche: "classifiche",
   forza: "forza", formazione: "formazione", statsdivertenti: "statsdivertenti", h2h: "h2h",
-  riepilogo: "riepilogo", avversari: "avversari", serate: "serate", partite: "partite",
+  riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
+  osservatore: "osservatore", serate: "serate", partite: "partite",
 };
 const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
@@ -3412,6 +3747,8 @@ const PAGES = [
   { key: "h2h", icon: "⚔️", label: "Testa a testa" },
   { key: "riepilogo", icon: "🎁", label: "Riepilogo" },
   { key: "avversari", icon: "🆚", label: "Avversari" },
+  { key: "diagnosi", icon: "🔍", label: "Vittorie e sconfitte" },
+  { key: "osservatore", icon: "🗒️", label: "Scheda osservatore" },
   { key: "serate", icon: "🌙", label: "Serate" },
   { key: "partite", icon: "📅", label: "Partite" },
 ].filter(p => Object.values(PAGE_MAP).includes(p.key));
