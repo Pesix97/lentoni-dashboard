@@ -3146,29 +3146,39 @@ function computeOutfieldLineup(){
       </div>`;
   }
 
-  let scelta = serate[0].chiave;
-  function disegna(){
-    // Una serata e' un blocco di partite di seguito, senza riguardo all'ora del giorno:
-    // se si gioca il pomeriggio e poi la sera, sono due sessioni con la stessa data. Nei
-    // giorni con piu' di una sessione il bottone porta anche l'ora di inizio, altrimenti
-    // due bottoni identici sceglierebbero cose diverse.
-    const perGiorno = {};
-    serate.forEach(s => { perGiorno[s.giorno] = (perGiorno[s.giorno] || 0) + 1; });
-    filtriEl.innerHTML = serate.map(s => {
-      const etichetta = perGiorno[s.giorno] > 1 ? `${s.giorno} ${s.inizio}` : s.giorno;
-      return `<span class="filter-btn ${s.chiave === scelta ? "active" : ""}" data-k="${s.chiave}">${etichetta}
-       <span style="opacity:.65;">${s.matchIds.length}</span></span>`;
-    }).join("");
-    filtriEl.querySelectorAll(".filter-btn").forEach(b =>
-      b.addEventListener("click", () => { scelta = b.dataset.k; disegna(); }));
-    const i = Math.max(0, serate.findIndex(x => x.chiave === scelta));
-    const s = serate[i];
-    // L'elenco e' dal piu' recente: la serata successiva nel tempo e' quella prima.
-    const prossima = serate[i - 1];
-    const limite = prossima
+  // Un bottone per GIORNO, non per sessione. Capita di giocare il pomeriggio e poi la
+  // sera - il 18/08/2026 e' successo - e quelle restano due serate distinte nei conti,
+  // ma due bottoni con la stessa data addosso sono solo fastidiosi da guardare. Il
+  // giorno con due sessioni mostra semplicemente due schede, che si distinguono da sole
+  // perche' ognuna dichiara i propri orari.
+  const giorni = [];
+  serate.forEach(s => {
+    const g = giorni.find(x => x.giorno === s.giorno);
+    if(g) g.sessioni.push(s);
+    else giorni.push({ giorno: s.giorno, sessioni: [s] });
+  });
+
+  const limiteDi = s => {
+    const i = serate.findIndex(x => x.chiave === s.chiave);
+    const prossima = serate[i - 1];   // l'elenco e' dal piu' recente: la successiva e' prima
+    return prossima
       ? new Date(matchById.get(prossima.matchIds[0]).played_at).getTime()
       : Infinity;
-    detEl.innerHTML = scheda(s, limite);
+  };
+
+  let scelto = giorni[0].giorno;
+  function disegna(){
+    filtriEl.innerHTML = giorni.map(g => {
+      const partite = g.sessioni.reduce((n, s) => n + s.matchIds.length, 0);
+      const doppia = g.sessioni.length > 1
+        ? `<span style="opacity:.65;"> · ${g.sessioni.length} sessioni</span>` : "";
+      return `<span class="filter-btn ${g.giorno === scelto ? "active" : ""}" data-g="${g.giorno}">${g.giorno}
+        <span style="opacity:.65;">${partite}</span>${doppia}</span>`;
+    }).join("");
+    filtriEl.querySelectorAll(".filter-btn").forEach(b =>
+      b.addEventListener("click", () => { scelto = b.dataset.g; disegna(); }));
+    const g = giorni.find(x => x.giorno === scelto) || giorni[0];
+    detEl.innerHTML = g.sessioni.map(s => scheda(s, limiteDi(s))).join("");
   }
   disegna();
 })();
