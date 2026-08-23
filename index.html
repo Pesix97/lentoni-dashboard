@@ -2740,7 +2740,11 @@ function computeOutfieldLineup(){
     (DATA.matchPlayers[m.match_id] || []).forEach(p => {
       if(!inRosa.has(p.player_name)) return;
       const a = raccolta[p.player_name] = raccolta[p.player_name] || { nome: p.player_name, righe: [] };
-      a.righe.push({ ...p, ts: m.ts,
+      // match_id va aggiunto a mano: le righe di matchPlayers sono indicizzate per partita
+      // e non se lo portano dentro. Senza, ogni voce che deve risalire alla partita -
+      // avversario, esito, posizione nella serata - falliva restituendo nulla, e la scheda
+      // si limitava a mostrare meno cose invece di segnalare l'errore.
+      a.righe.push({ ...p, ts: m.ts, match_id: m.match_id,
         gruppo: ROLE_EXCEPTIONS[m.match_id + "|" + p.player_name] || groupForMatch(p.player_name, p.pos) });
     });
   });
@@ -2840,7 +2844,8 @@ function computeOutfieldLineup(){
   });
 
   function scartoDi(d, suo, base){
-    return d.perc ? { valore: suo - base, testo: `${suo - base > 0 ? "+" : ""}${Math.round(suo - base)} punti` }
+    const p = Math.round(suo - base);
+    return d.perc ? { valore: suo - base, testo: `${p > 0 ? "+" : ""}${p} ${Math.abs(p) === 1 ? "punto" : "punti"}` }
                   : { valore: suo - base, testo: base ? `${suo > base ? "+" : ""}${Math.round(100 * (suo - base) / Math.abs(base))}%` : "—" };
   }
 
@@ -2860,6 +2865,141 @@ function computeOutfieldLineup(){
     if(deboli.length) parti.push(`resta indietro su ${dice(deboli)}`);
     if(parti.length === 0) return `Nessuno scarto rilevante rispetto a ${rif.etichetta}: un profilo in linea.`;
     return parti.join(", ") + ".";
+  }
+
+  // ---- Le domande che gli indicatori da soli non rispondono ----
+  // Ognuna esce solo se il campione la regge: meglio una scheda con tre voci vere che
+  // con otto, di cui cinque calcolate su due partite. La soglia e' scritta accanto a
+  // ciascuna, e i numeri piccoli restano visibili ma dichiarati.
+  const partitaDi = {};
+  (DATA.matches || []).forEach(m => partitaDi[m.match_id] = m);
+  const posizioneInSerata = {};
+  (DATA.serate || []).forEach(s => s.matchIds.forEach((id, i) => posizioneInSerata[id] = i + 1));
+  const forzaAvversario = id => (DATA.avversari || {})[String(id)]?.skill_rating || 0;
+  const nostroLivello = (DATA.latest || {}).skill_rating || 1800;
+
+  function media(v){ return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }
+
+  function curiosita(g){
+    const righe = g.righe;
+    const voci = [];
+    const scheda = (titolo, testo, nota) => voci.push(
+      `<div style="padding:10px 0; border-bottom:1px solid var(--panel-2,rgba(255,255,255,.06));">
+         <div style="font-size:12px; color:var(--muted); margin-bottom:2px;">${titolo}</div>
+         <div style="font-size:13.5px; line-height:1.5;">${testo}</div>
+         ${nota ? `<div style="font-size:11px; color:var(--muted); margin-top:2px;">${nota}</div>` : ""}
+       </div>`);
+    const seg = (n) => n === 1 ? "1 partita" : `${n} partite`;
+
+    // Dove rende di piu'. Serve almeno un reparto alternativo con 3 presenze.
+    const perReparto = {};
+    righe.forEach(r => { if(r.gruppo) (perReparto[r.gruppo] = perReparto[r.gruppo] || []).push(r.rating); });
+    const reparti = Object.entries(perReparto).filter(([, v]) => v.length >= 3)
+      .map(([k, v]) => ({ k, n: v.length, m: media(v) })).sort((a, b) => b.m - a.m);
+    if(reparti.length >= 2){
+      const alto = reparti[0], basso = reparti[reparti.length - 1];
+      scheda("Dove rende di più",
+        `<strong>${GROUP_LABELS[alto.k] || alto.k}</strong> ${alto.m.toFixed(2)} di media, contro
+         ${(GROUP_LABELS[basso.k] || basso.k).toLowerCase()} ${basso.m.toFixed(2)}. Scarto di
+         <strong>${(alto.m - basso.m).toFixed(2)}</strong>.`,
+        reparti.map(r => `${(GROUP_LABELS[r.k] || r.k).toLowerCase()} ${seg(r.n)}`).join(" · ") +
+        (alto.n < 5 ? " — campione piccolo sul reparto migliore" : ""));
+    }
+
+    // Se cresce quando la squadra vince o se la tiene su quando perde.
+    const inV = righe.filter(r => partitaDi[r.match_id]?.win).map(r => r.rating);
+    const inS = righe.filter(r => partitaDi[r.match_id]?.loss).map(r => r.rating);
+    if(inV.length >= 5 && inS.length >= 5){
+      const d = media(inV) - media(inS);
+      scheda("Vittorie e sconfitte",
+        d > 0.8 ? `Segue molto l'andamento della squadra: <strong>${media(inV).toFixed(2)}</strong> nelle vittorie
+                   contro <strong>${media(inS).toFixed(2)}</strong> nelle sconfitte, ${d.toFixed(2)} di scarto.`
+        : d < 0.25 ? `Tiene lo stesso rendimento comunque vada: <strong>${media(inV).toFixed(2)}</strong> nelle
+                      vittorie, <strong>${media(inS).toFixed(2)}</strong> nelle sconfitte.`
+        : `<strong>${media(inV).toFixed(2)}</strong> nelle vittorie, <strong>${media(inS).toFixed(2)}</strong>
+           nelle sconfitte: ${d.toFixed(2)} di scarto.`,
+        `${seg(inV.length)} vinte, ${seg(inS.length)} perse`);
+    }
+
+    // Contro chi rende. La soglia e' il livello del club, non un numero fisso.
+    const forti = righe.filter(r => forzaAvversario(partitaDi[r.match_id]?.opponent_club_id) >= nostroLivello).map(r => r.rating);
+    const deboli = righe.filter(r => { const f = forzaAvversario(partitaDi[r.match_id]?.opponent_club_id); return f > 0 && f < nostroLivello; }).map(r => r.rating);
+    if(forti.length >= 5 && deboli.length >= 5){
+      const d = media(forti) - media(deboli);
+      scheda("Contro avversari più forti",
+        Math.abs(d) < 0.2
+          ? `Non cambia: <strong>${media(forti).toFixed(2)}</strong> contro chi è più forte del club,
+             <strong>${media(deboli).toFixed(2)}</strong> contro chi è più debole.`
+          : d > 0
+            ? `Sale nelle partite difficili: <strong>${media(forti).toFixed(2)}</strong> contro i più forti,
+               <strong>${media(deboli).toFixed(2)}</strong> contro i più deboli.`
+            : `Rende meno quando l'avversario è forte: <strong>${media(forti).toFixed(2)}</strong> contro
+               <strong>${media(deboli).toFixed(2)}</strong>, ${Math.abs(d).toFixed(2)} in meno.`,
+        `${seg(forti.length)} contro squadre sopra ${nostroLivello} di skill rating, ${seg(deboli.length)} sotto`);
+    }
+
+    // Tiene la serata o cala.
+    const inizio = righe.filter(r => (posizioneInSerata[r.match_id] || 9) <= 2).map(r => r.rating);
+    const coda = righe.filter(r => (posizioneInSerata[r.match_id] || 0) >= 5).map(r => r.rating);
+    if(inizio.length >= 5 && coda.length >= 5){
+      const d = media(coda) - media(inizio);
+      scheda("Come regge la serata",
+        Math.abs(d) < 0.15
+          ? `Uguale dall'inizio alla fine: <strong>${media(inizio).toFixed(2)}</strong> nelle prime due partite,
+             <strong>${media(coda).toFixed(2)}</strong> dalla quinta in poi.`
+          : `<strong>${media(inizio).toFixed(2)}</strong> nelle prime due partite della serata,
+             <strong>${media(coda).toFixed(2)}</strong> dalla quinta in poi: ${d > 0 ? "cresce" : "cala"} di
+             ${Math.abs(d).toFixed(2)}.`,
+        `${seg(inizio.length)} a inizio serata, ${seg(coda.length)} in coda`);
+    }
+
+    // Quanto la squadra dipende da lui. Serve un numero decente di partite senza.
+    const suoi = new Set(righe.map(r => r.match_id));
+    const con = (DATA.matches || []).filter(m => suoi.has(m.match_id));
+    const senza = (DATA.matches || []).filter(m => !suoi.has(m.match_id));
+    if(senza.length >= 8 && con.length >= 8){
+      const pc = 100 * con.filter(m => m.win).length / con.length;
+      const ps = 100 * senza.filter(m => m.win).length / senza.length;
+      const d = pc - ps;
+      scheda("Con lui e senza di lui",
+        `La squadra vince il <strong>${Math.round(pc)}%</strong> delle partite quando c'è e il
+         <strong>${Math.round(ps)}%</strong> quando non c'è: ${d > 0 ? "+" : ""}${Math.round(d)} punti.`,
+        `${seg(con.length)} con lui, ${seg(senza.length)} senza` +
+        (senza.length < 12 ? " — poche assenze, il confronto è indicativo" : ""));
+    }
+
+    // Quanta parte dei gol passa da lui.
+    const contributi = righe.reduce((t, r) => t + (r.goals || 0) + (r.assists || 0), 0);
+    const golSquadra = [...suoi].reduce((t, id) => t + (partitaDi[id]?.goals_for || 0), 0);
+    if(golSquadra > 0){
+      scheda("Quota nei gol",
+        `Partecipa al <strong>${Math.round(100 * contributi / golSquadra)}%</strong> dei gol segnati dal club
+         nelle partite che gioca: ${contributi} tra gol e assist su ${golSquadra}.`);
+    }
+
+    // Estremi: due partite concrete valgono piu' di una media.
+    const migliore = righe.reduce((a, b) => (b.rating > a.rating ? b : a));
+    const peggiore = righe.reduce((a, b) => (b.rating < a.rating ? b : a));
+    const nome = id => partitaDi[id]?.opponent_name || "—";
+    scheda("I due estremi",
+      `Meglio: <strong>${migliore.rating.toFixed(1)}</strong> contro ${nome(migliore.match_id)}
+       (${migliore.goals || 0} gol, ${migliore.assists || 0} assist). Peggio:
+       <strong>${peggiore.rating.toFixed(1)}</strong> contro ${nome(peggiore.match_id)}.`);
+
+    // Forma: le ultime cinque contro la sua media.
+    if(righe.length >= 12){
+      const ultime = righe.slice(-5).map(r => r.rating);
+      const d = media(ultime) - g.s.voto;
+      scheda("Come sta adesso",
+        `Ultime cinque partite: <strong>${media(ultime).toFixed(2)}</strong> di media, ${d >= 0 ? "+" : ""}${d.toFixed(2)}
+         rispetto alla sua media di sempre (${g.s.voto.toFixed(2)}).`);
+    }
+
+    if(voci.length === 0) return "";
+    return `<div class="panel" style="margin-bottom:12px;">
+      <h3 style="margin:0 0 4px; font-size:15px;">Cosa dicono i dati su ${g.nome}</h3>
+      ${voci.join("")}
+    </div>`;
   }
 
   function disegna(){
@@ -2905,7 +3045,7 @@ function computeOutfieldLineup(){
       </tr>`;
     }).join("");
 
-    schedaEl.innerHTML = `<div class="panel">
+    schedaEl.innerHTML = `${curiosita(g)}<div class="panel">
       <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; margin-bottom:6px;">
         <strong style="font-size:17px;">${g.nome}</strong>
         <span style="font-size:12px; color:var(--muted);">${GROUP_LABELS[g.gruppo] || "—"} · ${g.s.n} partite in archivio</span>
