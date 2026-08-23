@@ -13,7 +13,9 @@ nessun computer.
 ## Come funziona
 
 Il workflow `.github/workflows/aggiorna-dashboard.yml` esegue `giro.sh` **sette volte a
-distanza di venti minuti**, coprendo circa due ore per ogni avvio. Ogni giro:
+distanza di venti minuti** quando parte dalla pianificazione, coprendo circa due ore per
+ogni avvio. Dopo un push al codice ne esegue invece **uno solo**, perché lì serve solo
+verificare che la modifica produca una pagina valida. Ogni giro:
 
 1. legge da `club.json` quale club interrogare;
 2. scarica i dati da proclubstracker.com;
@@ -57,6 +59,31 @@ Due fatti misurati il 21/08/2026 rendono la cadenza oraria necessaria:
   minuti di ritardo e una è stata saltata del tutto: comportamento noto per i repository
   pubblici.
 
+### Perché due gruppi di concorrenza
+
+Il ciclo pianificato e la verifica dopo un push vivono in **gruppi separati** e non si
+cancellano a vicenda. Con un gruppo solo succedeva questo, misurato il 23/08/2026: su 28
+push, **dodici sono stati seguiti da oltre venticinque minuti senza un giro automatico**.
+Ogni pubblicazione di una modifica uccideva il ciclo che stava coprendo la notte, e la
+finestra rimanente andava persa. Non è mai costato una partita solo perché non si stava
+giocando in quei momenti.
+
+Dentro il proprio gruppo `cancel-in-progress` resta attivo, così due cicli notturni non si
+sovrappongono mai. Due esecuzioni contemporanee sullo stesso database non sono un problema:
+`giro.sh` gestisce già il push respinto rifacendo un rebase.
+
+### Perché lo storico si assottiglia
+
+Ogni istantanea dei giocatori pesa circa 6 KB dentro `index.html`, e ne viene salvata una a
+ogni cambiamento: in una notte di gioco sono sette o otto. Misurato il 23/08/2026 questo
+storico era il **31% della pagina**, e a quel ritmo avrebbe superato i 6 MB in un anno.
+
+`generate_dashboard.py` pubblica quindi tutte le istantanee degli ultimi 7 giorni, una al
+giorno per i due mesi precedenti e una a settimana per il resto. Su una simulazione di un
+anno: **1460 istantanee diventano 131, da 9 MB a 0,8 MB**. Il primo e l'ultimo punto non si
+toccano mai, così le curve non cambiano né inizio né fine — e il database conserva tutto,
+si assottiglia solo ciò che finisce nella pagina.
+
 Girare spesso non costa nulla perché senza dati nuovi il database non cambia e non viene
 prodotto alcun commit. Il ciclo interno serve proprio a questo: basta **un** trigger
 riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fila.
@@ -78,8 +105,8 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
-| `test_pipeline.py` | Tredici test: ingest, duplicati, isolamento tra titoli, qualità dei dati. |
-| `test_ruoli.js` | Quindici controlli sulla logica dei ruoli, estratta dalla pagina generata. |
+| `test_pipeline.py` | 26 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello. |
+| `test_ruoli.js` | 34 controlli su ruoli, formazione e scheda osservatore, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Unica fonte di `platform` e `region_id`. Il resto di `raw/` non è versionato. |
 
 ---

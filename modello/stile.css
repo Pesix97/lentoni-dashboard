@@ -228,16 +228,6 @@
   .form-chip.T{background:var(--tie);}
   .form-chip-info{font-size:11px; color:var(--muted); margin-left:8px;}
 
-  .award-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px;}
-  .award-card{
-    background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px;
-    position:relative; overflow:hidden;
-  }
-  .award-card .icon{font-size:20px;}
-  .award-card .title{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-top:6px;}
-  .award-card .name{font-size:16px; font-weight:700; margin-top:2px; color:var(--gold);}
-  .award-card .stat{font-size:12px; color:var(--muted); margin-top:2px;}
-
   .trend-up{color:var(--win); font-weight:600;}
   .trend-down{color:var(--loss); font-weight:600;}
   .trend-flat{color:var(--muted);}
@@ -281,14 +271,6 @@
     max-width:540px; background:var(--panel-2);
   }
   .share-preview canvas{width:100%; height:auto; max-height:none; display:block;}
-
-  .roast-list{display:flex; flex-direction:column; gap:10px;}
-  .roast-item{
-    background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
-    padding:10px 14px; font-size:13px; display:flex; gap:10px; align-items:flex-start;
-  }
-  .roast-item .emoji{font-size:16px;}
-  .roast-item b{color:var(--accent-2);}
 
   .h2h-controls{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px;}
   .h2h-vs{font-weight:700; color:var(--muted);}
@@ -362,7 +344,7 @@
     .crest{width:34px; height:34px; font-size:13px;}
     h1{font-size:19px;}
     .grid-cards{grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px;}
-    .award-grid, .power-podium{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
+    .power-podium{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
     .wrapped-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
     input.filter{width:100%;}
     .filter-bar{gap:6px;}
@@ -402,7 +384,7 @@
   /* ---- Responsive: schermi molto piccoli (≤420px) ---- */
   @media (max-width:420px){
     .grid-cards{grid-template-columns:repeat(2,1fr);}
-    .award-grid, .power-podium, .wrapped-grid{grid-template-columns:1fr;}
+    .power-podium, .wrapped-grid{grid-template-columns:1fr;}
     .card .value{font-size:18px;}
     #sideDrawer{width:100%; max-width:100%;}
   }

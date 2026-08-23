@@ -62,6 +62,50 @@ def carica_club(script_dir=None):
         return dict(DEFAULT_CLUB)
 
 
+def assottiglia(storico, giorni_pieni=7, giorni_giornalieri=60):
+    """Riduce le istantanee vecchie senza toccare quelle recenti.
+
+    Ogni istantanea dei giocatori pesa circa 6 KB nella pagina pubblicata, e ne viene
+    salvata una a ogni cambiamento: nelle notti di gioco sono sette o otto. Misurato il
+    23/08/2026, questo storico occupava il 31% di index.html, e a tre serate a settimana
+    avrebbe portato la pagina oltre i 6 MB in un anno.
+
+    I grafici di crescita non hanno pero' bisogno del dettaglio a venti minuti di tre mesi
+    fa: quello serve solo mentre si gioca. Si tengono percio' tutte le istantanee degli
+    ultimi giorni, una al giorno per i due mesi precedenti, e una a settimana per il resto.
+    Il primo e l'ultimo punto della serie non si toccano mai, cosi' le curve non cambiano
+    ne' inizio ne' fine.
+
+    Nessun dato viene perso: il database conserva tutto, si assottiglia solo cio' che
+    finisce nella pagina.
+    """
+    if not storico:
+        return storico
+    from datetime import datetime, timedelta
+
+    def quando(v):
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00").replace("+00:00", ""))
+
+    istanti = sorted({h["fetched_at"] for h in storico})
+    if len(istanti) <= 2:
+        return storico
+    ultimo = quando(istanti[-1])
+    tenuti, visti_giorno, viste_settimana = set(), {}, {}
+    for i in istanti:
+        t = quando(i)
+        eta = (ultimo - t).days
+        if eta <= giorni_pieni:
+            tenuti.add(i)
+        elif eta <= giorni_giornalieri:
+            visti_giorno[t.strftime("%Y-%m-%d")] = i      # l'ultima del giorno vince
+        else:
+            viste_settimana[t.strftime("%G-W%V")] = i     # l'ultima della settimana vince
+    tenuti |= set(visti_giorno.values()) | set(viste_settimana.values())
+    tenuti.add(istanti[0])
+    tenuti.add(istanti[-1])
+    return [h for h in storico if h["fetched_at"] in tenuti]
+
+
 def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
                voto_sentinella=None):
     if club_id is None:
@@ -145,6 +189,7 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
     )
 
     member_history = [h for h in member_history if h["player_name"] not in esclusi]
+    member_history = assottiglia(member_history)
 
     matches = fetch_all(
         cur,

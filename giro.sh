@@ -55,12 +55,22 @@ python3 generate_dashboard.py --db lentoni.db --out index.html || { echo "  gene
 
 # Controlli minimi: meglio non pubblicare che pubblicare una pagina rotta.
 grep -q '"skill_rating": [1-9]' index.html || { echo "  dashboard senza skill rating, non pubblico"; exit 0; }
-grep -q 'id="forza"' index.html          || { echo "  sezione Indice di Forza mancante, non pubblico"; exit 0; }
-grep -q 'Reparto per reparto' index.html || { echo "  classifiche per reparto mancanti, non pubblico"; exit 0; }
-grep -q 'id="historyRange"' index.html    || { echo "  filtro periodo dello skill rating mancante, non pubblico"; exit 0; }
-grep -q 'id="serateFiltri"' index.html    || { echo "  sezione Serate mancante, non pubblico"; exit 0; }
-grep -q 'id="diagnosiTabella"' index.html || { echo "  sezione Vittorie e sconfitte mancante, non pubblico"; exit 0; }
-grep -q 'id="ossConfronto"' index.html       || { echo "  scheda osservatore mancante, non pubblico"; exit 0; }
+# Nessuna sezione deve sparire per strada. Invece di elencarle una per una - erano tre
+# su quindici, e le altre dodici sarebbero potute uscire rotte in silenzio - si confronta
+# il numero di sezioni della pagina prodotta con quelle del modello. Cosi' la guardia si
+# aggiorna da sola quando se ne aggiunge una.
+attese=$(grep -c '<section id=' modello/pagina.html)
+prodotte=$(grep -c '<section id=' index.html)
+if [ "$prodotte" -lt "$attese" ]; then
+  echo "  sezioni mancanti: $prodotte su $attese, non pubblico"; exit 0
+fi
+
+# Piu' i contenitori che devono essere riempiti dal JavaScript: una sezione presente ma
+# vuota passerebbe il conteggio qui sopra.
+for ancora in 'id="forza"' 'Reparto per reparto' 'id="historyRange"' 'id="serateFiltri"' \
+              'id="diagnosiTabella"' 'id="ossConfronto"' 'id="wrappedGrid"' 'id="pitchField"'; do
+  grep -q "$ancora" index.html || { echo "  manca $ancora nella pagina, non pubblico"; exit 0; }
+done
 
 git add index.html lentoni.db
 if git diff --staged --quiet; then

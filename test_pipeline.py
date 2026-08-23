@@ -303,6 +303,52 @@ class TestQualitaDati(BaseConArchivio):
         self.assertEqual(vuote, 0, f"{vuote} partite senza alcun giocatore registrato")
 
 
+class TestAssottigliamento(unittest.TestCase):
+    """Lo storico dei giocatori nella pagina non deve crescere senza limite.
+
+    Ogni istantanea pesa ~6 KB nella pagina e ne viene salvata una a ogni cambiamento:
+    misurato il 23/08/2026 occupava il 31% di index.html e sarebbe arrivato a 6,8 MB in
+    un anno. Si assottiglia solo cio' che viene pubblicato: il database conserva tutto.
+    """
+
+    def _serie(self, giorni, al_giorno=4):
+        from datetime import datetime, timedelta
+        fine = datetime(2026, 8, 23, 3, 0)
+        out = []
+        for g in range(giorni):
+            for k in range(al_giorno):
+                t = fine - timedelta(days=g, hours=k)
+                out.append({"fetched_at": t.isoformat(), "player_name": "tizio"})
+        return sorted(out, key=lambda h: h["fetched_at"])
+
+    def test_le_istantanee_recenti_restano_tutte(self):
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        serie = self._serie(5)
+        self.assertEqual(len(gd.assottiglia(serie)), len(serie),
+                         "gli ultimi giorni non vanno toccati")
+
+    def test_quelle_vecchie_si_riducono(self):
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        serie = self._serie(200)
+        ridotta = gd.assottiglia(serie)
+        self.assertLess(len(ridotta), len(serie) / 4, "la riduzione non ha avuto effetto")
+        # Gli estremi non si toccano: le curve devono cominciare e finire dove prima.
+        self.assertEqual(ridotta[0]["fetched_at"], serie[0]["fetched_at"])
+        self.assertEqual(ridotta[-1]["fetched_at"], serie[-1]["fetched_at"])
+
+    def test_una_serie_cortissima_resta_intatta(self):
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+
+        for n in (0, 1, 2):
+            serie = self._serie(1, al_giorno=n) if n else []
+            self.assertEqual(len(gd.assottiglia(serie)), len(serie))
+
+
 class TestModello(unittest.TestCase):
     """Il modello della pagina vive in tre file separati dal 23/08/2026."""
 

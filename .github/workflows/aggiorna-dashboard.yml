@@ -25,10 +25,18 @@ on:
       - 'club.json'
       - 'raw/club_search.json'
 
-# Un trigger nuovo sostituisce il ciclo in corso invece di accodarsi: cosi' non si
-# accumulano esecuzioni sovrapposte che scriverebbero sullo stesso database.
+# Due gruppi distinti, ed e' una correzione nata da una misura: dei 28 push fatti il
+# 23/08/2026, dodici sono stati seguiti da oltre venticinque minuti senza un giro
+# automatico. Con un gruppo solo e cancel-in-progress, ogni push che tocca il codice
+# uccideva il ciclo che stava coprendo la notte, e la finestra rimanente andava persa.
+#
+# Ora il ciclo lungo (pianificato) e la verifica breve (dopo un push) vivono in gruppi
+# separati e non si cancellano a vicenda. Restano cancel-in-progress dentro il proprio
+# gruppo, cosi' due cicli notturni non si sovrappongono mai. Due esecuzioni contemporanee
+# che scrivono sullo stesso database non sono un problema: giro.sh gestisce gia' il push
+# respinto rifacendo un rebase.
 concurrency:
-  group: aggiorna-dashboard
+  group: aggiorna-dashboard-${{ github.event_name == 'schedule' && 'ciclo' || 'verifica' }}
   cancel-in-progress: true
 
 jobs:
@@ -45,8 +53,14 @@ jobs:
           git config user.name "Lentoni Dashboard Bot"
           git config user.email "peppeblu84@gmail.com"
           chmod +x giro.sh
-          for i in $(seq 1 7); do
+          # Il ciclo lungo serve a coprire la notte quando la pianificazione di GitHub
+          # salta dei turni. Dopo un push serve invece solo verificare che la modifica
+          # produca una pagina valida: un giro solo, cosi' l'esecuzione dura un minuto
+          # e non tiene occupato nulla.
+          if [ "${{ github.event_name }}" = "schedule" ]; then GIRI=7; else GIRI=1; fi
+          echo "evento: ${{ github.event_name }} -> $GIRI giri"
+          for i in $(seq 1 $GIRI); do
             ./giro.sh
-            if [ "$i" -lt 7 ]; then sleep 1200; fi
+            if [ "$i" -lt "$GIRI" ]; then sleep 1200; fi
           done
-          echo "ciclo completato: 7 controlli in circa 2 ore"
+          echo "completato: $GIRI giri"
