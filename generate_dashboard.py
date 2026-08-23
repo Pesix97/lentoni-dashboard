@@ -1046,9 +1046,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       è il contrario. Sono due mestieri, e una squadra ha bisogno di entrambi.
     </div>
   </div>
-  <div class="filter-bar" id="ossMetro"></div>
   <div class="filter-bar" id="ossGiocatori"></div>
-  <div id="ossScheda"></div>
+  <div id="ossCuriosita"></div>
+  <h3 style="margin:26px 0 4px; font-size:16px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:22px;">
+    Confronto <span class="h2-sub">— scegli con chi</span>
+  </h3>
+  <div class="filter-bar" id="ossMetro"></div>
+  <div id="ossConfronto"></div>
 </section>
 
 <section id="serate">
@@ -3013,7 +3017,8 @@ function computeOutfieldLineup(){
 (function renderOsservatore(){
   const metroEl = document.getElementById("ossMetro");
   const listaEl = document.getElementById("ossGiocatori");
-  const schedaEl = document.getElementById("ossScheda");
+  const curiositaEl = document.getElementById("ossCuriosita");
+  const confrontoEl = document.getElementById("ossConfronto");
   if(!metroEl) return;
 
   const inRosa = new Set((DATA.roster || []).map(r => r.player_name));
@@ -3086,7 +3091,7 @@ function computeOutfieldLineup(){
     .sort((a, b) => b.s.n - a.s.n);
 
   if(giocatori.length === 0){
-    schedaEl.innerHTML = `<div class="empty">Servono almeno ${MIN_RIGHE} partite archiviate per giocatore.</div>`;
+    curiositaEl.innerHTML = `<div class="empty">Servono almeno ${MIN_RIGHE} partite archiviate per giocatore.</div>`;
     metroEl.remove(); listaEl.remove();
     return;
   }
@@ -3300,8 +3305,12 @@ function computeOutfieldLineup(){
     const g = giocatori.find(x => x.nome === scelto) || giocatori[0];
     const rif = riferimento(g);
 
+    // Le curiosita' non dipendono dal metro scelto: parlano del giocatore e basta. Stanno
+    // percio' sopra, e i tre metri di confronto sotto, accanto alla tabella che governano.
+    curiositaEl.innerHTML = curiosita(g);
+
     if(!rif){
-      schedaEl.innerHTML = `<div class="panel"><div class="empty">
+      confrontoEl.innerHTML = `<div class="panel"><div class="empty">
         ${metro === "tempo"
           ? `Servono almeno ${MIN_RIGHE * 2} partite archiviate per confrontare ${g.nome} con sé stesso: ne ha ${g.s.n}.`
           : `Nessun altro giocatore nel reparto di ${g.nome} con cui confrontarlo.`}
@@ -3328,7 +3337,7 @@ function computeOutfieldLineup(){
       </tr>`;
     }).join("");
 
-    schedaEl.innerHTML = `${curiosita(g)}<div class="panel">
+    confrontoEl.innerHTML = `<div class="panel">
       <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; margin-bottom:6px;">
         <strong style="font-size:17px;">${g.nome}</strong>
         <span style="font-size:12px; color:var(--muted);">${GROUP_LABELS[g.gruppo] || "—"} · ${g.s.n} partite in archivio</span>

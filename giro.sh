@@ -60,7 +60,7 @@ grep -q 'Reparto per reparto' index.html || { echo "  classifiche per reparto ma
 grep -q 'id="historyRange"' index.html    || { echo "  filtro periodo dello skill rating mancante, non pubblico"; exit 0; }
 grep -q 'id="serateFiltri"' index.html    || { echo "  sezione Serate mancante, non pubblico"; exit 0; }
 grep -q 'id="diagnosiTabella"' index.html || { echo "  sezione Vittorie e sconfitte mancante, non pubblico"; exit 0; }
-grep -q 'id="ossScheda"' index.html       || { echo "  scheda osservatore mancante, non pubblico"; exit 0; }
+grep -q 'id="ossConfronto"' index.html       || { echo "  scheda osservatore mancante, non pubblico"; exit 0; }
 
 git add index.html lentoni.db
 if git diff --staged --quiet; then

@@ -164,7 +164,7 @@ console.log("\nScheda osservatore");
     let senzaAvversario = 0, senzaVoci = 0;
     nomi.forEach(n => {
       scelte["n:" + n]();
-      const h = magazzino["ossScheda"].innerHTML;
+      const h = magazzino["ossCuriosita"].innerHTML;
       const voci = (h.match(/margin-bottom:2px;">/g) || []).length;
       if(voci === 0) senzaVoci++;
       // "I due estremi" nomina sempre l'avversario: se la partita non viene trovata
