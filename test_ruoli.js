@@ -128,6 +128,61 @@ for (const g of GROUP_ORDER) {
     Array.isArray(r[0].metricheIgnorate));
 }
 
+// La scheda osservatore si costruisce dentro una IIFE che parla con il DOM, quindi per
+// verificarla serve un finto documento. Vale la pena: il 23/08/2026 le righe dei giocatori
+// non portavano il match_id, e ogni voce che doveva risalire alla partita - avversario,
+// esito, posizione nella serata - non trovava niente e spariva. La scheda mostrava meno
+// cose, nessun errore da nessuna parte. Un guasto che tace e' peggio di uno che rompe.
+console.log("\nScheda osservatore");
+{
+  const magazzino = {};
+  const scelte = {};
+  const finto = (id) => magazzino[id] = magazzino[id] || {
+    id, innerHTML: "", remove(){},
+    querySelectorAll(){
+      const h = String(this.innerHTML);
+      const attr = this.id === "ossMetro" ? "m" : "n";
+      return [...h.matchAll(new RegExp(`data-${attr}="([^"]+)"`, "g"))].map(x => ({
+        dataset: { [attr]: x[1] },
+        addEventListener: (_e, f) => { scelte[attr + ":" + x[1]] = f; },
+      }));
+    },
+  };
+  global.document = { getElementById: finto, querySelector: () => ({ innerHTML: "" }) };
+
+  try {
+    new Function(
+      ritaglia("const DATA = {", "// ---- Ruolo effettivo") + "\n" +
+      ritaglia("const ROLE_COUNTS_BY_NAME", "function fmtDate") + "\n" +
+      "function fmtDate(x){ return String(x); }\n" +
+      ritaglia("// ---- Vittorie e sconfitte", "// ---- Serate ----")
+    )();
+
+    const nomi = Object.keys(scelte).filter(k => k.startsWith("n:")).map(k => k.slice(2));
+    verifica("la scheda si costruisce per almeno un giocatore", nomi.length > 0);
+
+    let senzaAvversario = 0, senzaVoci = 0;
+    nomi.forEach(n => {
+      scelte["n:" + n]();
+      const h = magazzino["ossScheda"].innerHTML;
+      const voci = (h.match(/margin-bottom:2px;">/g) || []).length;
+      if(voci === 0) senzaVoci++;
+      // "I due estremi" nomina sempre l'avversario: se la partita non viene trovata
+      // compare un trattino, ed e' il sintomo esatto del bug del match_id.
+      if(/Meglio: <strong>[^<]+<\/strong> contro —/.test(h)) senzaAvversario++;
+    });
+    verifica("ogni scheda produce almeno una voce", senzaVoci === 0, `${senzaVoci} vuote`);
+    verifica("le voci risalgono sempre alla partita giusta",
+      senzaAvversario === 0, `${senzaAvversario} schede senza nome dell'avversario`);
+
+    // La diagnosi di squadra deve dire qualcosa, non restare una tabella muta.
+    verifica("la lettura di vittorie e sconfitte viene scritta",
+      /Nelle sconfitte|Cambiano invece/.test(magazzino["diagnosiLettura"].innerHTML));
+  } catch (e) {
+    verifica("la scheda osservatore si esegue senza eccezioni", false, e.message);
+  }
+}
+
 console.log(falliti === 0
   ? "\nTutti i controlli superati.\n"
   : `\n${falliti} controlli falliti.\n`);
