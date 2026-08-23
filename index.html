@@ -529,14 +529,6 @@
   </div>
 </section>
 
-<section id="premi">
-  <h2>Premi &amp; record della rosa <span class="h2-sub">— scegli quali mostrare · solo giocatori con almeno 30 partite</span></h2>
-  <div class="panel" style="margin-bottom:12px;">
-    <div class="filter-bar" id="awardFilters"></div>
-  </div>
-  <div class="award-grid" id="awardGrid"></div>
-</section>
-
 <section id="crescita">
   <h2>Crescita nel tempo <span class="h2-sub">— i totali di carriera a ogni aggiornamento: dati sempre completi</span></h2>
   <div class="panel">
@@ -688,13 +680,6 @@
         <tbody></tbody>
       </table>
     </div>
-  </div>
-</section>
-
-<section id="statsdivertenti">
-  <h2>Stats divertenti <span class="h2-sub">— almeno una per ogni giocatore, generata dalle statistiche reali, con affetto</span></h2>
-  <div class="panel">
-    <div class="roast-list" id="roastList"></div>
   </div>
 </section>
 
@@ -1492,58 +1477,10 @@ function fmtStatValue(def, v){
   return Math.round(v * 100) / 100;
 }
 
-// ---- Awards & records (selezionabili) ----
-const DEFAULT_AWARD_KEYS = ["goals", "assists", "rating_ave", "games_played", "red_cards", "man_of_the_match", "pass_success_rate", "tackle_success_rate", "contribution_pg"];
-let selectedAwardKeys = new Set(DEFAULT_AWARD_KEYS);
-
-function renderAwardFilters(){
-  const el = document.getElementById("awardFilters");
-  el.innerHTML = STAT_DEFS.map(def => `<span class="filter-btn" data-key="${def.key}">${def.icon} ${def.label}</span>`).join("");
-  el.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.classList.toggle("active", selectedAwardKeys.has(btn.dataset.key));
-    btn.addEventListener("click", () => {
-      const key = btn.dataset.key;
-      if(selectedAwardKeys.has(key)) selectedAwardKeys.delete(key);
-      else selectedAwardKeys.add(key);
-      btn.classList.toggle("active");
-      renderAwards();
-    });
-  });
-}
-
-function renderAwards(){
-  const el = document.getElementById("awardGrid");
-  const roster = DATA.roster || [];
-  if(roster.length === 0){
-    el.innerHTML = `<div class="empty">Nessun giocatore con almeno ${LEADERBOARD_MIN_GAMES} partite ancora.</div>`;
-    return;
-  }
-  if(selectedAwardKeys.size === 0){
-    el.innerHTML = '<div class="empty">Nessun premio selezionato — scegline almeno uno qui sopra.</div>';
-    return;
-  }
-  const cards = [];
-  STAT_DEFS.filter(def => selectedAwardKeys.has(def.key)).forEach(def => {
-    const winner = roster.reduce((best, r) => {
-      const v = statValue(def, r);
-      const bv = best ? statValue(def, best) : -Infinity;
-      return v > bv ? r : best;
-    }, null);
-    if(!winner) return;
-    const value = statValue(def, winner);
-    cards.push(`
-      <div class="award-card">
-        <div class="icon">${def.icon}</div>
-        <div class="title">${def.awardTitle}</div>
-        <div class="name">${winner.player_name}</div>
-        <div class="stat">${fmtStatValue(def, value)} ${def.unit} · ${winner.games_played} partite</div>
-      </div>
-    `);
-  });
-  el.innerHTML = cards.join("") || '<div class="empty">Nessun dato sufficiente per i premi selezionati.</div>';
-}
-renderAwardFilters();
-renderAwards();
+// I premi della rosa e le stats divertenti sono stati rimossi il 23/08/2026: erano
+// intrattenimento, e il progetto ha preso la direzione opposta - descrivere come si
+// gioca invece di premiare chi sta davanti. Le sezioni analitiche che le sostituiscono
+// sono "Vittorie e sconfitte" e "Scheda osservatore".
 
 // ---- Novita: differenza tra gli ultimi due snapshot ----
 // Ogni run del task salva uno snapshot dei totali di carriera. La differenza
@@ -2477,84 +2414,6 @@ function computeOutfieldLineup(){
   `).join("");
 })();
 
-// ---- Stats divertenti: almeno una per ogni giocatore ----
-// Per ciascun giocatore si calcola quale statistica lo rende più "particolare"
-// rispetto alla media della rosa (deviazione standard più alta in valore assoluto),
-// e si genera una frase in tono scherzoso su quella statistica. Così ogni membro
-// della rosa riceve almeno una battuta, basata su un dato reale e non a caso.
-(function renderFunStats(){
-  const el = document.getElementById("roastList");
-  const roster = DATA.roster || [];
-  if(roster.length === 0){
-    el.innerHTML = `<div class="empty">Nessun giocatore con almeno ${LEADERBOARD_MIN_GAMES} partite ancora.</div>`;
-    return;
-  }
-
-  // Metriche candidate: compute() estrae il valore per un giocatore.
-  // direction "high" = viene commentato solo se sopra media, "low" = solo se sotto media, "both" = in entrambi i casi.
-  const METRICS = [
-    { key: "rating_ave", direction: "both", compute: r => r.rating_ave,
-      high: (r,v) => [`👑`, `<b>${r.player_name}</b> vola con una media di ${v.toFixed(2)}, tra le più alte della rosa. Gli altri dovrebbero chiedere lezioni private.`],
-      low:  (r,v) => [`📉`, `<b>${r.player_name}</b> gioca con una media di ${v.toFixed(2)}, sotto la media squadra. Magari la prossima volta passa la palla prima.`] },
-    { key: "goals_pg", direction: "both", compute: r => r.games_played ? r.goals / r.games_played : 0,
-      high: (r,v) => [`⚽`, `<b>${r.player_name}</b> macina gol a raffica: ${v.toFixed(2)} a partita. Un vizio incurabile.`],
-      low:  (r,v) => [`🙈`, `<b>${r.player_name}</b> con ${r.goals} gol in ${r.games_played} partite: il gol per lui resta un concetto astratto.`] },
-    { key: "assists_pg", direction: "both", compute: r => r.games_played ? r.assists / r.games_played : 0,
-      high: (r,v) => [`🎯`, `<b>${r.player_name}</b> è un assist-man seriale: ${v.toFixed(2)} a partita. Generosità o paura di tirare?`],
-      low:  (r,v) => [`🧍`, `<b>${r.player_name}</b>: ${r.assists} assist in ${r.games_played} partite. Il pallone esiste anche per i compagni.`] },
-    { key: "pass_success_rate", direction: "both", compute: r => r.pass_success_rate,
-      high: (r,v) => [`📡`, `<b>${r.player_name}</b> è chirurgico nei passaggi: ${v}% di precisione. GPS del pallone perfettamente calibrato.`],
-      low:  (r,v) => [`🎲`, `<b>${r.player_name}</b> passa il pallone giusto col ${v}% di successo. Un po' a casaccio, diciamocelo.`] },
-    { key: "tackle_success_rate", direction: "both", compute: r => r.tackle_success_rate,
-      high: (r,v) => [`🛡️`, `<b>${r.player_name}</b> è un muro in difesa: ${v}% di contrasti vinti. Passare da lì è vietato.`],
-      low:  (r,v) => [`🚧`, `<b>${r.player_name}</b> vince solo il ${v}% dei contrasti. I contrasti li perde più che vincerli.`] },
-    { key: "shot_success_rate", direction: "both", compute: r => r.shot_success_rate,
-      high: (r,v) => [`🎯`, `<b>${r.player_name}</b> è un cecchino sotto porta: ${v}% di precisione al tiro.`],
-      low:  (r,v) => [`💨`, `<b>${r.player_name}</b> tira in porta col ${v}% di precisione. Le tribune ringraziano per i palloni regalati.`] },
-    { key: "red_cards_pg", direction: "high", compute: r => r.games_played ? r.red_cards / r.games_played : 0,
-      high: (r,v) => [`🟥`, `<b>${r.player_name}</b> ha collezionato ${r.red_cards} cartellini rossi. L'arbitro ormai lo saluta per nome.`] },
-    { key: "motm_rate", direction: "both", compute: r => r.games_played ? r.man_of_the_match / r.games_played : 0,
-      high: (r,v) => [`⭐`, `<b>${r.player_name}</b> è MVP seriale: ${r.man_of_the_match} MOTM in ${r.games_played} partite. Un abbonamento al premio.`],
-      low:  (r,v) => [`🎭`, `<b>${r.player_name}</b>: ${r.man_of_the_match} MOTM in ${r.games_played} partite. Il migliore in campo lo lascia sempre agli altri.`] },
-    { key: "win_rate", direction: "both", compute: r => r.win_rate,
-      high: (r,v) => [`🍀`, `<b>${r.player_name}</b> porta fortuna: ${v}% di vittorie con lui in campo.`],
-      low:  (r,v) => [`⛈️`, `<b>${r.player_name}</b> vince solo il ${v}% delle partite giocate. Jella o coincidenza?`] },
-    { key: "games_played", direction: "high", compute: r => r.games_played,
-      high: (r,v) => [`🏋️`, `<b>${r.player_name}</b> è un habitué: ${v} partite giocate, più di chiunque altro. La maglia gli sta cucita addosso.`] },
-  ];
-
-  function mean(arr){ return arr.reduce((s,v)=>s+v,0) / arr.length; }
-  function std(arr, m){ return Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0) / arr.length) || 0; }
-
-  const stats = METRICS.map(metric => {
-    const values = roster.map(metric.compute);
-    const m = mean(values);
-    const s = std(values, m);
-    return { metric, values, mean: m, std: s };
-  });
-
-  const funStats = roster.map((r, i) => {
-    let best = null;
-    stats.forEach(({metric, values, mean: m, std: s}) => {
-      const v = values[i];
-      const z = s > 0 ? (v - m) / s : 0;
-      let scoreZ = null, dir = null;
-      if((metric.direction === "high" || metric.direction === "both") && z > 0){ scoreZ = z; dir = "high"; }
-      if(metric.direction === "both" && z < 0 && -z > (scoreZ ?? -Infinity)){ scoreZ = -z; dir = "low"; }
-      if(scoreZ !== null && (!best || scoreZ > best.scoreZ)){
-        best = { metric, dir, v, scoreZ };
-      }
-    });
-    if(!best){
-      return [`⚖️`, `<b>${r.player_name}</b> gioca senza infamia e senza lode: nella media della squadra in tutto.`];
-    }
-    return best.dir === "high" ? best.metric.high(r, best.v) : best.metric.low(r, best.v);
-  });
-
-  el.innerHTML = funStats.map(([emoji, text]) => `<div class="roast-item"><span class="emoji">${emoji}</span><span>${text}</span></div>`).join("");
-})();
-
-// ---- Head to head tra giocatori della rosa ----
 (function renderH2H(){
   const roster = [...(DATA.roster || [])].sort((a,b)=> a.player_name.localeCompare(b.player_name));
   const selA = document.getElementById("h2hA");
@@ -3447,20 +3306,18 @@ document.addEventListener("keydown", (e) => {
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
   overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
-  rosa: "rosa", premi: "premi", crescita: "crescita", classifiche: "classifiche",
-  forza: "forza", formazione: "formazione", statsdivertenti: "statsdivertenti", h2h: "h2h",
+  rosa: "rosa", crescita: "crescita", classifiche: "classifiche",
+  forza: "forza", formazione: "formazione", h2h: "h2h",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
   osservatore: "osservatore", serate: "serate", partite: "partite",
 };
 const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
   { key: "rosa", icon: "🧑‍🤝‍🧑", label: "Rosa" },
-  { key: "premi", icon: "🏆", label: "Premi" },
   { key: "crescita", icon: "📈", label: "Crescita" },
   { key: "classifiche", icon: "📋", label: "Classifiche" },
   { key: "forza", icon: "💪", label: "Indice di Forza" },
   { key: "formazione", icon: "⚽", label: "Formazione" },
-  { key: "statsdivertenti", icon: "🎉", label: "Stats divertenti" },
   { key: "h2h", icon: "⚔️", label: "Testa a testa" },
   { key: "riepilogo", icon: "🎁", label: "Riepilogo" },
   { key: "avversari", icon: "🆚", label: "Avversari" },

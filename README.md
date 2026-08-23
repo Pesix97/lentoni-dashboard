@@ -129,7 +129,7 @@ lasciandola dentro sposta le medie. Va elencata in `esclusioni_partita`:
 
 È una cosa diversa dalle eccezioni: quelle **correggono il reparto**, questa **toglie del
 tutto la riga** dai calcoli che partono dalle partite — classifiche per reparto, indice di
-forma, formazione tipo, premi. La riga sparisce dai dati prima che finiscano nella pagina,
+forma, formazione tipo, schede osservatore. La riga sparisce dai dati prima che finiscano nella pagina,
 quindi non c'è modo di dimenticarsene in un calcolo.
 
 Resta invece dentro ai totali di carriera, perché quelli li somma EA e non sono
