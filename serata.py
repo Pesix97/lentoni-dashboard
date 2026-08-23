@@ -35,12 +35,12 @@ from datetime import datetime, timedelta, timezone
 
 import ruoli
 
-FUSO = timedelta(hours=2)          # ora italiana, per leggere gli orari come li vivete
 STACCO = timedelta(hours=3)        # oltre tre ore di pausa comincia un'altra serata
 
 
 def ora_locale(iso):
-    return datetime.fromisoformat(iso.replace("Z", "+00:00").replace("+00:00", "")) + FUSO
+    """Ora italiana vera: la somma fissa di due ore sbagliava da novembre a marzo."""
+    return ruoli.ora_italiana(iso)
 
 
 def raggruppa_in_serate(partite):
@@ -78,6 +78,7 @@ def leggi(db, club_id, cfg):
             })
         partite.append({
             "id": str(m["match_id"]), "quando": ora_locale(m["played_at"]),
+            "utc": m["played_at"],
             "avversario": (m["opponent_name"] or "?").strip(),
             "gol_fatti": m["goals_for"], "gol_subiti": m["goals_against"],
             "righe": righe,
@@ -136,7 +137,7 @@ def sospetti(serata, cfg):
 # valori dentro la distribuzione di quelle normali: non c'e' segnale da estrarre.
 
 
-def stampa(serata, cfg, confermata, partite_alla_conferma=None):
+def stampa(serata, cfg, confermata, partite_alla_conferma=None, chiave_serata=None):
     inizio, fine = serata[0]["quando"], serata[-1]["quando"]
     v = sum(1 for p in serata if p["gol_fatti"] > p["gol_subiti"])
     n = sum(1 for p in serata if p["gol_fatti"] == p["gol_subiti"])
@@ -171,7 +172,7 @@ def stampa(serata, cfg, confermata, partite_alla_conferma=None):
               f"non le ha ancora guardate nessuno.")
     if not confermata:
         print(f"\n  Se la griglia e' giusta, in roles.json -> serate_confermate: "
-              f"{{\"serata\": \"{inizio:%Y-%m-%d %H:%M}\", \"partite\": {len(serata)}}}")
+              f"{{\"serata\": \"{chiave_serata}\", \"partite\": {len(serata)}}}")
 
 
 def main():
@@ -194,7 +195,7 @@ def main():
         return 0
 
     def chiave(s):
-        return f"{s[0]['quando']:%Y-%m-%d %H:%M}"
+        return ruoli.chiave_serata(s[0]["utc"])
 
     # Una serata torna in coda anche se e' gia' stata chiusa ma nel frattempo e'
     # cresciuta: EA pubblica in ritardo, e le partite arrivate dopo la conferma non le
@@ -218,7 +219,8 @@ def main():
         return 0
 
     for s in scelte:
-        stampa(s, cfg, not ruoli.da_chiedere(cfg, chiave(s), len(s)), cfg["confermate"].get(chiave(s)))
+        stampa(s, cfg, not ruoli.da_chiedere(cfg, chiave(s), len(s)),
+               cfg["confermate"].get(chiave(s)), chiave(s))
     print()
     return 0
 

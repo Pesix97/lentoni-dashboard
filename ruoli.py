@@ -21,6 +21,52 @@ from pathlib import Path
 QUI = Path(__file__).resolve().parent
 
 
+def ora_italiana(quando):
+    """Da un istante UTC all'ora italiana vera, ora legale compresa.
+
+    Prima era una somma fissa di due ore. Funziona da marzo a ottobre e sbaglia tutto il
+    resto dell'anno: il 24/12 alle 22:10 UTC in Italia sono le 23:10 del 24, non le 00:10
+    del 25. Oltre all'ora sbagliata, le partite di fine serata sarebbero finite datate al
+    giorno dopo.
+
+    Se il sistema non ha il database dei fusi si ripiega sulla regola europea scritta a
+    mano, che e' stabile dal 1996: ora legale dall'ultima domenica di marzo all'ultima di
+    ottobre.
+    """
+    from datetime import datetime, timedelta, timezone
+    if isinstance(quando, str):
+        quando = datetime.fromisoformat(quando.replace("Z", "+00:00"))
+    if quando.tzinfo is None:
+        quando = quando.replace(tzinfo=timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+        return quando.astimezone(ZoneInfo("Europe/Rome")).replace(tzinfo=None)
+    except Exception:  # noqa: BLE001 - senza tzdata si usa la regola scritta a mano
+        def ultima_domenica(anno, mese):
+            d = datetime(anno, mese + 1, 1, tzinfo=timezone.utc) - timedelta(days=1)
+            return d - timedelta(days=(d.weekday() + 1) % 7)
+        inizio = ultima_domenica(quando.year, 3).replace(hour=1)
+        fine = ultima_domenica(quando.year, 10).replace(hour=1)
+        legale = inizio <= quando < fine
+        return (quando + timedelta(hours=2 if legale else 1)).replace(tzinfo=None)
+
+
+def chiave_serata(primo_istante_utc):
+    """L'identificatore di una serata, ancorato a UTC.
+
+    Costruirlo sull'ora locale sembrava piu' leggibile, ma legava le conferme gia' date
+    al fuso in vigore quel giorno: correggere l'ora legale avrebbe cambiato ogni chiave e
+    fatto riaprire tutte le serate confermate. In UTC la chiave non si muove mai.
+    """
+    from datetime import datetime, timezone
+    t = primo_istante_utc
+    if isinstance(t, str):
+        t = datetime.fromisoformat(t.replace("Z", "+00:00"))
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return f"{t.astimezone(timezone.utc):%Y-%m-%dT%H:%MZ}"
+
+
 def _conteggi(voci):
     """Da una lista di serate chiuse a {chiave: quante partite aveva alla chiusura}.
 

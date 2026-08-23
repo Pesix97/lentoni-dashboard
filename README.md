@@ -72,6 +72,26 @@ Dentro il proprio gruppo `cancel-in-progress` resta attivo, così due cicli nott
 sovrappongono mai. Due esecuzioni contemporanee sullo stesso database non sono un problema:
 `giro.sh` gestisce già il push respinto rifacendo un rebase.
 
+### Il fuso orario, e perché le chiavi sono in UTC
+
+L'ora italiana era una somma fissa di due ore. Funziona da marzo a ottobre e sbaglia tutto
+il resto dell'anno:
+
+```
+UTC 24/12 22:10   →   in Italia sono le 23:10 del 24
+                      con il vecchio calcolo: le 00:10 del 25
+```
+
+Oltre all'ora sbagliata, **le partite di fine serata sarebbero finite datate al giorno
+dopo**. Ora si usa il fuso vero `Europe/Rome`, con la regola europea scritta a mano come
+ripiego se manca il database dei fusi.
+
+Le chiavi delle serate confermate sono invece **ancorate a UTC** (`2026-08-22T23:21Z`).
+Costruirle sull'ora locale sembrava più leggibile, ma le legava al fuso in vigore quel
+giorno: correggere l'ora legale avrebbe cambiato ogni chiave e fatto riaprire tutte le
+conferme già date. La migrazione delle nove serate esistenti è stata verificata — nessuna
+conferma persa, nessuna serata riaperta.
+
 ### Perché lo storico si assottiglia
 
 Ogni istantanea dei giocatori pesa circa 6 KB dentro `index.html`, e ne viene salvata una a

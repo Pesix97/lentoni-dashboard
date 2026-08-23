@@ -349,6 +349,46 @@ class TestAssottigliamento(unittest.TestCase):
             self.assertEqual(len(gd.assottiglia(serie)), len(serie))
 
 
+class TestFusoOrario(unittest.TestCase):
+    """Il fuso era cablato a +2, cioe' l'ora legale.
+
+    Da novembre a marzo l'Italia e' a +1: ogni orario sarebbe stato sbagliato di un'ora e
+    le partite di fine serata sarebbero finite datate al giorno dopo. Le chiavi delle
+    serate sono percio' ancorate a UTC, cosi' correggere il fuso non le fa cambiare.
+    """
+
+    def test_ora_legale_e_ora_solare(self):
+        sys.path.insert(0, str(QUI))
+        import ruoli
+
+        casi = [("2026-08-23T01:11:00Z", "23/08 03:11"),   # legale, +2
+                ("2026-11-15T23:30:00Z", "16/11 00:30"),   # solare, +1
+                ("2026-12-24T22:10:00Z", "24/12 23:10")]   # solare, cambia anche il giorno
+        for iso, atteso in casi:
+            with self.subTest(istante=iso):
+                self.assertEqual(f"{ruoli.ora_italiana(iso):%d/%m %H:%M}", atteso)
+
+    def test_la_chiave_non_dipende_dal_fuso(self):
+        sys.path.insert(0, str(QUI))
+        import ruoli
+
+        # Lo stesso istante scritto in tre modi diversi deve dare la stessa chiave.
+        for scrittura in ("2026-08-22T23:21:00Z", "2026-08-22T23:21:00+00:00",
+                          "2026-08-23T01:21:00+02:00"):
+            with self.subTest(scrittura=scrittura):
+                self.assertEqual(ruoli.chiave_serata(scrittura), "2026-08-22T23:21Z")
+
+    def test_le_conferme_esistenti_sono_ancorate_a_utc(self):
+        sys.path.insert(0, str(QUI))
+        import ruoli
+
+        cfg = ruoli.carica(QUI / "roles.json")
+        chiavi = list(cfg["confermate"]) + [s["serata"] for s in cfg["chiuse"]]
+        for k in chiavi:
+            with self.subTest(chiave=k):
+                self.assertTrue(k.endswith("Z"), f"chiave non in UTC: {k}")
+
+
 class TestModello(unittest.TestCase):
     """Il modello della pagina vive in tre file separati dal 23/08/2026."""
 
@@ -599,11 +639,10 @@ class TestEsclusioni(BaseConArchivio):
         from datetime import datetime, timedelta
 
         dati = gd.build_data(str(self.db), club_id=CLUB)
-        quando = sorted(
-            datetime.fromisoformat(m["played_at"].replace("Z", "+00:00").replace("+00:00", ""))
-            + timedelta(hours=2)
-            for m in dati["matches"] if m.get("played_at"))
-        chiavi = [f"{g[0]:%Y-%m-%d %H:%M}" for g in ruoli.serate(quando)]
+        coppie = sorted((ruoli.ora_italiana(m["played_at"]), m["played_at"])
+                        for m in dati["matches"] if m.get("played_at"))
+        utc_di = dict(coppie)
+        chiavi = [ruoli.chiave_serata(utc_di[g[0]]) for g in ruoli.serate([c[0] for c in coppie])]
         self.assertEqual(len(chiavi), len(set(chiavi)), f"chiavi duplicate: {chiavi}")
 
     def test_l_elenco_delle_esclusioni_non_finisce_nella_pagina(self):

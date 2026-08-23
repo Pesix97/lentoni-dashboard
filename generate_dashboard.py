@@ -489,14 +489,12 @@ def elenco_serate(matches):
         for m in matches:
             if not m.get("played_at"):
                 continue
-            t = (datetime.fromisoformat(m["played_at"].replace("Z", "+00:00").replace("+00:00", ""))
-                 + timedelta(hours=2))
-            quando[t] = m["match_id"]
+            quando[_r.ora_italiana(m["played_at"])] = (m["match_id"], m["played_at"])
         gruppi = _r.serate(sorted(quando))
         cfg = _r.carica()
         out = []
         for g in gruppi:
-            chiave = f"{g[0]:%Y-%m-%d %H:%M}"
+            chiave = _r.chiave_serata(quando[g[0]][1])
             out.append({
                 "chiave": chiave,
                 "giorno": f"{g[0]:%d/%m}",
@@ -504,7 +502,7 @@ def elenco_serate(matches):
                 "inizio": f"{g[0]:%H:%M}",
                 "fine": f"{g[-1]:%H:%M}",
                 "daConfermare": _r.da_chiedere(cfg, chiave, len(g)),
-                "matchIds": [quando[t] for t in g],
+                "matchIds": [quando[t][0] for t in g],
             })
         # La prima serata dell'archivio quasi certamente non e' intera: le partite
         # precedenti non sono mai state catturate, perche' EA ne espone solo dieci alla
@@ -536,14 +534,13 @@ def serate_da_confermare(matches):
         # la chiusura, perche' EA pubblica in ritardo e le partite arrivate dopo non le ha
         # guardate nessuno.
         cfg = _r.carica()
-        quando = sorted(
-            datetime.fromisoformat(m["played_at"].replace("Z", "+00:00").replace("+00:00", ""))
-            + timedelta(hours=2)
-            for m in matches if m.get("played_at")
-        )
+        coppie = sorted((_r.ora_italiana(m["played_at"]), m["played_at"])
+                        for m in matches if m.get("played_at"))
+        utc_di = dict(coppie)
+        quando = [c[0] for c in coppie]
         aperte = []
         for gruppo in _r.serate(quando):
-            if not _r.da_chiedere(cfg, f"{gruppo[0]:%Y-%m-%d %H:%M}", len(gruppo)):
+            if not _r.da_chiedere(cfg, _r.chiave_serata(utc_di[gruppo[0]]), len(gruppo)):
                 continue
             aperte.append({"giorno": f"{gruppo[0]:%d/%m %H:%M}", "partite": len(gruppo)})
         return aperte

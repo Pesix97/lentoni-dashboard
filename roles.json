@@ -367,21 +367,27 @@
     "classificazione di una serata e' un'ipotesi finche' non la conferma chi ha giocato,",
     "e la dashboard lo dichiara invece di far sembrare certi dei numeri che non lo sono.",
     "",
-    "Formato: data e ora di inizio della serata, 'aaaa-mm-gg hh:mm' in ora italiana. L'ora",
-    "serve a distinguere due serate dello stesso giorno, che capitano: il 04/08 ce ne sono",
-    "due. Lo script serata.py stampa la chiave esatta da incollare qui."
+    "Formato: {\"serata\": \"<chiave>\", \"partite\": <quante ne aveva alla conferma>}.",
+    "",
+    "La chiave e' l'istante della prima partita IN UTC (esempio: 2026-08-22T23:21Z), non",
+    "l'ora italiana. Prima era in ora locale con il fuso cablato a +2: dall'ultima domenica",
+    "di ottobre l'Italia passa a +1, quindi correggere il fuso avrebbe cambiato ogni chiave",
+    "e fatto riaprire tutte le conferme gia' date. In UTC la chiave non si muove mai.",
+    "",
+    "Il numero di partite serve perche' EA pubblica in ritardo: se una serata cresce dopo",
+    "essere stata confermata, torna in coda per le partite arrivate dopo."
   ],
   "serate_confermate": [
     {
-      "serata": "2026-08-21 00:02",
+      "serata": "2026-08-20T22:02Z",
       "partite": 7
     },
     {
-      "serata": "2026-08-22 00:57",
+      "serata": "2026-08-21T22:57Z",
       "partite": 9
     },
     {
-      "serata": "2026-08-23 01:21",
+      "serata": "2026-08-22T23:21Z",
       "partite": 7
     }
   ],
@@ -400,32 +406,32 @@
   ],
   "serate_chiuse": [
     {
-      "serata": "2026-08-04 01:11",
+      "serata": "2026-08-03T23:11Z",
       "partite": 3,
       "motivo": "nessuno se le ricorda: chiusa senza verifica"
     },
     {
-      "serata": "2026-08-04 23:19",
+      "serata": "2026-08-04T21:19Z",
       "partite": 7,
       "motivo": "nessuno se le ricorda: chiusa senza verifica"
     },
     {
-      "serata": "2026-08-05 23:24",
+      "serata": "2026-08-05T21:24Z",
       "partite": 6,
       "motivo": "nessuno se le ricorda: chiusa senza verifica"
     },
     {
-      "serata": "2026-08-18 01:48",
+      "serata": "2026-08-17T23:48Z",
       "partite": 2,
       "motivo": "nessuno se le ricorda: chiusa senza verifica"
     },
     {
-      "serata": "2026-08-18 16:05",
+      "serata": "2026-08-18T14:05Z",
       "partite": 3,
       "motivo": "nessuno se le ricorda: chiusa senza verifica"
     },
     {
-      "serata": "2026-08-19 01:15",
+      "serata": "2026-08-18T23:15Z",
       "partite": 5,
       "motivo": "nessuno se le ricorda: chiusa senza verifica"
     }
