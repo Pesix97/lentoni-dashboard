@@ -261,6 +261,39 @@ divergere.
 
 ---
 
+## Il peso del repository
+
+Misurato il 23/08/2026, perché una proiezione fatta a occhio diceva il contrario:
+
+```
+clone locale, .git non compattato       5,9 MB
+lo stesso dopo un repack                428 KB
+repository come lo consegna GitHub      1,09 MiB per 107 commit
+aggiungere una serata (7 partite)       +14 KiB nel pack
+```
+
+Git **sa** comprimere per differenze anche un file binario: le pagine di SQLite che non
+cambiano vengono deltate senza problemi. Conservare il database come dump SQL testuale
+farebbe risparmiare 3 KiB a serata, cioè niente, e non vale il rischio di riscrivere come
+è custodito l'archivio.
+
+A quattro serate a settimana la storia cresce di circa **15 MB in un anno**, contro il
+gigabyte oltre il quale GitHub comincia a lamentarsi.
+
+L'unica accortezza riguarda il clone locale, non il progetto. Git compatta da solo quando
+gli oggetti sciolti superano una soglia, ma quella soglia **conta gli oggetti, non i
+byte**: qui ce n'erano diciassette da 1,5 MB l'uno, lontanissimi dai 6700 previsti, e la
+pulizia non partiva mai. Si risolve una volta sola, e sono impostazioni locali:
+
+```
+git config gc.auto 50
+git config gc.autoPackLimit 10
+```
+
+Se un giorno la cartella venisse ricreata da zero, vanno rimesse — altrimenti `.git`
+ricomincia a gonfiarsi senza che nulla lo segnali. Non ha conseguenze sulla dashboard né
+sull'automazione: il runner di GitHub fa un checkout pulito a ogni giro.
+
 ## Struttura del database
 
 - `club_info` — nome, piattaforma, stemma, kit del club.
