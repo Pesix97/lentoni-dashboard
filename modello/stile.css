@@ -165,6 +165,27 @@
     margin:0 0 12px; border-bottom:2px solid var(--border); padding-bottom:10px;
   }
   h2 .h2-sub{text-transform:none; letter-spacing:0; font-weight:400; font-size:12px;}
+
+  /* Sezione richiudibile. Usata dove il contenuto e' ingombrante e serve di rado: la
+     scheda da condividere occupava mezza schermata della home per un uso quasi nullo.
+     E' un <details> nativo, quindi funziona senza JavaScript e resta aperto finche' si
+     vuole. Il titolo mantiene l'aspetto degli h2 per non sembrare un elemento estraneo. */
+  details.pieghevole > summary{
+    font-size:15px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+    margin:0; border-bottom:2px solid var(--border); padding-bottom:10px;
+    cursor:pointer; list-style:none; user-select:none;
+    display:flex; align-items:baseline; gap:8px;
+  }
+  details.pieghevole > summary::-webkit-details-marker{display:none;}
+  details.pieghevole > summary::after{
+    content:"▾"; margin-left:auto; font-size:13px; transition:transform .15s ease;
+  }
+  details.pieghevole[open] > summary::after{transform:rotate(180deg);}
+  details.pieghevole > summary:hover{color:var(--text);}
+  details.pieghevole > summary .h2-sub{
+    text-transform:none; letter-spacing:0; font-weight:400; font-size:12px;
+  }
+  details.pieghevole > *:not(summary){margin-top:12px;}
   .panel{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px;}
   .two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:16px;}
   @media (max-width:900px){.two-col{grid-template-columns:1fr;}}
