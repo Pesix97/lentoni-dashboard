@@ -2668,6 +2668,10 @@ function computeOutfieldLineup(){
       passaggi: pm / n, precisione: pt ? 100 * pm / pt : 0,
       contrasti: tt / n, riuscita: tt ? 100 * tm / tt : 0,
       voto: righe ? voto / righe : 0,
+      scarto: (gf - gs) / n,
+      inviolata: 100 * partite.filter(m => (m.goals_against || 0) === 0).length / n,
+      crollo: 100 * partite.filter(m => (m.goals_against || 0) >= 4).length / n,
+      corte: 100 * partite.filter(m => Math.abs((m.goals_for || 0) - (m.goals_against || 0)) <= 1).length / n,
     };
   }
 
@@ -2682,24 +2686,43 @@ function computeOutfieldLineup(){
     { k: "golFatti",    lab: "Gol fatti",                f: x => x.toFixed(1) },
     { k: "golSubiti",   lab: "Gol subiti",               f: x => x.toFixed(1) },
     { k: "tiri",        lab: "Tiri",                     f: x => x.toFixed(1) },
-    { k: "conversione", lab: "Gol per tiro",             f: x => Math.round(x) + "%" },
+    { k: "conversione", lab: "Gol per tiro",             f: x => Math.round(x) + "%", perc: true },
     { k: "passaggi",    lab: "Passaggi riusciti",        f: x => Math.round(x) },
-    { k: "precisione",  lab: "Precisione passaggi",      f: x => Math.round(x) + "%" },
+    { k: "precisione",  lab: "Precisione passaggi",      f: x => Math.round(x) + "%", perc: true },
     { k: "contrasti",   lab: "Contrasti tentati",        f: x => x.toFixed(1) },
-    { k: "riuscita",    lab: "Contrasti riusciti",       f: x => Math.round(x) + "%" },
+    { k: "riuscita",    lab: "Contrasti riusciti",       f: x => Math.round(x) + "%", perc: true },
     { k: "voto",        lab: "Voto medio",               f: x => x.toFixed(2) },
+    // Lo scarto reti attraversa lo zero: una variazione percentuale su un valore che passa
+    // da +2.7 a -2.8 produce un -202% che non significa niente. Si confronta in gol.
+    { k: "scarto",      lab: "Scarto reti medio",        f: x => (x > 0 ? "+" : "") + x.toFixed(1), gol: true },
+    { k: "inviolata",   lab: "Porta inviolata",          f: x => Math.round(x) + "%", perc: true },
+    { k: "crollo",      lab: "Almeno 4 gol subiti",      f: x => Math.round(x) + "%", perc: true },
+    { k: "corte",       lab: "Decise da un gol o pari",  f: x => Math.round(x) + "%", perc: true },
   ];
 
   tbody.innerHTML = VOCI.map(v => {
     const a = V[v.k], b = P ? P[v.k] : null, c = S[v.k];
     let diff = "";
-    if(v.quanto !== null && a){
-      const scarto = 100 * (c - a) / Math.abs(a);
-      const col = Math.abs(scarto) < 8 ? "var(--muted)"
-                : (scarto > 0 ? "var(--accent)" : "var(--accent)");
-      diff = Math.abs(scarto) < 8
-        ? `<span style="color:var(--muted);">quasi uguale</span>`
-        : `<span style="color:${col};">${scarto > 0 ? "+" : ""}${Math.round(scarto)}%</span>`;
+    if(v.quanto !== null){
+      let testo = null, rilevante = false;
+      if(v.gol){
+        const d = c - a;
+        testo = `${d > 0 ? "+" : ""}${d.toFixed(1)} gol`;
+        rilevante = Math.abs(d) >= 0.5;
+      } else if(v.perc){
+        const d = Math.round(c - a);
+        testo = `${d > 0 ? "+" : ""}${d} ${Math.abs(d) === 1 ? "punto" : "punti"}`;
+        rilevante = Math.abs(d) >= 5;
+      } else if(a){
+        const d = 100 * (c - a) / Math.abs(a);
+        testo = `${d > 0 ? "+" : ""}${Math.round(d)}%`;
+        rilevante = Math.abs(d) >= 8;
+      }
+      if(testo !== null){
+        diff = rilevante
+          ? `<span style="color:var(--accent);">${testo}</span>`
+          : `<span style="color:var(--muted);">quasi uguale</span>`;
+      }
     }
     return `<tr>
       <td data-label="Indicatore">${v.lab}</td>
@@ -2713,18 +2736,78 @@ function computeOutfieldLineup(){
   // La lettura si costruisce dai numeri, non e' scritta a mano: se un giorno cambiassero
   // - per esempio se cominciaste a tirare molto meno nelle sconfitte - cambierebbe anche
   // la frase, invece di restare una diagnosi vecchia travestita da conclusione.
+  const CONFRONTABILI = ["golFatti", "golSubiti", "tiri", "conversione", "passaggi",
+                         "precisione", "contrasti", "riuscita"];
   const uguali = [], diversi = [];
-  VOCI.filter(v => v.quanto !== null && v.k !== "voto").forEach(v => {
-    const scarto = 100 * (S[v.k] - V[v.k]) / Math.abs(V[v.k] || 1);
-    (Math.abs(scarto) < 8 ? uguali : diversi).push({ lab: v.lab.toLowerCase(), scarto });
+  VOCI.filter(v => CONFRONTABILI.includes(v.k)).forEach(v => {
+    const punti = v.perc;
+    const d = punti ? S[v.k] - V[v.k] : 100 * (S[v.k] - V[v.k]) / Math.abs(V[v.k] || 1);
+    const soglia = punti ? 5 : 8;
+    const testo = punti
+      ? `${d > 0 ? "+" : ""}${Math.round(d)} ${Math.abs(Math.round(d)) === 1 ? "punto" : "punti"}`
+      : `${d > 0 ? "+" : ""}${Math.round(d)}%`;
+    (Math.abs(d) < soglia ? uguali : diversi).push({ lab: v.lab.toLowerCase(), d, testo, k: v.k });
   });
-  diversi.sort((a, b) => Math.abs(b.scarto) - Math.abs(a.scarto));
+  diversi.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
   const elenco = a => a.map(x => x.lab).join(", ");
+  const num = x => `${x > 0 ? "+" : ""}${Math.round(x)}%`;
+
+  // Il commento si compone a pezzi, ognuno acceso dai numeri che lo giustificano: se un
+  // domani la difesa reggesse e il problema diventasse il gioco, sparirebbero le frasi
+  // sulla difesa e comparirebbero le altre. Una diagnosi scritta a mano invecchia in
+  // silenzio e resta li' a sembrare ancora valida.
+  const pezzi = [];
+
+  if(uguali.length){
+    pezzi.push(`<strong>Quello che non cambia.</strong> Nelle sconfitte restano praticamente
+      identici ${elenco(uguali)}. La squadra arriva a costruire come sempre: il problema non
+      nasce dalla manovra.`);
+  }
+  if(diversi.length){
+    pezzi.push(`<strong>Quello che cambia.</strong> ${diversi.map(x =>
+      `${x.lab} <span style="color:var(--muted);">(${x.testo})</span>`).join(", ")}.`);
+  }
+
+  // Attacco: si tira uguale ma si segna meno, oppure si tira proprio meno?
+  const tiriUguali = Math.abs(100 * (S.tiri - V.tiri) / (V.tiri || 1)) < 12;
+  const convGiu = S.conversione < V.conversione - 5;
+  if(tiriUguali && convGiu){
+    pezzi.push(`<strong>Davanti.</strong> Il numero di tiri è lo stesso
+      (${V.tiri.toFixed(1)} contro ${S.tiri.toFixed(1)}), ma ne entra il
+      <strong>${Math.round(S.conversione)}%</strong> invece del
+      <strong>${Math.round(V.conversione)}%</strong>. Non è che si creino meno occasioni:
+      si concretizza meno. Servono circa ${(100 / Math.max(S.conversione, 1)).toFixed(1)} tiri
+      per un gol nelle sconfitte, contro ${(100 / Math.max(V.conversione, 1)).toFixed(1)} nelle vittorie.`);
+  } else if(!tiriUguali){
+    pezzi.push(`<strong>Davanti.</strong> Nelle sconfitte si tira ${S.tiri < V.tiri ? "meno" : "di più"}:
+      ${S.tiri.toFixed(1)} contro ${V.tiri.toFixed(1)} a partita.`);
+  }
+
+  // Difesa: la parte che di solito pesa di piu' e che i totali medi nascondono.
+  if(S.golSubiti > V.golSubiti * 1.5){
+    pezzi.push(`<strong>Dietro.</strong> I gol subiti passano da <strong>${V.golSubiti.toFixed(1)}</strong>
+      a <strong>${S.golSubiti.toFixed(1)}</strong> a partita. La porta resta inviolata nel
+      ${Math.round(V.inviolata)}% delle vittorie e nel ${Math.round(S.inviolata)}% delle sconfitte,
+      e si incassano quattro o più gol nel <strong>${Math.round(S.crollo)}%</strong> delle partite perse
+      contro il ${Math.round(V.crollo)}% di quelle vinte. È qui che le partite si perdono davvero.`);
+  }
+
+  // Quante partite si giocano sul filo: dice se il margine di miglioramento e' vicino.
+  if(P){
+    pezzi.push(`<strong>Quanto sono in bilico.</strong> Il ${Math.round(S.corte)}% delle sconfitte
+      si decide entro un gol di scarto, contro il ${Math.round(V.corte)}% delle vittorie.
+      ${S.corte >= 40
+        ? "Buona parte delle sconfitte è quindi a portata: non sono partite dominate dall'avversario."
+        : "Le sconfitte tendono a essere nette, non episodi sfortunati."}`);
+  }
+
+  pezzi.push(`<span style="color:var(--muted);">Su ${V.n} vittorie, ${P ? P.n : 0} pareggi e
+    ${S.n} sconfitte. Sono medie: dicono cosa succede di solito, non cosa è successo in una
+    partita precisa. E confrontano la squadra con sé stessa, senza tenere conto di quanto
+    fosse forte l'avversario.</span>`);
+
   letturaEl.innerHTML = `<div class="panel" style="margin-bottom:12px;">
-    <div style="font-size:13px; line-height:1.6;">
-      ${uguali.length ? `Nelle sconfitte restano praticamente invariati <strong>${elenco(uguali)}</strong>: la squadra costruisce come sempre.` : ""}
-      ${diversi.length ? ` Cambiano invece ${diversi.slice(0, 3).map(x => `<strong>${x.lab} (${x.scarto > 0 ? "+" : ""}${Math.round(x.scarto)}%)</strong>`).join(", ")}.` : ""}
-    </div>
+    ${pezzi.map(p => `<div style="font-size:13px; line-height:1.65; margin-bottom:10px;">${p}</div>`).join("")}
   </div>`;
 })();
 

@@ -261,6 +261,22 @@ divergere.
 
 ---
 
+## Cosa si aggiorna, e quando
+
+Ogni giro riesegue `generate_dashboard.py`, che **ricalcola tutto da zero** partendo dal
+database: schede osservatore, diagnosi vittorie/sconfitte, serate, classifiche. Non ci sono
+valori congelati da qualche parte — la pagina è sempre una fotografia del database in quel
+momento, esattamente come lo skill rating.
+
+Due sole cose hanno un ritmo diverso, ed è bene saperlo quando si leggono i confronti con
+gli avversari:
+
+- lo **skill rating degli avversari** viene riscaricato solo se più vecchio di 14 giorni, al
+  massimo quindici club per giro (`avversari.py`). Un avversario affrontato oggi porta il
+  livello che aveva quando è stato interrogato, non quello di stasera;
+- **16 partite su 49 non hanno l'id dell'avversario** nei dati EA, quindi restano fuori da
+  ogni confronto per forza dell'avversario. Compaiono in tutto il resto.
+
 ## Il peso del repository
 
 Misurato il 23/08/2026, perché una proiezione fatta a occhio diceva il contrario:
