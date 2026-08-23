@@ -36,8 +36,32 @@ traccia, cioè nessuna.
 Si consulta qui: **[stato.json](../../blob/stato/stato.json)**. È un ramo orfano riscritto
 ogni volta, quindi la sua cronologia è lunga uno e non pesa sul repository.
 
-Un task pianificato di Cowork (`lentoni-controllo-battito`) lo legge ogni giorno alle 13:00
-e segnala se è più vecchio di sei ore.
+```json
+{ "ultimo_giro": "2026-08-23T13:48:00Z", "partite": 49,
+  "fonte": "ok", "ultimo_successo_fonte": "2026-08-23T13:48:00Z",
+  "fallimenti_di_fila": 0, "problema": null }
+```
+
+**Il battito distingue tre guasti diversi**, che prima erano lo stesso silenzio:
+
+| Sintomo | Significato |
+| --- | --- |
+| `ultimo_giro` vecchio di ore | l'automazione non gira più |
+| `fonte: irraggiungibile` | l'automazione è viva, ma la fonte dei dati non risponde |
+| `problema` valorizzato | la fonte risponde, ma la nostra pipeline si è rotta a valle |
+
+Il secondo caso è quello che mancava, e conta perché **è indistinguibile da "non abbiamo
+giocato"**: il ciclo continuerebbe a girare regolarmente scrivendo "fonte non
+raggiungibile" in un log che nessuno legge, e il battito resterebbe verde perché diceva
+solo "sono vivo". Ora il battito viene scritto **anche quando la fonte cade** — prima il
+giro usciva prima di arrivarci — e porta da quanti giri consecutivi non risponde.
+
+Perché è urgente e non cosmetico: EA espone solo le ultime 10 partite. Se la fonte resta
+giù per una notte di gioco e nessuno se ne accorge, quelle partite escono dalla finestra e
+sono perse per sempre.
+
+Un task pianificato di Cowork (`lentoni-controllo-battito`) legge il battito ogni giorno
+alle 13:00 e segnala quale dei tre guasti è in corso.
 
 ### Perché proclubstracker e non EA direttamente
 
