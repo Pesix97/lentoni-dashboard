@@ -125,7 +125,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
-| `test_pipeline.py` | 26 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello. |
+| `test_pipeline.py` | 32 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello. |
 | `test_ruoli.js` | 34 controlli su ruoli, formazione e scheda osservatore, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Unica fonte di `platform` e `region_id`. Il resto di `raw/` non è versionato. |
 
@@ -138,7 +138,10 @@ L'archivio tiene **tutti i titoli insieme**, distinti da `club_id`, e la dashboa
 mostra uno alla volta: quello indicato in `attivo`.
 
 Al passaggio a FC 27 si sposta il club corrente in `storico`, si scrive il nuovo in
-`attivo`, e non serve toccare nient'altro. Ogni query di `generate_dashboard.py` filtra
+`attivo`, e non serve toccare nient'altro. **La transizione è stata provata a vuoto il
+23/08/2026**: con un club nuovo e zero partite la pagina si genera comunque, tutte e 15 le
+sezioni ci sono, le guardie di pubblicazione passano e non compaiono `NaN` o valori vuoti.
+`serata.py` risponde "Nessuna partita in archivio" invece di rompersi. Ogni query di `generate_dashboard.py` filtra
 per club attivo — senza quel filtro due stagioni finirebbero sommate nella stessa rosa
 senza che nulla lo segnali.
 
