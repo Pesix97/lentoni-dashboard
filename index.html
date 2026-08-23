@@ -2716,7 +2716,7 @@ function computeOutfieldLineup(){
     { k: "voto",        lab: "Voto medio",               f: x => x.toFixed(2) },
     // Lo scarto reti attraversa lo zero: una variazione percentuale su un valore che passa
     // da +2.7 a -2.8 produce un -202% che non significa niente. Si confronta in gol.
-    { k: "scarto",      lab: "Scarto reti medio",        f: x => (x > 0 ? "+" : "") + x.toFixed(1), gol: true },
+    { k: "scarto",      lab: "Scarto reti medio",        f: x => (x > 0 ? "+" : "") + x.toFixed(1), gol: true, fDiff: x => x.toFixed(1) },
     { k: "inviolata",   lab: "Porta inviolata",          f: x => Math.round(x) + "%", perc: true },
     { k: "crollo",      lab: "Almeno 4 gol subiti",      f: x => Math.round(x) + "%", perc: true },
     { k: "corte",       lab: "Decise da un gol o pari",  f: x => Math.round(x) + "%", perc: true },
@@ -2729,16 +2729,20 @@ function computeOutfieldLineup(){
       let testo = null, rilevante = false;
       if(v.gol){
         const d = c - a;
-        testo = `${d > 0 ? "+" : ""}${d.toFixed(1)} gol`;
+        testo = `${d > 0 ? "+" : "−"}${Math.abs(d).toFixed(1)} gol`;
         rilevante = Math.abs(d) >= 0.5;
       } else if(v.perc){
         const d = Math.round(c - a);
-        testo = `${d > 0 ? "+" : ""}${d} ${Math.abs(d) === 1 ? "punto" : "punti"}`;
+        testo = d === 0 ? "uguale"
+              : `${d > 0 ? "+" : "−"}${Math.abs(d)} ${Math.abs(d) === 1 ? "punto" : "punti"}`;
         rilevante = Math.abs(d) >= 5;
-      } else if(a){
-        const d = 100 * (c - a) / Math.abs(a);
-        testo = `${d > 0 ? "+" : ""}${Math.round(d)}%`;
-        rilevante = Math.abs(d) >= 8;
+      } else {
+        // Come nella scheda osservatore: differenza assoluta, stessa unita' della riga.
+        // "+3.5 gol subiti" invece di "+287%", che sembrava un refuso.
+        const diff = c - a;
+        const scritto = v.f(Math.abs(diff));
+        testo = scritto === v.f(0) ? "uguale" : `${diff > 0 ? "+" : "−"}${scritto}`;
+        rilevante = a ? Math.abs(100 * diff / Math.abs(a)) >= 8 : diff !== 0;
       }
       if(testo !== null){
         diff = rilevante
@@ -2765,9 +2769,10 @@ function computeOutfieldLineup(){
     const punti = v.perc;
     const d = punti ? S[v.k] - V[v.k] : 100 * (S[v.k] - V[v.k]) / Math.abs(V[v.k] || 1);
     const soglia = punti ? 5 : 8;
+    const assoluta = S[v.k] - V[v.k];
     const testo = punti
-      ? `${d > 0 ? "+" : ""}${Math.round(d)} ${Math.abs(Math.round(d)) === 1 ? "punto" : "punti"}`
-      : `${d > 0 ? "+" : ""}${Math.round(d)}%`;
+      ? `${d > 0 ? "+" : "−"}${Math.abs(Math.round(d))} ${Math.abs(Math.round(d)) === 1 ? "punto" : "punti"}`
+      : `${assoluta > 0 ? "+" : assoluta < 0 ? "−" : ""}${v.f(Math.abs(assoluta))}`;
     (Math.abs(d) < soglia ? uguali : diversi).push({ lab: v.lab.toLowerCase(), d, testo, k: v.k });
   });
   diversi.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
@@ -2953,10 +2958,29 @@ function computeOutfieldLineup(){
     dispersione[d.k] = Math.sqrt(v.reduce((t, x) => t + (x - m) ** 2, 0) / Math.max(v.length, 1)) || 1;
   });
 
+  // Oltre il raddoppio la variazione percentuale smette di comunicare: "+206%" sembra un
+  // errore di calcolo, mentre 9.7 contro 3.2 e' semplicemente il triplo. Sopra il 100% si
+  // scrive quindi come moltiplicatore. Le percentuali vere (precisione, conversione) non
+  // c'entrano: quelle si confrontano in punti e non superano mai i cento.
   function scartoDi(d, suo, base){
-    const p = Math.round(suo - base);
-    return d.perc ? { valore: suo - base, testo: `${p > 0 ? "+" : ""}${p} ${Math.abs(p) === 1 ? "punto" : "punti"}` }
-                  : { valore: suo - base, testo: base ? `${suo > base ? "+" : ""}${Math.round(100 * (suo - base) / Math.abs(base))}%` : "—" };
+    if(d.perc){
+      const p = Math.round(suo - base);
+      const segno = p > 0 ? "+" : p < 0 ? "−" : "";
+      return { valore: suo - base,
+               testo: p === 0 ? "uguale"
+                    : `${segno}${Math.abs(p)} ${Math.abs(p) === 1 ? "punto" : "punti"}` };
+    }
+    // Differenza assoluta, nella stessa unita' e con gli stessi decimali del valore
+    // mostrato accanto. 9.7 contro 3.2 diventa "+6.5 contrasti": si legge senza doverlo
+    // interpretare, e resta leggibile qualunque sia il rapporto. La variazione
+    // percentuale su questi numeri produceva "+206%", che sembra un errore di calcolo.
+    const diff = suo - base;
+    // "Uguale" non vuol dire identico al decimale: vuol dire che la differenza sparisce
+    // ai decimali che stiamo mostrando. Scrivere "+0.00" accanto a due 7.33 e' peggio che
+    // dire uguale, perche' fa cercare una differenza che nessuno puo' vedere.
+    const scritto = d.f(Math.abs(diff));
+    return { valore: diff,
+             testo: scritto === d.f(0) ? "uguale" : `${diff > 0 ? "+" : "−"}${scritto}` };
   }
 
   function frase(g, rif){
