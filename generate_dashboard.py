@@ -3037,6 +3037,14 @@ function computeOutfieldLineup(){
 
   const soloOra = iso => new Date(iso).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
+  // Una sessione che scavalca la mezzanotte porta la data del giorno in cui e' cominciata,
+  // ma finisce il giorno dopo. Senza dirlo, due schede dello stesso giorno sembravano
+  // separate da pochi minuti quando in mezzo c'erano ventun ore: il 04/08/2026 una serata
+  // finiva "alle 01:04" e l'altra cominciava "alle 01:11", su due notti diverse.
+  const quando = s => s.giornoFine && s.giornoFine !== s.giorno
+    ? `dalle ${s.inizio} del ${s.giorno} alle ${s.fine} del ${s.giornoFine}`
+    : `dalle ${s.inizio} alle ${s.fine}`;
+
   // Lo skill rating non viene rilevato a ogni partita ma a ogni giro riuscito. Per la
   // serata si prende l'ultimo valore noto PRIMA che cominciasse e l'ultimo prima che
   // cominci la serata successiva.
@@ -3098,9 +3106,13 @@ function computeOutfieldLineup(){
       <div class="panel" style="margin-bottom:12px;">
         <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; margin-bottom:10px;">
           <strong style="font-size:16px;">${s.giorno}</strong>
-          <span style="font-size:12px; color:var(--muted);">dalle ${s.inizio} alle ${s.fine}</span>
+          <span style="font-size:12px; color:var(--muted);">${quando(s)}</span>
           ${badge}
         </div>
+        ${s.inizioIncerto ? `<div style="font-size:12px; color:var(--muted); margin:-4px 0 12px; line-height:1.5;">
+          È la prima serata dell'archivio, e quasi certamente non è intera: le partite giocate prima
+          non sono mai state catturate, perché EA ne espone solo dieci alla volta e la raccolta è
+          cominciata dopo.</div>` : ""}
         <div style="display:flex; flex-wrap:wrap; gap:18px; font-size:13px; margin-bottom:14px;">
           <span><strong>${partite.length}</strong> partite</span>
           <span><strong>${v}</strong>V <strong>${n}</strong>P <strong>${p}</strong>S</span>
@@ -3680,11 +3692,18 @@ def elenco_serate(matches):
             out.append({
                 "chiave": chiave,
                 "giorno": f"{g[0]:%d/%m}",
+                "giornoFine": f"{g[-1]:%d/%m}",
                 "inizio": f"{g[0]:%H:%M}",
                 "fine": f"{g[-1]:%H:%M}",
                 "daConfermare": _r.da_chiedere(cfg, chiave, len(g)),
                 "matchIds": [quando[t] for t in g],
             })
+        # La prima serata dell'archivio quasi certamente non e' intera: le partite
+        # precedenti non sono mai state catturate, perche' EA ne espone solo dieci alla
+        # volta e l'archivio e' cominciato a raccolta gia' avviata. Dichiararlo evita di
+        # far passare un frammento per una sessione completa.
+        if out:
+            out[0]["inizioIncerto"] = True
         out.reverse()
         return out
     except Exception as exc:  # noqa: BLE001 - una sezione in meno, non una pagina rotta
