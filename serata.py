@@ -110,9 +110,15 @@ def sospetti(serata, cfg):
     if scoperte:
         quante = (f"in 1 partita su {len(serata)}" if len(scoperte) == 1
                   else f"in {len(scoperte)} partite su {len(serata)}")
+        # Zero esterni e uno solo vogliono dire cose diverse: nessuno significa quasi
+        # sempre che avete cambiato modulo, come la sera del 23/08/2026.
+        vuote = [p for p in scoperte
+                 if not [r for r in p["righe"] if r["gruppo"] == "ESTERNI"]]
+        cosa = ("non risulta nessun esterno" if len(vuote) == len(scoperte)
+                else "risulta un solo esterno")
         note.append(
-            f"{quante} risulta un solo esterno: l'altra fascia la teneva la CPU, "
-            f"oppure qualcuno che di solito gioca altrove. Chi era?"
+            f"{quante} {cosa}: le fasce le teneva la CPU, oppure le coprivano giocatori "
+            f"che di solito stanno altrove, oppure avete cambiato modulo. Come giocavate?"
         )
     return note
 

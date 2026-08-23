@@ -183,6 +183,114 @@
       "quando": "22/08 03:30 Montet Bornala",
       "giocatore": "domenicocasaburi",
       "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "996794471780472",
+      "quando": "23/08 01:21 GAFFAR OKAN",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "996794471780472",
+      "quando": "23/08 01:21 GAFFAR OKAN",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "996794471780472",
+      "quando": "23/08 01:21 GAFFAR OKAN",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "996732773950056",
+      "quando": "23/08 01:39 Baharya",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "996732773950056",
+      "quando": "23/08 01:39 Baharya",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "996732773950056",
+      "quando": "23/08 01:39 Baharya",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "996934090960287",
+      "quando": "23/08 01:55 loubardusecteur",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "996934090960287",
+      "quando": "23/08 01:55 loubardusecteur",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "996934090960287",
+      "quando": "23/08 01:55 loubardusecteur",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "997080048210305",
+      "quando": "23/08 02:30 Palazzine",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "997080048210305",
+      "quando": "23/08 02:30 Palazzine",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "997080048210305",
+      "quando": "23/08 02:30 Palazzine",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "997056333240186",
+      "quando": "23/08 02:54 213 SQUAD",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "997056333240186",
+      "quando": "23/08 02:54 213 SQUAD",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "997056333240186",
+      "quando": "23/08 02:54 213 SQUAD",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "997018553770103",
+      "quando": "23/08 03:11 213 SQUAD",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "997018553770103",
+      "quando": "23/08 03:11 213 SQUAD",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "997018553770103",
+      "quando": "23/08 03:11 213 SQUAD",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -247,7 +355,8 @@
   ],
   "serate_confermate": [
     "2026-08-21 00:02",
-    "2026-08-22 00:57"
+    "2026-08-22 00:57",
+    "2026-08-23 01:21"
   ],
   "_serate_chiuse": [
     "Serate che non verranno mai confermate perche' nessuno ricorda piu' come si e'",
