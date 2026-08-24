@@ -147,11 +147,13 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `modello/stile.css` | Tutto il CSS. |
 | `modello/pagina.js` | Tutta la logica che gira nel browser. **File .js vero**: `node --check` lo verifica. |
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. |
+| `ruoli.py` | La regola dei ruoli in un posto solo: chi conta, in che reparto, in che serata. Condivisa fra gli script. |
+| `serata.py` | La griglia di una serata da confermare, con le osservazioni su cosa non torna. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 32 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello. |
-| `test_ruoli.js` | 34 controlli su ruoli, formazione e scheda osservatore, eseguiti sulla pagina generata. |
+| `test_pipeline.py` | 46 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello. |
+| `test_ruoli.js` | 40 controlli su ruoli, formazione e scheda osservatore, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -320,6 +322,26 @@ Non è una cancellazione: lo storico resta, e togliendo un nome dalla lista il g
 ricompare com'era.
 
 ---
+
+## La documentazione è verificata, non promessa
+
+`README.md` descrive **come funziona**, `APPUNTI.md` cosa è **rimasto in sospeso**. Il
+problema di due file così è che invecchiano senza rumore: il 24/08/2026 gli appunti
+sostenevano ancora che la lista delle eccezioni di ruolo fosse vuota, mentre ne contava
+109, e nessuno se n'era accorto per giorni.
+
+`TestDocumentazioneAllineata` in `test_pipeline.py` controlla le affermazioni **al
+presente**, quelle che decadono:
+
+- ogni file elencato nella tabella qui sopra esiste davvero;
+- ogni file del progetto è elencato nella tabella;
+- il numero di test dichiarato è quello reale;
+- le soglie citate nei testi sono quelle scritte nel codice;
+- gli appunti non negano cose che i dati smentiscono.
+
+Alla prima esecuzione ha trovato tre disallineamenti veri, fra cui due file mai
+documentati. Le frasi **datate** non vengono toccate: "al 24/08 erano 59 partite" resta
+vero per sempre, ed è la differenza fra raccontare la storia e descrivere lo stato.
 
 ## Test
 

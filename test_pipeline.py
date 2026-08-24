@@ -432,6 +432,100 @@ class TestIdentita(BaseConArchivio):
         self.assertEqual(doppi, [], "gli id ricostruiti non devono generare segnalazioni")
 
 
+class TestDocumentazioneAllineata(unittest.TestCase):
+    """La documentazione deve dire il vero, e va verificato da una macchina.
+
+    Il 24/08/2026 APPUNTI.md sosteneva ancora che la lista delle eccezioni di ruolo fosse
+    vuota: nel frattempo ne erano state scritte 109. Nessun test poteva accorgersene e
+    nessuno rileggeva quel file, quindi ha continuato a mentire per giorni. Una
+    conversazione nuova ci si sarebbe fidata.
+
+    Qui si controllano solo le affermazioni al PRESENTE, quelle che decadono. Le frasi
+    datate ("al 24/08 le partite erano 59") restano vere per sempre e non si toccano.
+    """
+
+    def _leggi(self, nome):
+        p = QUI / nome
+        if not p.exists():
+            self.skipTest(f"{nome} non presente")
+        return p.read_text(encoding="utf-8")
+
+    def _tabella_file(self):
+        """Solo la tabella sotto '## File': il README ne contiene altre."""
+        import re
+
+        readme = self._leggi("README.md")
+        i = readme.index("## File")
+        fine = readme.find("\n## ", i + 1)
+        blocco = readme[i:fine if fine > 0 else len(readme)]
+        return re.findall(r"^\| `([^`]+)` \|", blocco, re.M)
+
+    def test_i_file_elencati_nel_readme_esistono(self):
+        import re
+
+        elencati = self._tabella_file()
+        self.assertTrue(elencati, "tabella dei file non trovata nel README")
+        mancanti = [f for f in elencati if not (QUI / f).exists()]
+        self.assertEqual(mancanti, [], f"il README elenca file che non esistono: {mancanti}")
+
+    def test_ogni_file_del_progetto_e_documentato(self):
+        import re
+
+        elencati = set(self._tabella_file())
+        veri = set()
+        for p in QUI.glob("*"):
+            if p.is_file() and p.suffix in (".py", ".sh", ".json") and not p.name.startswith("."):
+                veri.add(p.name)
+        for p in (QUI / "modello").glob("*"):
+            if p.is_file():
+                veri.add(f"modello/{p.name}")
+        non_documentati = sorted(veri - elencati)
+        self.assertEqual(non_documentati, [],
+                         f"file presenti ma non elencati nel README: {non_documentati}")
+
+    def test_il_numero_di_test_dichiarato_e_quello_vero(self):
+        import re
+
+        readme = self._leggi("README.md")
+        m = re.search(r"`test_pipeline\.py` \| (\d+) test", readme)
+        if not m:
+            self.skipTest("il README non dichiara un numero di test")
+        # Si conta caricando la suite, non rieseguendola: eseguirla da dentro se stessa
+        # sarebbe ricorsivo.
+        caricati = unittest.defaultTestLoader.loadTestsFromName("test_pipeline").countTestCases()
+        self.assertEqual(int(m.group(1)), caricati,
+                         f"il README dice {m.group(1)} test, ne esistono {caricati}")
+
+    def test_le_soglie_citate_nei_testi_sono_quelle_del_codice(self):
+        import re
+
+        pagina = (QUI / "modello" / "pagina.js").read_text(encoding="utf-8")
+        soglia = int(re.search(r"MIN_PER_CLASSIFICA = (\d+)", pagina).group(1))
+        for nome in ("README.md", "APPUNTI.md"):
+            testo = self._leggi(nome)
+            for citata in re.findall(r"sotto le \*\*(\d+) presenze nel reparto\*\*", testo):
+                with self.subTest(file=nome):
+                    self.assertEqual(int(citata), soglia,
+                                     f"{nome} cita {citata} presenze, il codice ne usa {soglia}")
+
+    def test_gli_appunti_non_affermano_al_presente_cose_smentite_dai_dati(self):
+        import json
+
+        appunti = self._leggi("APPUNTI.md")
+        ruoli_json = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        # Il caso vero da cui nasce questo test.
+        if ruoli_json.get("eccezioni_partita"):
+            self.assertNotIn("`eccezioni_partita` è vuota", appunti,
+                             "gli appunti dicono che le eccezioni sono vuote, ma ce ne sono")
+        if (QUI / "lentoni.db").exists():
+            con = sqlite3.connect(QUI / "lentoni.db")
+            partite = con.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+            con.close()
+            if partite > 0:
+                self.assertNotIn("non ha ancora attraversato una sessione", appunti,
+                                 "gli appunti negano un collaudo che nel frattempo è avvenuto")
+
+
 class TestSpiegazioniRichiuse(unittest.TestCase):
     """Dietro un clic ci va solo il testo, mai i numeri.
 

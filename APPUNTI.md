@@ -3,10 +3,20 @@
 Aggiornato il 24/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
-Regola di questo file: se una riga qui dentro non è più vera, va corretta subito. Il
+**Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
 21/08 diceva che le eccezioni di ruolo erano zero — ne sono state scritte 109 nei tre
 giorni successivi, e per un po' nessuno se n'è accorto. Un appunto che mente è peggio di
-un appunto che manca.
+un appunto che manca, perché una conversazione nuova ci si fida.
+
+Dal 24/08 la regola non dipende più dalla memoria: `test_pipeline.py` contiene una classe
+`TestDocumentazioneAllineata` che verifica le affermazioni **al presente** — i file
+elencati esistono, i file esistenti sono elencati, i numeri dichiarati sono quelli veri, le
+soglie citate sono quelle del codice. Appena l'ha eseguita la prima volta ha trovato due
+omissioni (`ruoli.py` e `serata.py` mancavano dalla tabella del README) e un conteggio
+fermo a 32 test su 46.
+
+Le frasi **datate** ("al 24/08 le partite erano 59") restano vere per sempre e non vanno
+toccate: è la differenza fra raccontare la storia e descrivere lo stato.
 
 ---
 
