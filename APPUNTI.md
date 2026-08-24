@@ -1,21 +1,30 @@
 # Appunti — questioni aperte
 
-Aggiornato il 21/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 24/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
+
+Regola di questo file: se una riga qui dentro non è più vera, va corretta subito. Il
+21/08 diceva che le eccezioni di ruolo erano zero — ne sono state scritte 109 nei tre
+giorni successivi, e per un po' nessuno se n'è accorto. Un appunto che mente è peggio di
+un appunto che manca.
 
 ---
 
 ## Da fare quando capita
 
-**Le eccezioni CC/CDC.** In `roles.json` la lista `eccezioni_partita` è vuota. Serve
-perché Pesix_97, ktm-008 e domenicocasaburi giocano COC a turno, e per EA un COC e un CC
-sono la stessa etichetta `midfielder`: di default tutte le loro partite contano tra gli
-attaccanti, che è la regola voluta dal club. Quando uno di loro gioca davvero da CC o CDC,
-quella partita va elencata lì.
+**Le eccezioni di ruolo: risolto, e non più un problema aperto.** Al 21/08 la lista
+`eccezioni_partita` era vuota e il rischio era dimenticarsene. Al 24/08 sono **109**, e
+soprattutto esiste un meccanismo che chiede invece di aspettare:
 
-Basta indicare quando ("la seconda di giovedì", "quella contro I Razzi"), i `match_id` si
-recuperano dal database. Segnarselo sul momento funziona; a distanza di giorni no — a
-metà agosto ci abbiamo provato con 11 partite ambigue e non erano più ricostruibili.
+- `serata.py` raggruppa le partite in serate e mostra la griglia dei ruoli;
+- un'attività pianificata (`lentoni-conferma-serata`) la propone ogni mattina alle 11:03;
+- le serate confermate sono elencate in `serate_confermate` con **quante partite avevano
+  alla conferma**: se EA ne pubblica altre dopo, la serata torna in coda da sola;
+- quelle di cui nessuno ricorda più niente stanno in `serate_chiuse`, lista separata,
+  perché "confermata" e "chiusa senza verifica" non sono la stessa cosa.
+
+Resta vero il principio che ha fatto nascere tutto: segnarsi i fuori ruolo sul momento
+funziona, a distanza di giorni no. Per questo la domanda arriva la mattina dopo.
 
 **Le notifiche del controllo battito: rinunciato.** Il task `lentoni-controllo-battito`
 gira ogni giorno alle 13:00 ma non manda notifiche. Non è stato possibile attivarle dalla
@@ -29,15 +38,16 @@ https://github.com/Pesix97/lentoni-dashboard/blob/stato/stato.json — trenta by
 dicono se l'automazione è viva.
 
 **Il vecchio task `lentoni-dashboard-update` è in pausa**, sostituito da GitHub Actions.
-Si può eliminare, ma vale la pena tenerlo ancora qualche giorno come rete di sicurezza.
+Al 24/08 l'automazione ha quattro giorni di funzionamento verificato alle spalle: la rete
+di sicurezza ha esaurito il suo scopo e il task si può eliminare quando capita.
 
 ---
 
 ## Programmato per settembre
 
 Tutto quello che è stato rimandato ha lo stesso motivo: **serve un archivio più grande**.
-Al 21/08 le partite archiviate erano 33, e a ~7 per sessione a settembre saranno diverse
-centinaia. Queste cose oggi non si possono né costruire bene né testare davvero.
+Al 24/08 le partite archiviate erano 59 (erano 33 il 21/08), e a ~9 per sessione a
+settembre saranno diverse centinaia. Queste cose oggi non si possono né costruire bene né testare davvero.
 
 ### 1. Selettore del titolo nella dashboard
 
@@ -56,7 +66,8 @@ difensore è ancora valutato per il 20% su gol e assist, solo rispetto ad altri 
 
 Un indice davvero fedele al ruolo peserebbe contrasti e clean sheet per chi sta dietro,
 passaggi e assist per chi costruisce, precisione sotto porta per chi finalizza. Era stato
-proposto e volutamente rimandato: tarare un algoritmo nuovo su 33 partite non ha senso.
+proposto e volutamente rimandato: tarare un algoritmo nuovo su poche decine di partite
+non ha senso. Vedi anche il punto 6, che lo dimostra con i numeri.
 Con qualche centinaio si potrà capire se i pesi alternativi producono classifiche sensate
 o solo diverse.
 
@@ -128,10 +139,15 @@ Con 59 partite nessun indice regge davvero, incluso quello che proporrei io.
 
 ## Verifiche ancora aperte
 
-**Una serata vera con il ciclo nuovo.** Al 21/08 il ciclo interno (7 controlli ogni 20
-minuti per esecuzione) non ha ancora attraversato una sessione di gioco completa. È la
-prova che conta: la sera del 20 agosto si erano persi dati per un buco di quattro ore
-nella pianificazione di GitHub.
+**Il collaudo del ciclo: superato tre volte.** Le notti del 21, 22 e 23 agosto il ciclo
+ha attraversato sessioni complete di 7, 9 e 10 partite. Ogni volta il contatore di EA e
+l'archivio hanno detto lo stesso numero: **zero partite perse**. La prova che mancava al
+21/08 è stata fatta, e ripetuta.
+
+**Quello che resta non verificato** è il comportamento a PC spento con l'app chiusa. Il
+23/08 l'app era chiusa e ha funzionato, il che basta a dire che non dipende da Cowork;
+manca solo la prova formale a macchina spenta, che è una formalità visto che tutto gira
+sui server di GitHub.
 
 ---
 
