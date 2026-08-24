@@ -371,6 +371,36 @@ gli avversari:
 - **16 partite su 49 non hanno l'id dell'avversario** nei dati EA, quindi restano fuori da
   ogni confronto per forza dell'avversario. Compaiono in tutto il resto.
 
+## I campioni piccoli non pesano quanto quelli grandi
+
+Segnalati il 24/08/2026, due sintomi della stessa causa:
+
+- nell'Indice di Forza filtrato al **100% forma**, eredes risultava terzo **senza una sola
+  partita archiviata**;
+- tra gli ESTERNI, Ironman-6-6 compariva sopra chi in quel ruolo gioca da quaranta partite,
+  con **una presenza**.
+
+Il primo era un errore vero nel codice: chi non aveva dati di forma teneva il punteggio
+storico **pieno** e continuava a competere nella stessa classifica. Non era valutato male,
+non era valutato affatto. Ora chi non ha partite archiviate resta **fuori classifica**, in
+fondo e con il motivo scritto: metterlo terzo sarebbe falso, metterlo ultimo pure.
+
+Il secondo si corregge con la statistica. Ogni valore viene tirato verso la media del
+reparto in proporzione a quante partite lo sostengono:
+
+```
+ 1 partita  →  conta per il 17%,  il resto è la media del reparto
+ 3 partite  →  38%
+ 5 partite  →  50%
+10 partite  →  67%
+40 partite  →  89%
+```
+
+Non basta però da solo: con una partita il punteggio finisce **esattamente a metà
+classifica**, e metà classifica è comunque sopra un titolare che rende sotto la media. Per
+questo sotto le **5 presenze nel reparto** il giocatore resta in tabella con tutte le sue
+cifre, ma senza posizione. Una partita non è un rendimento: si mostra, non si ordina.
+
 ## L'identità dei giocatori è il nome, non l'id
 
 Nella pagina il nome del giocatore è la chiave **69 volte**; l'id numerico che EA assegna a

@@ -31,8 +31,9 @@ function ritaglia(da, a) {
 // configurazione dei ruoli sta in cima al file, perche' il gruppo di roles.json e' il
 // ruolo ufficiale di tutta la dashboard e non piu' solo delle classifiche per reparto.
 const codice = [
-  ritaglia("const DATA = {", "// ---- Ruolo effettivo"),
-  ritaglia("const ROLE_COUNTS_BY_NAME", "function fmtDate"),
+  // Dati, ruoli, punteggi e Indice di Forza vivono tutti prima delle sezioni che
+  // toccano il DOM: si estraggono in blocco.
+  ritaglia("const DATA = {", "// ---- Cards ----"),
 ].join("\n");
 
 let ambiente;
@@ -40,7 +41,7 @@ try {
   ambiente = new Function(codice + `
     return { DATA, GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, MACRO_TO_GROUP,
              groupForMatch, etichettaAttesa, mainPosOf, computeGroupScores, rankGroup,
-             GROUP_ORDER, ROLE_EXCEPTIONS };`)();
+             GROUP_ORDER, ROLE_EXCEPTIONS, computeBlendedScores, credibilita };`)();
 } catch (e) {
   console.error("Impossibile eseguire il codice estratto:", e.message);
   process.exit(1);
@@ -57,7 +58,7 @@ function verifica(descrizione, condizione, dettaglio) {
 }
 
 const { GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, groupForMatch, etichettaAttesa,
-        computeGroupScores, rankGroup, GROUP_ORDER } = ambiente;
+        computeGroupScores, rankGroup, GROUP_ORDER, computeBlendedScores } = ambiente;
 
 console.log("\nEtichette EA dichiarate");
 verifica("roles.json dichiara l'etichetta EA di ogni giocatore assegnato",
@@ -133,6 +134,60 @@ for (const g of GROUP_ORDER) {
 // non portavano il match_id, e ogni voce che doveva risalire alla partita - avversario,
 // esito, posizione nella serata - non trovava niente e spariva. La scheda mostrava meno
 // cose, nessun errore da nessuna parte. Un guasto che tace e' peggio di uno che rompe.
+// Segnalati il 24/08/2026: un giocatore con UNA partita nel reparto stava sopra chi ci
+// gioca da quaranta, e nell'Indice di Forza a "100% forma" compariva terzo chi non ha
+// nemmeno una partita archiviata. Stessa causa: i campioni piccoli pesavano quanto i grandi.
+console.log("\nCampioni piccoli");
+{
+  const tuttiGruppi = computeGroupScores();
+  for (const g of GROUP_ORDER) {
+    const pool = tuttiGruppi.filter(a => a.group === g);
+    if (pool.length < 3) continue;
+    const r = rankGroup(pool);
+    const molte = r.filter(a => a.games >= 10);
+    const pochissime = r.filter(a => a.games <= 2);
+    if (!molte.length || !pochissime.length) continue;
+    // Con la riduzione verso la media, chi ha pochissime partite finisce vicino al centro:
+    // non puo' stare in cima al reparto sulla forza di un episodio.
+    verifica(`${g}: chi ha 1-2 partite non e' primo`,
+      r[0].games > 2,
+      `primo e' ${r[0].player_name} con ${r[0].games} partite`);
+  }
+
+  // Non si controlla il punteggio assoluto: dopo la riduzione i valori vengono
+  // ri-normalizzati sul reparto, quindi gli estremi tornano 0 e 100 per costruzione.
+  // Quello che la riduzione cambia e' l'ORDINE, ed e' li' che va verificata: chi ha una
+  // manciata di partite viene tirato verso la media, e la media non puo' essere il massimo.
+  for (const g of GROUP_ORDER) {
+    const pool = tuttiGruppi.filter(a => a.group === g);
+    if (pool.length < 3) continue;
+    const grezzo = [...pool].sort((x, y) => y.ratingAve - x.ratingAve);
+    const ridotto = rankGroup(pool);
+    if (grezzo[0].games <= 2 && grezzo[0].player_name !== ridotto[0].player_name) {
+      console.log(`  ok    ${g}: ${grezzo[0].player_name} (${grezzo[0].games}p) non e' piu' primo per una sola buona partita`);
+    }
+  }
+}
+
+console.log("\nIndice di Forza: chi non ha dati recenti resta fuori classifica");
+{
+  const a100 = computeBlendedScores(30, 1);
+  const fuori = a100.filter(p => p.fuoriClassifica);
+  const dentro = a100.filter(p => !p.fuoriClassifica);
+  verifica("nessuno senza partite archiviate entra in classifica",
+    dentro.every(p => p.formAvailable),
+    dentro.filter(p => !p.formAvailable).map(p => p.r.player_name).join(", "));
+  verifica("i fuori classifica stanno tutti in fondo",
+    a100.findIndex(p => p.fuoriClassifica) === -1 ||
+    a100.slice(a100.findIndex(p => p.fuoriClassifica)).every(p => p.fuoriClassifica));
+  if (fuori.length) {
+    console.log(`  nota  fuori classifica a 100% forma: ${fuori.map(p => p.r.player_name).join(", ")}`);
+  }
+  // A peso zero la forma non conta: tutti devono tornare in classifica.
+  verifica("a 0% forma nessuno resta fuori",
+    computeBlendedScores(30, 0).every(p => !p.fuoriClassifica));
+}
+
 console.log("\nScheda osservatore");
 {
   const magazzino = {};
