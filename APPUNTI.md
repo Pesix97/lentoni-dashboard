@@ -87,6 +87,45 @@ JavaScript dentro un'unica stringa.
 
 ---
 
+### 6. Ripesare l'Indice di Forza sull'affidabilità misurata
+
+Misurato il 24/08/2026 su 59 partite. Per ogni metrica ho confrontato la prima metà
+dell'archivio con la seconda: se una misura dice qualcosa di vero, chi era sopra la media
+prima dovrebbe esserlo anche dopo.
+
+```
+gol + assist            +0.63     l'unica cosa che persiste
+scarto vs compagni      +0.19     debole, ma il doppio del voto grezzo
+media voto              +0.07     praticamente rumore
+premio migliore         +0.08     rumore
+```
+
+**L'indice attuale dà il 40% del peso alla metrica meno stabile (media voto) e il 20% alla
+più stabile (gol+assist).** È pesato quasi al contrario, e nessuno se n'era accorto perché
+quei pesi sembrano ragionevoli a chiunque li legga.
+
+C'è anche un vizio strutturale: il voto di EA **già contiene** gol, assist e premi, quindi
+sommarli come voci separate li conta due o tre volte.
+
+Come rifarlo:
+
+- pesare le metriche in base alla stabilità **misurata**, non stimata a sentimento;
+- sostituire la media voto con lo **scarto rispetto ai compagni della stessa partita**, che
+  cancella forza dell'avversario, andamento della squadra e stanchezza della serata — è la
+  ragione per cui la sua affidabilità è il doppio di quella del voto grezzo;
+- non sommare metriche correlate fra loro;
+- mostrare l'affidabilità accanto al punteggio e **rimisurarla ogni mese**, lasciando che
+  siano i dati a decidere i pesi.
+
+Perché è rimandato e non fatto subito: con 59 partite e dieci giocatori, l'incertezza su
+quelle correlazioni è di circa ±0.33. Il +0.63 è indicativo, non provato. In più, fra le
+due metà il club ha cambiato modulo di continuo, e la prima metà è antecedente alla
+pulizia di ruoli ed esclusioni: è la parte più sporca dell'archivio.
+
+**La cosa da rifare a settembre non è l'indice: è la misura.** Lo script che l'ha prodotta
+va rieseguito quando le partite saranno il doppio, e solo allora i pesi vanno riscritti.
+Con 59 partite nessun indice regge davvero, incluso quello che proporrei io.
+
 ## Verifiche ancora aperte
 
 **Una serata vera con il ciclo nuovo.** Al 21/08 il ciclo interno (7 controlli ogni 20

@@ -149,6 +149,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
+| `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
 | `test_pipeline.py` | 32 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello. |
 | `test_ruoli.js` | 34 controlli su ruoli, formazione e scheda osservatore, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
