@@ -398,8 +398,29 @@ reparto in proporzione a quante partite lo sostengono:
 
 Non basta però da solo: con una partita il punteggio finisce **esattamente a metà
 classifica**, e metà classifica è comunque sopra un titolare che rende sotto la media. Per
-questo sotto le **5 presenze nel reparto** il giocatore resta in tabella con tutte le sue
+questo sotto le **3 presenze nel reparto** il giocatore resta in tabella con tutte le sue
 cifre, ma senza posizione. Una partita non è un rendimento: si mostra, non si ordina.
+
+La soglia è stata scelta dal club a 3 sapendo il compromesso: con 3 partite il valore conta
+per il 38% di sé stesso, quindi qualcuno entra in classifica su un campione ancora sottile.
+Alzarla a 5 è una riga in `modello/pagina.js` (`MIN_PER_CLASSIFICA`).
+
+### La scheda osservatore e i confronti onesti
+
+Due correzioni del 24/08/2026, entrambe nate dallo stesso vizio — confrontare cose che non
+sono confrontabili:
+
+- **"Dove rende di più"** prendeva il reparto migliore contro il peggiore fra tutti quelli
+  con almeno tre partite. Per chi ha 32 presenze da attaccante finiva a confrontare nove
+  partite a centrocampo con tre da esterno: un paragone fra due eccezioni. Ora il confronto
+  è **ancorato al ruolo abituale** — quello con più presenze — e l'alternativa scelta è
+  quella **con più partite**, non quella con lo scarto più vistoso. Chi non ha un secondo
+  reparto abbastanza giocato se lo sente dire.
+- **"Con lui e senza di lui"** confrontava percentuali grezze. Con sei assenze, "50%" sono
+  tre vittorie su sei, cioè un caso. Le percentuali mostrate restano quelle vere, **con
+  accanto i conteggi**, ma il giudizio in parole usa valori tirati verso la media della
+  squadra in proporzione alle partite. Per domenicocasaburi la voce è passata da "la
+  squadra va peggio senza di lui" a "nessuna differenza rilevabile".
 
 ## L'identità dei giocatori è il nome, non l'id
 

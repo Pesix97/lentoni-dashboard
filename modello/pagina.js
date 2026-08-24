@@ -1289,7 +1289,10 @@ let growthChart = null;
   const ALL = computeGroupScores();
   // Presenze minime nel reparto per entrare in classifica. Sotto questa soglia il
   // giocatore resta in tabella con tutte le sue cifre, ma senza posizione.
-  const MIN_PER_CLASSIFICA = 5;
+  // Scelta dal club il 24/08/2026: con 3 partite il valore conta ancora solo per il 38%
+  // di se stesso, ma la riduzione verso la media impedisce comunque che un episodio
+  // finisca in cima, quindi la soglia serve solo a escludere l'aneddoto puro.
+  const MIN_PER_CLASSIFICA = 3;
   const MIN_OPTIONS = [1, 3, 5, 10];
   let minMatches = 1;   // default: mostra tutti, anche chi ha una sola presenza nel ruolo
 
@@ -2190,6 +2193,13 @@ function computeOutfieldLineup(){
     { id: "tempo",   lab: "vs sé stesso nel tempo" },
   ];
   const MIN_RIGHE = 5;
+  // Presenze minime in un reparto alternativo perche' il confronto con il ruolo abituale
+  // significhi qualcosa. Sotto, la voce lo dichiara invece di tacere.
+  const MIN_CONFRONTO_REPARTO = 3;
+  // Per le percentuali calcolate sulle partite - vittorie con e senza un giocatore - la
+  // riduzione verso la media deve essere piu' forte che per le medie voto: un esito e'
+  // binario e oscilla molto di piu'. Con 6 partite il valore conta per un terzo.
+  const CREDIBILITA_PARTITE = 12;
   const FINESTRA = 10;   // quante partite recenti guarda il metro "nel tempo"
 
   const giocatori = Object.values(raccolta).filter(a => a.righe.length >= MIN_RIGHE)
@@ -2308,19 +2318,46 @@ function computeOutfieldLineup(){
        </div>`);
     const seg = (n) => n === 1 ? "1 partita" : `${n} partite`;
 
-    // Dove rende di piu'. Serve almeno un reparto alternativo con 3 presenze.
+    // Dove rende di piu'. Il confronto e' ANCORATO al ruolo abituale, cioe' quello con
+    // piu' presenze: prima prendeva il migliore contro il peggiore fra tutti i reparti
+    // con almeno tre partite, e per chi ha 32 presenze da attaccante finiva a confrontare
+    // nove partite a centrocampo con tre da esterno - un paragone tra due eccezioni, che
+    // del giocatore non dice niente (segnalato il 24/08/2026).
     const perReparto = {};
     righe.forEach(r => { if(r.gruppo) (perReparto[r.gruppo] = perReparto[r.gruppo] || []).push(r.rating); });
-    const reparti = Object.entries(perReparto).filter(([, v]) => v.length >= 3)
-      .map(([k, v]) => ({ k, n: v.length, m: media(v) })).sort((a, b) => b.m - a.m);
-    if(reparti.length >= 2){
-      const alto = reparti[0], basso = reparti[reparti.length - 1];
-      scheda("Dove rende di più",
-        `<strong>${GROUP_LABELS[alto.k] || alto.k}</strong> ${alto.m.toFixed(2)} di media, contro
-         ${(GROUP_LABELS[basso.k] || basso.k).toLowerCase()} ${basso.m.toFixed(2)}. Scarto di
-         <strong>${(alto.m - basso.m).toFixed(2)}</strong>.`,
-        reparti.map(r => `${(GROUP_LABELS[r.k] || r.k).toLowerCase()} ${seg(r.n)}`).join(" · ") +
-        (alto.n < 5 ? " — campione piccolo sul reparto migliore" : ""));
+    const reparti = Object.entries(perReparto)
+      .map(([k, v]) => ({ k, n: v.length, m: media(v) })).sort((a, b) => b.n - a.n);
+    const etichettaReparto = k => (GROUP_LABELS[k] || k);
+    if(reparti.length){
+      const casa = reparti[0];
+      const alternativi = reparti.slice(1).filter(r => r.n >= MIN_CONFRONTO_REPARTO);
+      if(alternativi.length){
+        // Tra le alternative vince quella con PIU' PARTITE, non quella con lo scarto piu'
+        // vistoso. Scegliere lo scarto maggiore riportava il difetto da cui siamo partiti:
+        // per Pesix_97 preferiva tre partite da esterno a nove da centrocampista, perche'
+        // la differenza era piu' grande - cioe' premiava proprio il campione piu' fragile.
+        const alt = alternativi[0];
+        const d = alt.m - casa.m;
+        scheda("Dove rende di più",
+          Math.abs(d) < 0.15
+            ? `Rende uguale ovunque: <strong>${casa.m.toFixed(2)}</strong> nel suo ruolo abituale
+               (${etichettaReparto(casa.k).toLowerCase()}), <strong>${alt.m.toFixed(2)}</strong> da ${etichettaReparto(alt.k).toLowerCase()}.`
+            : `${d > 0 ? "Rende meglio" : "Rende meno"} da <strong>${etichettaReparto(alt.k).toLowerCase()}</strong>
+               (${alt.m.toFixed(2)}) che nel suo ruolo abituale di ${etichettaReparto(casa.k).toLowerCase()}
+               (${casa.m.toFixed(2)}): <strong>${d > 0 ? "+" : "−"}${Math.abs(d).toFixed(2)}</strong>.`,
+          reparti.map(r => `${etichettaReparto(r.k).toLowerCase()} ${seg(r.n)}`).join(" · ") +
+          (alt.n < 5 ? ` — attenzione, ${seg(alt.n)} da ${etichettaReparto(alt.k).toLowerCase()} sono poche per un confronto solido` : ""));
+      } else {
+        // Nessun secondo reparto con abbastanza partite: dirlo e' comunque un fatto utile.
+        const altrove = reparti.slice(1).reduce((t, r) => t + r.n, 0);
+        scheda("Dove rende di più",
+          `Gioca quasi solo da <strong>${etichettaReparto(casa.k).toLowerCase()}</strong>:
+           ${seg(casa.n)} lì${altrove ? `, ${seg(altrove)} altrove` : ""}, media
+           <strong>${casa.m.toFixed(2)}</strong>. Non c'è un altro reparto con abbastanza
+           partite per un confronto.`,
+          reparti.length > 1
+            ? reparti.map(r => `${etichettaReparto(r.k).toLowerCase()} ${seg(r.n)}`).join(" · ") : null);
+      }
     }
 
     // Se cresce quando la squadra vince o se la tiene su quando perde.
@@ -2374,15 +2411,36 @@ function computeOutfieldLineup(){
     const suoi = new Set(righe.map(r => r.match_id));
     const con = (DATA.matches || []).filter(m => suoi.has(m.match_id));
     const senza = (DATA.matches || []).filter(m => !suoi.has(m.match_id));
-    if(senza.length >= 8 && con.length >= 8){
-      const pc = 100 * con.filter(m => m.win).length / con.length;
-      const ps = 100 * senza.filter(m => m.win).length / senza.length;
-      const d = pc - ps;
+    if(senza.length >= 5 && con.length >= 5){
+      const vinteCon = con.filter(m => m.win).length;
+      const vinteSenza = senza.filter(m => m.win).length;
+      const pc = 100 * vinteCon / con.length;
+      const ps = 100 * vinteSenza / senza.length;
+      // Le percentuali mostrate sono quelle vere, con accanto i conteggi che ne rendono
+      // evidente la solidita'. Il GIUDIZIO invece usa valori tirati verso la media della
+      // squadra in proporzione alle partite: su sei assenze un 50% e' tre vittorie su
+      // sei, cioe' un caso, e senza correzione diventava "la squadra va peggio senza".
+      const tutte = DATA.matches || [];
+      const mediaClub = tutte.length ? 100 * tutte.filter(m => m.win).length / tutte.length : 50;
+      const verso = (perc, n) => {
+        const c = n / (n + CREDIBILITA_PARTITE);
+        return c * perc + (1 - c) * mediaClub;
+      };
+      const d = verso(pc, con.length) - verso(ps, senza.length);
+      const conta = (v, n) => `${v} ${v === 1 ? "vittoria" : "vittorie"} su ${n}`;
       scheda("Con lui e senza di lui",
-        `La squadra vince il <strong>${Math.round(pc)}%</strong> delle partite quando c'è e il
-         <strong>${Math.round(ps)}%</strong> quando non c'è: ${d > 0 ? "+" : ""}${Math.round(d)} punti.`,
-        `${seg(con.length)} con lui, ${seg(senza.length)} senza` +
-        (senza.length < 12 ? " — poche assenze, il confronto è indicativo" : ""));
+        Math.abs(d) < 5
+          ? `Nessuna differenza rilevabile: <strong>${Math.round(pc)}%</strong> di vittorie quando c'è
+             (${conta(vinteCon, con.length)}), <strong>${Math.round(ps)}%</strong> quando non c'è
+             (${conta(vinteSenza, senza.length)}).`
+          : `La squadra vince il <strong>${Math.round(pc)}%</strong> quando c'è
+             (${conta(vinteCon, con.length)}) e il <strong>${Math.round(ps)}%</strong> quando non c'è
+             (${conta(vinteSenza, senza.length)}): ${d > 0 ? "con lui va meglio" : "senza di lui va meglio"},
+             di circa <strong>${Math.abs(Math.round(d))} punti</strong> una volta tenuto conto di
+             quante partite reggono il confronto.`,
+        senza.length < 12
+          ? `Solo ${seg(senza.length)} senza di lui: il confronto è indicativo, non una conclusione.`
+          : null);
     }
 
     // Quanta parte dei gol passa da lui.
