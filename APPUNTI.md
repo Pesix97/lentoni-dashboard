@@ -174,6 +174,57 @@ CSS e JavaScript dentro un'unica stringa. Funziona, ma ogni modifica è una sost
 di testo dentro quella stringa. Separare template, stile e logica in file distinti,
 assemblati alla generazione, non cambierebbe il risultato ma renderebbe più semplice
 tutto quello che verrà dopo.
+---
+
+## Come si lavora a questo progetto
+
+Questa sezione non parla di codice. Serve a una conversazione nuova — o a una che ha perso
+la memoria delle prime ore — per non ripetere errori già fatti.
+
+**Verificare prima di affermare.** È la regola più importante, e nasce da tre affermazioni
+imprecise sulla pianificazione date senza controllare. Se una cosa si può misurare con un
+comando, si misura e poi si dice. Vale anche per le proprie conclusioni: il 23/08 una
+proiezione sul peso del repository ha inventato una crisi inesistente perché partiva da un
+`du` letto male, e il 24/08 una classifica di siti alternativi poggiava su un errore 500
+scambiato per una pagina in JavaScript. Due volte lo stesso vizio: interpretare un sintomo
+invece di misurarne la causa.
+
+**Efficienza prima di tutto.** Poche parole, niente preamboli, niente riepiloghi di quello
+che si sta per fare. I risultati con i numeri accanto.
+
+**Rendicontare in tabella** quando le cose da dire sono più di tre.
+
+**Dire i dubbi prima di procedere**, non dopo. Quando una scelta ha conseguenze visibili
+sulla dashboard, si chiede.
+
+**Non chiudere le conversazioni.** Niente formule di commiato, niente "buonanotte" non
+richiesti: è stato fatto notare due volte.
+
+**Le correzioni migliori arrivano da chi gioca.** Quasi tutti i difetti statistici veri
+sono stati trovati usando la dashboard, non leggendo il codice: eredes terzo senza partite,
+un giocatore con una presenza sopra un titolare, confronti fra due eccezioni. Il codice
+faceva esattamente quello che gli era stato detto — per questo nessun test poteva
+accorgersene. Quando arriva una segnalazione così, va presa sul serio subito.
+
+---
+
+## Decisioni prese, da non rifare
+
+**La formazione tipo resta com'è.** Il 23/08 era stata riscritta sui reparti di
+`roles.json` (sei posti reali invece di un 3-4-1-2 con cinque caselle riempite da stime).
+La modifica è stata **annullata su richiesta**, per ripensarla meglio. Il codice è nella
+storia di git, commit `e9f0b6c` per il ripristino. Non va rifatta senza chiederlo.
+
+**Premi e Stats divertenti sono stati rimossi il 23/08**, non persi. Erano intrattenimento
+copiato dalle funzioni di proclubstracker, e il progetto ha preso la direzione opposta:
+descrivere come si gioca invece di premiare chi sta davanti.
+
+**L'archetipo di EA non si usa mai**, per decisione esplicita del club.
+
+**Il COC conta fra gli attaccanti**, sempre, anche se EA lo etichetta `midfielder`.
+
+**La soglia per entrare in classifica nei reparti è 3**, scelta sapendo il compromesso.
+Va rialzata solo se il club lo chiede.
 
 ---
 

@@ -508,6 +508,21 @@ class TestDocumentazioneAllineata(unittest.TestCase):
                     self.assertEqual(int(citata), soglia,
                                      f"{nome} cita {citata} presenze, il codice ne usa {soglia}")
 
+    def test_gli_appunti_conservano_il_modo_di_lavorare(self):
+        """Le due sezioni che nessun altro file puo' ricostruire.
+
+        README e commenti descrivono il progetto; queste descrivono la collaborazione e le
+        scelte gia' fatte. Se sparissero, una conversazione nuova rifarebbe la formazione
+        tipo che era stata annullata e tornerebbe ad affermare senza verificare — le due
+        cose che il 23 e il 24/08 sono costate piu' tempo.
+        """
+        appunti = self._leggi("APPUNTI.md")
+        for sezione in ("## Come si lavora a questo progetto", "## Decisioni prese, da non rifare"):
+            self.assertIn(sezione, appunti, f"sezione persa: {sezione}")
+        # Il revert della formazione tipo vive solo qui: nei commit nessuno lo rilegge.
+        self.assertIn("formazione tipo resta com'è", appunti,
+                      "la decisione di non rifare la formazione tipo non e' piu' scritta")
+
     def test_gli_appunti_non_affermano_al_presente_cose_smentite_dai_dati(self):
         import json
 
