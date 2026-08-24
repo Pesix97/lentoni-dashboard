@@ -322,7 +322,7 @@ function computePowerScores(roster){
       score,
       contrib: contrib[i],
       motmRate: motmRate[i] * 100,
-      breakdown: { rating: nRating[i], contrib: nContrib[i], motm: nMotm[i], win: nWin[i], tech: nTech[i] },
+      breakdown: { rating: nRating[i], contrib: nContrib[i], motm: nMotm[i], win: nWin[i], tech: nTech[i], disc: nDisc[i] },
     };
   });
 }
@@ -338,6 +338,11 @@ const FORM_MIN_APPS = 4;   // presenze minime nella finestra per avere un punteg
 const FORM_WINDOWS = [30, 40, 0];
 let formWindow = 30;
 let formWeight = 0.5;      // 0 = solo storico, 1 = solo forma recente
+
+// Il confronto testa a testa spiega il distacco della classifica: quando finestra o peso
+// cambiano, deve rifare i conti anche lui, altrimenti spiega un distacco che non c'e' piu'.
+// Viene riempito dalla sezione del confronto, che si costruisce piu' in basso nel file.
+let ridisegnaConfronto = null;
 
 // Scale di riferimento (min/max di ogni metrica sull'intera rosa, dai totali di
 // carriera). Storico e forma DEVONO essere normalizzati sulla stessa scala:
@@ -410,6 +415,16 @@ function computeFormScores(windowSize){
 
   return new Map(pool.map(p => [p.name, {
     ...p,
+    // Serve al testa a testa: senza i valori normalizzati anche della forma, il distacco
+    // si puo' mostrare solo sulle carriere, e non coinciderebbe con la classifica filtrata.
+    breakdown: {
+      rating:  normWith(p.ratingAve, POWER_RANGES.rating),
+      contrib: normWith(p.contrib,   POWER_RANGES.contrib),
+      motm:    normWith(p.motmRate,  POWER_RANGES.motm),
+      win:     normWith(p.winRate,   POWER_RANGES.win),
+      tech:    normWith(p.techEff,   POWER_RANGES.tech),
+      disc:    normWith(p.redRate,   POWER_RANGES.disc),
+    },
     score: Math.max(0, Math.min(100, 100 * (
       PESI_INDICE.rating  * normWith(p.ratingAve, POWER_RANGES.rating) +
       PESI_INDICE.contrib * normWith(p.contrib,   POWER_RANGES.contrib) +
@@ -433,8 +448,35 @@ function computeBlendedScores(windowSize, weight){
     const cred = hasForm ? credibilita(f.games) : 0;
     const pesoForma = weight * cred;
     const blended = hasForm ? (1 - pesoForma) * s.score + pesoForma * f.score : s.score;
+    // Lo stesso miscuglio applicato voce per voce. Serve a rispondere alla domanda "perche'
+    // e' piu' in alto di lui": la somma di queste voci ricostruisce il punteggio, quindi il
+    // distacco si puo' spezzare in pezzi che sommano esattamente al totale.
+    const voci = {};
+    Object.keys(s.breakdown).forEach(k => {
+      voci[k] = hasForm ? (1 - pesoForma) * s.breakdown[k] + pesoForma * f.breakdown[k]
+                        : s.breakdown[k];
+    });
+    // Gli stessi valori, ma nell'unita' di misura vera. Servono a mostrare accanto ai punti
+    // il numero che li ha prodotti: far vedere la media di CARRIERA accanto a un punteggio
+    // che contiene anche la forma produce righe assurde del tipo "+13.4 punti, 7.10 contro
+    // 7.10". La normalizzazione e' lineare, quindi mescolare i valori grezzi con lo stesso
+    // peso da' esattamente lo stesso risultato che mescolare i normalizzati.
+    const g = s.r, gp = g.games_played || 1;
+    const carriera = {
+      rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
+      win: g.win_rate, tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate),
+      disc: g.red_cards / gp,
+    };
+    const daForma = hasForm ? { rating: f.ratingAve, contrib: f.contrib, motm: f.motmRate,
+                                win: f.winRate, tech: f.techEff, disc: f.redRate } : null;
+    const grezzi = {};
+    Object.keys(carriera).forEach(k => {
+      grezzi[k] = hasForm ? (1 - pesoForma) * carriera[k] + pesoForma * daForma[k] : carriera[k];
+    });
     return {
       ...s,
+      vociMescolate: voci,
+      grezziMescolati: grezzi,
       historicScore: s.score,
       formScore: hasForm ? f.score : null,
       formGames: hasForm ? f.games : 0,
@@ -1296,6 +1338,7 @@ let growthChart = null;
     renderPodium();
     renderCoverage();
     draw();
+    if(ridisegnaConfronto) ridisegnaConfronto();
   }
 
   renderRoleFilters();
@@ -1750,48 +1793,143 @@ function computeOutfieldLineup(){
   `).join("");
 })();
 
+// Il testa a testa spiegava poco: confrontava gol e assist come TOTALI di carriera accanto
+// a delle percentuali. Con 541 partite contro 96 il piu' anziano vinceva sempre, anche
+// rendendo meno. Ora risponde alla domanda vera - perche' uno sta piu' in alto dell'altro -
+// spezzando il distacco dell'Indice di Forza nelle voci che lo compongono.
 (function renderH2H(){
-  const roster = [...(DATA.roster || [])].sort((a,b)=> a.player_name.localeCompare(b.player_name));
   const selA = document.getElementById("h2hA");
   const selB = document.getElementById("h2hB");
+  const elVerdetto = document.getElementById("h2hVerdetto");
+  const elVoci = document.getElementById("h2hVoci");
+  const elNote = document.getElementById("h2hNote");
+  if(!selA || !selB) return;
+  const roster = [...(DATA.roster || [])].sort((a,b)=> a.player_name.localeCompare(b.player_name));
   if(roster.length < 2){
-    document.getElementById("chartH2H").parentElement.innerHTML = '<div class="empty">Servono almeno due giocatori con statistiche.</div>';
+    elVerdetto.parentElement.innerHTML = '<div class="empty">Servono almeno due giocatori con statistiche.</div>';
     return;
   }
-  const options = roster.map((r,i) => `<option value="${i}">${r.player_name}</option>`).join("");
+  const options = roster.map(r => `<option value="${r.player_name}">${r.player_name}</option>`).join("");
   selA.innerHTML = options;
   selB.innerHTML = options;
-  selA.selectedIndex = 0;
-  selB.selectedIndex = Math.min(1, roster.length - 1);
+  selA.value = roster[0].player_name;
+  selB.value = roster[1].player_name;
 
-  let chart = null;
-  function draw(){
-    const a = roster[selA.value], b = roster[selB.value];
-    const labels = ["Gol", "Assist", "Media x10", "Win %", "Pass %", "Contrasti %"];
-    const dataA = [a.goals, a.assists, +(a.rating_ave*10).toFixed(1), a.win_rate, a.pass_success_rate, a.tackle_success_rate];
-    const dataB = [b.goals, b.assists, +(b.rating_ave*10).toFixed(1), b.win_rate, b.pass_success_rate, b.tackle_success_rate];
-    if(chart) chart.destroy();
-    chart = new Chart(document.getElementById("chartH2H"), {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          { label: a.player_name, data: dataA, backgroundColor: "#d5203a", borderRadius: 4 },
-          { label: b.player_name, data: dataB, backgroundColor: "#f0b90b", borderRadius: 4 },
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { labels: { color: "#f5ece4" } } },
-        scales: {
-          x: { ticks: { color: "#b99aa0" }, grid: { display:false } },
-          y: { ticks: { color: "#b99aa0" }, grid: { color: "#4a232a" } },
-        }
-      }
+  const dec2 = v => v.toFixed(2);
+  const VOCI = [
+    { k:"rating",  eti:"Media voto",           fmt:dec2 },
+    { k:"contrib", eti:"Gol+assist a partita", fmt:dec2 },
+    { k:"tech",    eti:"Efficienza tecnica",   fmt:v => v.toFixed(1) },
+    { k:"win",     eti:"% vittorie",           fmt:v => v.toFixed(0) + "%" },
+    { k:"motm",    eti:"Migliore in campo",    fmt:v => (100*v).toFixed(1) + "%" },
+    { k:"disc",    eti:"Cartellini rossi",     fmt:v => v.toFixed(3) + "/partita" },
+  ];
+
+  // Minimo, mediana e massimo: senza questo riferimento "7.80 contro 7.50" non si puo'
+  // leggere. La mediana e non la media, cosi' un solo valore estremo non la sposta. Si
+  // calcola sugli stessi valori mescolati che si mostrano, altrimenti il confronto sarebbe
+  // con una rosa diversa da quella a cui appartengono i due numeri.
+  function scaleDi(punteggi){
+    const s = {};
+    VOCI.forEach(v => {
+      const vals = punteggi.map(p => p.grezziMescolati[v.k]).sort((a,b)=>a-b);
+      s[v.k] = { min: vals[0], max: vals[vals.length-1],
+                 med: vals.length % 2 ? vals[(vals.length-1)/2]
+                                      : (vals[vals.length/2 - 1] + vals[vals.length/2]) / 2 };
     });
+    return s;
   }
+
+  function draw(){
+    const nomeA = selA.value, nomeB = selB.value;
+    if(nomeA === nomeB){
+      elVerdetto.innerHTML = '<div class="empty">Scegli due giocatori diversi.</div>';
+      elVoci.innerHTML = ""; elNote.innerHTML = "";
+      return;
+    }
+    const punteggi = computeBlendedScores(formWindow, formWeight);
+    const sA = punteggi.find(s => s.r.player_name === nomeA);
+    const sB = punteggi.find(s => s.r.player_name === nomeB);
+    if(!sA || !sB){ elVerdetto.innerHTML = '<div class="empty">Dati non disponibili.</div>'; return; }
+
+    // Chi sta piu' in alto va a sinistra: la domanda e' sempre "perche' lui e non l'altro".
+    const [alto, basso] = sA.blendedScore >= sB.blendedScore ? [sA, sB] : [sB, sA];
+    const distacco = alto.blendedScore - basso.blendedScore;
+
+    const scale = scaleDi(punteggi);
+    const righe = VOCI.map(v => {
+      const punti = k => 100 * PESI_INDICE[v.k] * (k.vociMescolate[v.k] || 0) * (v.k === "disc" ? -1 : 1);
+      return { v, diff: punti(alto) - punti(basso),
+               grezzoA: alto.grezziMescolati[v.k], grezzoB: basso.grezziMescolati[v.k] };
+    }).sort((x,y) => y.diff - x.diff);
+
+    const somma = righe.reduce((t,r) => t + r.diff, 0);
+    const maxAss = Math.max(...righe.map(r => Math.abs(r.diff)), 0.01);
+
+    elVerdetto.innerHTML = `
+      <div style="font-size:15px; line-height:1.5;">
+        <strong>${alto.r.player_name}</strong> sta
+        <strong style="color:var(--accent);">${distacco.toFixed(1)} punti</strong> sopra
+        <strong>${basso.r.player_name}</strong>
+        <span style="color:var(--muted); font-size:13px;">
+          (${alto.blendedScore.toFixed(1)} contro ${basso.blendedScore.toFixed(1)})</span>
+      </div>
+      <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+        Ecco da dove arrivano, voce per voce. I pezzi sommano al distacco: non resta niente di inspiegato.
+      </div>`;
+
+    elVoci.innerHTML = righe.map(r => {
+      const pro = r.diff >= 0;
+      const largh = Math.round(100 * Math.abs(r.diff) / maxAss);
+      const s = scale[r.v.k];
+      const f = r.v.fmt;
+      return `
+      <div style="padding:11px 0; border-bottom:1px solid var(--panel-2,rgba(255,255,255,.06));">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+          <span style="font-size:13.5px;">${r.v.eti}</span>
+          <strong style="font-size:13.5px; color:${pro ? "var(--ok,#4ade80)" : "var(--accent)"}; white-space:nowrap;">
+            ${r.diff >= 0 ? "+" : "−"}${Math.abs(r.diff).toFixed(1)} punti
+            ${pro ? "" : `<span style="font-size:11px;">a ${basso.r.player_name}</span>`}
+          </strong>
+        </div>
+        <div style="height:5px; background:var(--panel-2,rgba(255,255,255,.06)); border-radius:3px; margin:6px 0 5px;">
+          <div style="height:5px; width:${largh}%; border-radius:3px;
+                      background:${pro ? "var(--ok,#4ade80)" : "var(--accent)"};"></div>
+        </div>
+        <div style="font-size:11.5px; color:var(--muted);">
+          ${f(r.grezzoA)} contro ${f(r.grezzoB)}
+          <span style="opacity:.75;"> · nella rosa da ${f(s.min)} a ${f(s.max)}, mediana ${f(s.med)}</span>
+        </div>
+      </div>`;
+    }).join("");
+
+    // Chi e' ultimo della rosa in una voce perde TUTTO il peso di quella voce: e' l'effetto
+    // della scala, non della bravura, e va detto perche' gonfia i distacchi.
+    const note = [];
+    const vicino = (x, y) => Math.abs(x - y) < 1e-9;
+    righe.forEach(r => {
+      const s = scale[r.v.k];
+      [[alto, r.grezzoA], [basso, r.grezzoB]].forEach(([chi, val]) => {
+        if(vicino(val, s.min) && r.v.k !== "disc" && Math.abs(r.diff) > 1)
+          note.push(`<strong>${chi.r.player_name}</strong> è il più basso della rosa in <strong>${r.v.eti.toLowerCase()}</strong>:
+                     quella voce gli costa tutto il suo peso, quindi il distacco è più marcato di quanto dicano i numeri veri.`);
+      });
+    });
+    if(Math.abs(somma - distacco) > 0.15)
+      note.push(`Le voci sommano a ${somma.toFixed(1)} invece di ${distacco.toFixed(1)}: uno dei due punteggi
+                 tocca il fondo o il tetto della scala 0-100.`);
+    if(!alto.formAvailable || !basso.formAvailable)
+      note.push(`Uno dei due non ha partite archiviate nella finestra scelta: per lui il punteggio è tutto storico.`);
+    elNote.innerHTML = note.length
+      ? note.map(t => `<div style="font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:6px;">⚠︎ ${t}</div>`).join("")
+      : "";
+  }
+
   selA.addEventListener("change", draw);
   selB.addEventListener("change", draw);
+  // L'Indice di Forza chiama questo aggancio quando cambiano finestra o peso della forma,
+  // cosi' il confronto spiega sempre il distacco che si sta guardando davvero.
+  ridisegnaConfronto = draw;
   draw();
 })();
 

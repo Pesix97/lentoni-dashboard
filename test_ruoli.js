@@ -272,6 +272,79 @@ console.log("\nScheda osservatore");
   }
 }
 
+// Il confronto testa a testa promette una cosa precisa: le voci sommano al distacco. Se
+// smettesse di essere vero la sezione mentirebbe in silenzio, mostrando pezzi che non
+// ricostruiscono il totale - ed e' proprio il genere di guasto che qui non da' errori.
+console.log("\nConfronto testa a testa");
+{
+  const magazzino = {};
+  let cambia = null;
+  const finto = (id) => magazzino[id] = magazzino[id] || {
+    id, innerHTML: "", value: "", options: [],
+    set innerHTMLSetter(v){ this.innerHTML = v; },
+    addEventListener: (_e, f) => { cambia = f; },
+    get parentElement(){ return { innerHTML: "" }; },
+  };
+  global.document = { getElementById: finto, querySelector: () => ({ innerHTML: "" }) };
+
+  try {
+    const ambienteH2H = new Function(
+      ritaglia("const DATA = {", "// ---- Cards ----") + "\n" +
+      ritaglia("// Il testa a testa spiegava poco", "// ---- Riepilogo periodo") + "\n" +
+      "return { PESI_INDICE, computeBlendedScores, DATA };"
+    )();
+
+    const rosa = [...ambienteH2H.DATA.roster].map(r => r.player_name).sort();
+    verifica("la sezione si costruisce e riempie i menu a tendina",
+      String(magazzino["h2hA"].innerHTML).includes("<option"), "nessuna opzione");
+
+    // Ricalcolo la stessa promessa fuori dalla pagina: la somma delle voci deve
+    // ricostruire il distacco fra i due punteggi mostrati in classifica.
+    const punteggi = ambienteH2H.computeBlendedScores(30, 0.5);
+    let peggiore = 0, coppie = 0;
+    for (let i = 0; i < punteggi.length; i++) {
+      for (let j = i + 1; j < punteggi.length; j++) {
+        const a = punteggi[i], b = punteggi[j];
+        if (!a.vociMescolate || !b.vociMescolate) continue;
+        const somma = Object.keys(ambienteH2H.PESI_INDICE).reduce((t, k) =>
+          t + 100 * ambienteH2H.PESI_INDICE[k] * (a.vociMescolate[k] - b.vociMescolate[k])
+              * (k === "disc" ? -1 : 1), 0);
+        const scarto = Math.abs(somma - (a.blendedScore - b.blendedScore));
+        if (scarto > peggiore) peggiore = scarto;
+        coppie++;
+      }
+    }
+    verifica(`le voci ricostruiscono il distacco in tutte le ${coppie} coppie`,
+      peggiore < 0.15, `errore massimo ${peggiore.toFixed(3)} punti`);
+
+    verifica("ogni giocatore ha la scomposizione, non solo qualcuno",
+      punteggi.every(s => s.vociMescolate && Object.keys(s.vociMescolate).length === 6),
+      punteggi.filter(s => !s.vociMescolate).map(s => s.r.player_name).join(", "));
+
+    // Il verdetto deve nominare qualcuno e dare un numero, non restare una scatola vuota.
+    const testo = String(magazzino["h2hVerdetto"].innerHTML);
+    verifica("il verdetto dice chi sta sopra e di quanto",
+      /sta[\s\S]*punti[\s\S]*sopra/.test(testo) && rosa.some(n => testo.includes(n)), testo.slice(0, 80));
+    verifica("le voci vengono elencate con i valori grezzi",
+      /nella rosa da/.test(String(magazzino["h2hVoci"].innerHTML)));
+
+    // Il controllo che conta: si leggono i numeri STAMPATI e si verifica che sommino al
+    // distacco annunciato. Ricalcolarli a parte non basta - il difetto puo' stare nel modo
+    // in cui vengono mostrati, per esempio un segno sbagliato sui cartellini, e in quel
+    // caso il conto tornerebbe lo stesso mentre a schermo compare l'opposto.
+    const annunciato = Number((testo.match(/([\d.]+) punti/) || [])[1]);
+    const stampati = [...String(magazzino["h2hVoci"].innerHTML)
+      .matchAll(/([+−])([\d.]+) punti/g)].map(m => (m[1] === "−" ? -1 : 1) * Number(m[2]));
+    verifica("le voci mostrate a schermo sono sei", stampati.length === 6, `sono ${stampati.length}`);
+    const sommaStampata = stampati.reduce((t, v) => t + v, 0);
+    verifica("i punti stampati sommano al distacco annunciato",
+      Math.abs(sommaStampata - annunciato) < 0.15,
+      `stampati ${sommaStampata.toFixed(1)}, annunciato ${annunciato}`);
+  } catch (e) {
+    verifica("il confronto si esegue senza eccezioni", false, e.message);
+  }
+}
+
 console.log(falliti === 0
   ? "\nTutti i controlli superati.\n"
   : `\n${falliti} controlli falliti.\n`);

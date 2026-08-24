@@ -306,14 +306,39 @@
 </section>
 
 <section id="h2h">
-  <h2>Confronto giocatori (testa a testa)</h2>
+  <h2>Confronto giocatori <span class="h2-sub">— perché uno sta più in alto dell'altro</span></h2>
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Il distacco fra due giocatori nell'Indice di Forza viene <strong style="color:var(--text);">spezzato
+        nelle voci che lo compongono</strong>: quanti punti arrivano dalla media voto, quanti dai gol, quanti
+        dai cartellini. I pezzi sommano esattamente al distacco totale, quindi non resta niente di
+        inspiegato.
+        <br><br>
+        Accanto a ogni voce c'è <strong style="color:var(--text);">dove si collocano nella rosa</strong>
+        (minimo, mediana, massimo). Senza quel riferimento un confronto non si legge: «7,80 contro 7,50» non
+        dice niente finché non sai che la rosa va da 6,80 a 8,00.
+        <br><br>
+        Il confronto <strong style="color:var(--text);">segue i filtri dell'Indice di Forza</strong>: se lì hai
+        scelto una finestra di forma e un peso, qui viene spiegato quel distacco, non un altro.
+        <br><br>
+        <strong style="color:var(--text);">Attenzione a chi è ultimo della rosa in una voce.</strong> Ogni voce
+        è riscalata fra il peggiore e il migliore del gruppo, quindi chi sta sul fondo perde
+        <em>tutto</em> il peso di quella voce, non una parte. Una differenza piccola nei numeri veri può
+        diventare grande nel punteggio: dove succede, è segnalato.
+      </div>
+    </div>
+  </details>
   <div class="panel">
     <div class="h2h-controls">
       <select class="h2h-select" id="h2hA"></select>
       <span class="h2h-vs">VS</span>
       <select class="h2h-select" id="h2hB"></select>
     </div>
-    <canvas id="chartH2H"></canvas>
+    <div id="h2hVerdetto" style="margin-top:16px;"></div>
+    <div id="h2hVoci"></div>
+    <div id="h2hNote" style="margin-top:12px;"></div>
   </div>
 </section>
 

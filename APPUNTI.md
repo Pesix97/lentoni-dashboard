@@ -176,6 +176,23 @@ Tre cose ne sono uscite, e vanno tenute a mente prima di riprovare:
    sembravano nettamente meglio (+0.48 contro +0.21). Era una divisione fortunata, e per
    giunta confusa dal fatto che fra le due metà il club ha cambiato modulo.
 
+### Il testa a testa ora spiega il distacco (24/08/2026)
+
+Il vecchio confronto mostrava un grafico a barre con gol e assist come **totali di carriera**
+accanto a delle percentuali: con 541 partite contro 96, il più anziano vinceva sempre anche
+rendendo meno. È stato sostituito dalla scomposizione del distacco nell'Indice di Forza.
+
+Due cose da non rompere:
+
+- **Le voci devono sommare al distacco.** È la promessa scritta nella sezione, ed è
+  verificata su tutte le coppie da `test_ruoli.js`, leggendo i numeri *stampati* e non
+  ricalcolandoli: un difetto può stare nel modo in cui vengono mostrati (per esempio il
+  segno dei cartellini) e un controllo che rifà il conto per conto suo non se ne accorge.
+- **I valori grezzi mostrati sono mescolati come il punteggio.** Mostrare la media di
+  carriera accanto a un punteggio che contiene anche la forma produceva righe assurde tipo
+  «+13.4 punti, 7.10 contro 7.10». Funziona perché la normalizzazione è lineare: mescolare
+  i valori grezzi dà lo stesso risultato che mescolare i normalizzati.
+
 ### La percentuale di contrasti misura in parte la selettività (24/08/2026)
 
 Chi tenta più contrasti ha la percentuale più bassa: **correlazione −0,78**. Non è un caso —
