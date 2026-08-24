@@ -342,6 +342,15 @@ lasciato al suo posto, in `modello/pagina.js`.
 
 ## Cose imparate, da non riscoprire
 
+- La **media voto di carriera arriva da EA con un solo decimale** (7.1, non 7.13). Le
+  medie a due cifre che si vedono in rosa e nell'Indice di Forza sono quindi un decimale
+  vero e uno zero di formattazione. Dove invece la media è calcolata sulle partite
+  archiviate — classifiche per reparto, formazione tipo — le due cifre sono entrambe vere.
+  Le due colonne non sono confrontabili: la prima è su centinaia di partite di carriera, la
+  seconda solo sulle archiviate. Al 24/08/2026 Ironman-6-6 aveva 7.1 di carriera e 7.62
+  sull'archivio, e non è un errore. Mostrare la media esatta sull'archivio è stato proposto
+  e **scartato**: il dato EA non migliorerebbe comunque, e aggiungere una terza colonna di
+  medie confondibili con le altre due costa più di quanto renda.
 - EA espone solo le **ultime 10 partite**. Non esiste paginazione: testati `offset`,
   `page`, `startIndex`, `before`, `beforeTimestamp`, `timestampBefore`, tutti ignorati.
 - EA pubblica i risultati con **ore di ritardo** — misurate fino a tre.
