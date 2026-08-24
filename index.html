@@ -3168,8 +3168,6 @@ function computeOutfieldLineup(){
   // ciascuna, e i numeri piccoli restano visibili ma dichiarati.
   const partitaDi = {};
   (DATA.matches || []).forEach(m => partitaDi[m.match_id] = m);
-  const posizioneInSerata = {};
-  (DATA.serate || []).forEach(s => s.matchIds.forEach((id, i) => posizioneInSerata[id] = i + 1));
   const forzaAvversario = id => (DATA.avversari || {})[String(id)]?.skill_rating || 0;
   const nostroLivello = (DATA.latest || {}).skill_rating || 1800;
 
@@ -3260,20 +3258,20 @@ function computeOutfieldLineup(){
         `${seg(forti.length)} contro squadre sopra ${nostroLivello} di skill rating, ${seg(deboli.length)} sotto`);
     }
 
-    // Tiene la serata o cala.
-    const inizio = righe.filter(r => (posizioneInSerata[r.match_id] || 9) <= 2).map(r => r.rating);
-    const coda = righe.filter(r => (posizioneInSerata[r.match_id] || 0) >= 5).map(r => r.rating);
-    if(inizio.length >= 5 && coda.length >= 5){
-      const d = media(coda) - media(inizio);
-      scheda("Come regge la serata",
-        Math.abs(d) < 0.15
-          ? `Uguale dall'inizio alla fine: <strong>${media(inizio).toFixed(2)}</strong> nelle prime due partite,
-             <strong>${media(coda).toFixed(2)}</strong> dalla quinta in poi.`
-          : `<strong>${media(inizio).toFixed(2)}</strong> nelle prime due partite della serata,
-             <strong>${media(coda).toFixed(2)}</strong> dalla quinta in poi: ${d > 0 ? "cresce" : "cala"} di
-             ${Math.abs(d).toFixed(2)}.`,
-        `${seg(inizio.length)} a inizio serata, ${seg(coda.length)} in coda`);
-    }
+    // QUI C'ERA "Come regge la serata": prime due partite contro dalla quinta in poi.
+    // Tolta il 24/08/2026 perche' misurava rumore. Tre misure, in ordine di gravita':
+    //
+    //  1. il confronto era sbilanciato. La quinta partita esiste solo nelle serate lunghe
+    //     (7 su 10), mentre "inizio serata" pescava da tutte e dieci: due popolazioni
+    //     diverse. Calcolandolo DENTRO ogni serata, quattro giudizi su dieci cambiavano e
+    //     due invertivano il segno;
+    //  2. anche corretto non si confermava: prime cinque serate contro ultime cinque,
+    //     affidabilita' +0.13 su sei giocatori. Uno passava da +0.92 a -0.20;
+    //  3. non esiste nemmeno per la squadra: pendenza +0.013 voto per partita, e
+    //     rimescolando le posizioni a caso il valore esce piu' estremo nel 70% dei casi.
+    //
+    // La scheda pero' una risposta la dava, con due decimali. Rifarla non serve finche'
+    // l'archivio non raddoppia: la misura si rifa' con `python3 affidabilita.py --serata`.
 
     // Quanto la squadra dipende da lui. Serve un numero decente di partite senza.
     const suoi = new Set(righe.map(r => r.match_id));

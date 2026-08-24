@@ -70,6 +70,16 @@ verifica che README e APPUNTI dicano ancora il vero. Le frasi **datate** ("al 24
 partite") non si toccano mai: restano vere per sempre. Solo le affermazioni **al presente**
 vanno mantenute.
 
+Infine, se è cambiato uno di questi documenti, va rigenerata la pagina che Peppe usa per
+leggerli — Windows non apre i `.md`:
+
+```
+python3 "../Claude - skill/genera-documenti.py"
+```
+
+Produce `Downloads\Documenti.html`. È una **copia**: se non si rigenera, lui legge la
+versione vecchia senza accorgersene.
+
 ## Pubblicazione
 
 Il token GitHub **non è memorizzato da nessuna parte**, per scelta. Va chiesto, usato

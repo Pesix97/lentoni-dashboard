@@ -29,6 +29,7 @@ quando l'archivio sara' il doppio.
 
 Uso:
     python3 affidabilita.py [--db lentoni.db] [--min-per-meta 5]
+    python3 affidabilita.py --serata     # la squadra cala nel corso della serata?
 """
 
 import argparse
@@ -78,18 +79,104 @@ METRICHE = {
 }
 
 
+def calo_serata(db, club_id, mescolate=3000):
+    """La squadra cala nel corso della serata? Misurato il 24/08/2026: no.
+
+    Domanda che sembra ovvia e non lo e'. La scheda "Come regge la serata" la dava per
+    scontata: confrontava le prime due partite con quelle dalla quinta in poi. Ma la quinta
+    partita esiste solo nelle serate lunghe, mentre l'inizio c'e' in tutte - due popolazioni
+    diverse messe a confronto.
+
+    Qui la pendenza si calcola DENTRO ogni serata, sottraendo la media della serata stessa:
+    cosi' una serata storta per conto suo non sposta niente. Poi le posizioni vengono
+    rimescolate a caso dentro ogni serata: se la pendenza vera non si distingue da quelle
+    finte, non c'e' nessun calo da raccontare.
+
+    Al 24/08/2026, su 10 serate: pendenza +0.013 voto per partita, valore piu' estremo nel
+    70% dei rimescolamenti. La scheda e' stata tolta.
+    """
+    import random
+    from collections import defaultdict
+
+    con = sqlite3.connect(db)
+    con.row_factory = sqlite3.Row
+    partite = {r["match_id"]: r["played_at"] for r in con.execute(
+        "SELECT match_id, played_at FROM matches WHERE club_id = ? AND played_at IS NOT NULL",
+        (club_id,))}
+    quando = {ruoli.ora_italiana(v): k for k, v in partite.items()}
+    gruppi = ruoli.serate(sorted(quando))
+    posizione = {}
+    for g in gruppi:
+        for i, t in enumerate(g):
+            posizione[quando[t]] = i + 1
+
+    cfg = ruoli.carica()
+    voti = defaultdict(list)
+    for r in con.execute("SELECT match_id, player_name, pos, rating "
+                         "FROM match_player_stats WHERE club_id = ?", (club_id,)):
+        if ruoli.conta(cfg, r["player_name"], r["pos"], str(r["match_id"]), r["rating"]):
+            voti[r["match_id"]].append(r["rating"])
+    con.close()
+
+    def med(v):
+        return sum(v) / len(v) if v else None
+
+    def pendenza(punti):
+        sx = sum(x * x for x, _ in punti)
+        return sum(x * y for x, y in punti) / sx if sx else None
+
+    def punti(mescola=None):
+        out = []
+        for g in gruppi:
+            ids = [quando[t] for t in g if quando[t] in voti]
+            if len(ids) < 3:      # sotto le tre partite una pendenza non vuol dire niente
+                continue
+            medie = [med(voti[m]) for m in ids]
+            base = med(medie)
+            ps = [posizione[m] for m in ids]
+            if mescola:
+                mescola.shuffle(ps)
+            pmed = sum(ps) / len(ps)
+            out += [(p - pmed, v - base) for p, v in zip(ps, medie)]
+        return out
+
+    veri = punti()
+    if len(veri) < 10:
+        print("\nServono piu' serate per misurare il calo.")
+        return
+    b = pendenza(veri)
+    rnd = random.Random(0)
+    finti = sorted(pendenza(punti(rnd)) for _ in range(mescolate))
+    estremi = sum(1 for f in finti if abs(f) >= abs(b))
+    lo, hi = finti[mescolate // 40], finti[-mescolate // 40 - 1]
+
+    print(f"\nCalo nel corso della serata — {len(gruppi)} serate, {len(veri)} partite")
+    print(f"  pendenza vera         {b:+.3f} voto per partita giocata")
+    print(f"  caso puro (95%)       da {lo:+.3f} a {hi:+.3f}")
+    print(f"  p                     {estremi / mescolate:.3f}"
+          f"   ({estremi} rimescolamenti su {mescolate} altrettanto estremi)")
+    print("  → " + ("nessun calo distinguibile dal caso." if lo <= b <= hi
+                    else "il calo esce dall'intervallo del caso: vale la pena guardarlo."))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default="lentoni.db")
     ap.add_argument("--club", type=int, default=None)
     ap.add_argument("--min-per-meta", type=int, default=5,
                     help="presenze minime in ciascuna meta' per entrare nel confronto")
+    ap.add_argument("--serata", action="store_true",
+                    help="misura solo se la squadra cala nel corso della serata")
     args = ap.parse_args()
 
     club_id = args.club
     if club_id is None:
         import json
         club_id = json.load(open("club.json", encoding="utf-8"))["attivo"]["club_id"]
+
+    if args.serata:
+        calo_serata(args.db, club_id)
+        return 0
 
     partite, righe = carica(args.db, club_id)
     if len(righe) < 10:

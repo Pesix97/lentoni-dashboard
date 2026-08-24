@@ -231,6 +231,20 @@ descrivere come si gioca invece di premiare chi sta davanti.
 **La soglia per entrare in classifica nei reparti è 3**, scelta sapendo il compromesso.
 Va rialzata solo se il club lo chiede.
 
+**"Come regge la serata" è stata tolta il 24/08/2026** dalle schede giocatore, perché
+misurava rumore. Confrontava le prime due partite della serata con quelle dalla quinta in
+poi, e dava un giudizio con due decimali. Tre misure, in ordine di gravità:
+
+| Cosa è stato misurato | Risultato |
+| --- | --- |
+| il confronto è fra popolazioni diverse — la quinta partita esiste solo nelle serate lunghe, 7 su 10 | ricalcolandolo dentro la stessa serata, 4 giudizi su 10 cambiano e 2 invertono il segno |
+| si conferma nel tempo? prime 5 serate contro ultime 5 | affidabilità **+0.13** su 6 giocatori: uno passa da +0.92 a −0.20 |
+| esiste almeno per la squadra? | pendenza **+0.013** voto per partita, p = **0.70**, intervallo del caso da −0.06 a +0.06 |
+
+Non va rifatta finché l'archivio non raddoppia, e comunque solo dopo aver rieseguito
+`python3 affidabilita.py --serata`. Il codice tolto è documentato nel commento che ha
+lasciato al suo posto, in `modello/pagina.js`.
+
 ---
 
 ## Cose imparate, da non riscoprire
