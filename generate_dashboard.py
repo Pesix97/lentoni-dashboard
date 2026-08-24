@@ -356,9 +356,23 @@ def calcola_salute_archivio(cur, club_id):
     divario_recente = None
     if len(recenti) >= 2:
         attese_rec = (recenti[-1]["games_played"] or 0) - (recenti[0]["games_played"] or 0)
+        # Il confronto e' tra due grandezze che non scorrono allo stesso ritmo: il
+        # contatore di EA sale quando EA PUBBLICA, played_at dice quando si e' GIOCATO,
+        # e tra le due cose passano ore. Le partite giocate poco prima dell'inizio della
+        # finestra ma contate poco dopo risultavano quindi mancanti pur essendo in
+        # archivio: il 24/08/2026 ne segnalava quattro, tutte presenti.
+        #
+        # Si allarga percio' il bordo sinistro del solo lato archivio, di quanto misurato
+        # come ritardo massimo di EA. Rende il controllo un filo piu' permissivo al
+        # confine, il che e' molto meglio di un allarme che suona ogni notte: un allarme
+        # che grida al lupo si impara a ignorarlo, e allora non serve piu' a niente.
+        # Le perdite vere restano visibili nel divario storico, che non ha bordi.
+        margine = cur.execute(
+            "SELECT datetime(?, '-6 hours')", (recenti[0]["fetched_at"],)
+        ).fetchone()[0]
         arch_rec = cur.execute(
             "SELECT COUNT(*) FROM matches WHERE club_id = ? AND played_at >= ?",
-            (club_id, recenti[0]["fetched_at"]),
+            (club_id, margine),
         ).fetchone()[0]
         divario_recente = max(0, attese_rec - arch_rec)
 

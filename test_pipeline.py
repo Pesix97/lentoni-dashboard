@@ -253,6 +253,31 @@ class TestDashboard(BaseConArchivio):
         self.assertIn('Reparto per reparto', html)
         self.assertIn("saluteArchivio", dati)
 
+    def test_il_ritardo_di_ea_non_produce_falsi_allarmi(self):
+        """Il divario recente non deve accendersi per il solo ritardo di pubblicazione.
+
+        Il contatore di EA sale quando EA pubblica, played_at dice quando si e' giocato,
+        e tra le due cose passano ore: le partite giocate poco prima dell'inizio della
+        finestra ma contate poco dopo risultavano mancanti pur essendo in archivio. Il
+        24/08/2026 ne segnalava quattro, tutte presenti. Un allarme che grida al lupo si
+        impara a ignorarlo, e allora smette di servire proprio quando serve.
+        """
+        html = self._genera(self.tmp / "salute.html")
+        salute = self._dati(html)["saluteArchivio"]
+        if salute.get("divarioRecente") is None:
+            self.skipTest("storico troppo corto per il divario recente")
+        con = sqlite3.connect(self.db)
+        # Se ogni partita che EA ha contato di recente e' in archivio, il divario e' zero.
+        ultimo, primo = con.execute(
+            "SELECT MAX(games_played), MIN(games_played) FROM club_stats_history "
+            "WHERE club_id=? AND fetched_at > datetime((SELECT MAX(fetched_at) "
+            "FROM club_stats_history WHERE club_id=?), '-48 hours')", (CLUB, CLUB)).fetchone()
+        con.close()
+        if ultimo is None or primo is None:
+            self.skipTest("nessuno snapshot recente")
+        self.assertEqual(salute["divarioRecente"], 0,
+                         f"falso allarme: EA ne conta {ultimo - primo} nelle ultime 48 ore")
+
     def test_salute_archivio_coerente(self):
         """Le partite archiviate non possono essere piu' di quelle giocate secondo EA."""
         dati = self._dati(self._genera(self.tmp / "salute.html"))
