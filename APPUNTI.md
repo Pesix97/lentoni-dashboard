@@ -182,7 +182,13 @@ Il vecchio confronto mostrava un grafico a barre con gol e assist come **totali 
 accanto a delle percentuali: con 541 partite contro 96, il più anziano vinceva sempre anche
 rendendo meno. È stato sostituito dalla scomposizione del distacco nell'Indice di Forza.
 
-Due cose da non rompere:
+**Il punto di vista è il giocatore scelto a sinistra**, non chi sta più in alto in
+classifica. Verde e barra a sinistra quando è lui in vantaggio in quella voce, rosso e barra
+a destra quando è in svantaggio. Scambiando i due menu i colori si invertono, ed è
+voluto: ancorare il colore a chi sta primo obbligava a ricordarsi ogni volta quale dei due
+fosse, e rendeva il grafico inutile.
+
+Tre cose da non rompere:
 
 - **Le voci devono sommare al distacco.** È la promessa scritta nella sezione, ed è
   verificata su tutte le coppie da `test_ruoli.js`, leggendo i numeri *stampati* e non

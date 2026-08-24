@@ -323,8 +323,8 @@ console.log("\nConfronto testa a testa");
 
     // Il verdetto deve nominare qualcuno e dare un numero, non restare una scatola vuota.
     const testo = String(magazzino["h2hVerdetto"].innerHTML);
-    verifica("il verdetto dice chi sta sopra e di quanto",
-      /sta[\s\S]*punti[\s\S]*sopra/.test(testo) && rosa.some(n => testo.includes(n)), testo.slice(0, 80));
+    verifica("il verdetto dice di quanto sta sopra o sotto",
+      /sta[\s\S]*punti[\s\S]*(sopra|sotto)/.test(testo) && rosa.some(n => testo.includes(n)), testo.slice(0, 80));
     verifica("le voci vengono elencate con i valori grezzi",
       /nella rosa da/.test(String(magazzino["h2hVoci"].innerHTML)));
 
@@ -342,8 +342,16 @@ console.log("\nConfronto testa a testa");
     // precedente ne guardava una sola e non si accorse di un'attribuzione sbagliata dei
     // pezzi dell'efficienza tecnica, perche' quella coppia non era fra le undici che la
     // rendevano visibile.
+    // Tutto e' letto dal punto di vista del giocatore scelto A SINISTRA: positivo quando e'
+    // lui a guadagnare la voce, negativo quando la perde. Il nome accanto ai punti dice a
+    // chi vanno, quindi il segno si ricava da li'.
+    const leggiPunti = (frammento, nomeSinistra) =>
+      [...frammento.matchAll(/([+−])[\d.]*?([\d.]+) punti\s*<span[^>]*>\s*a ([^<]+?)\s*<\/span>/g)]
+        .map(m => (m[3].trim() === nomeSinistra ? 1 : -1) * Number(m[2]))
+        .concat([...frammento.matchAll(/>\s*pari\s*</g)].map(() => 0));
+
     let coppieViste = 0, vociSbagliate = 0, pezziSbagliati = 0, quanteVoci = new Set();
-    let peggiorVoci = 0, peggiorPezzi = 0;
+    let peggiorVoci = 0, peggiorPezzi = 0, senzaNome = 0;
     for (let i = 0; i < rosa.length; i++) {
       for (let j = i + 1; j < rosa.length; j++) {
         magazzino["h2hA"].value = rosa[i];
@@ -352,27 +360,75 @@ console.log("\nConfronto testa a testa");
         coppieViste++;
         const testoV = String(magazzino["h2hVerdetto"].innerHTML);
         const h = String(magazzino["h2hVoci"].innerHTML);
-        const atteso = Number((testoV.match(/([\d.]+) punti/) || [])[1]);
+        // Il distacco annunciato e' in valore assoluto: il verso lo dice "sopra" o "sotto".
+        const atteso = Number((testoV.match(/([\d.]+) punti/) || [])[1])
+                     * (/sotto/.test(testoV) ? -1 : 1);
+        // Il riferimento e' il valore VERO del menu di sinistra, non il nome che la
+        // pagina stampa: ricavarlo dal verdetto rendeva il controllo cieco: se il codice
+        // avesse ancorato tutto a chi sta piu' in alto in classifica, il test lo avrebbe
+        // seguito invece di accorgersene. Provato rompendolo apposta.
+        const nomeAlto = rosa[i];
+        if (!/<strong>/.test(testoV) || !testoV.includes(nomeAlto)) { senzaNome++; continue; }
+        if (!new RegExp("<strong>" + nomeAlto.replace(/[.*+?^${}()|\[\]\\]/g, "\\$&") + "</strong>\\s*sta").test(testoV)) {
+          senzaNome++; continue;
+        }
+
         // Le tendine contengono a loro volta dei punti: vanno tolte, altrimenti i pezzi
         // dell'efficienza tecnica verrebbero contati insieme al loro totale.
         const senzaTendine = h.replace(/<details[\s\S]*?<\/details>/g, "");
-        const punti = [...senzaTendine.matchAll(/([+−])([\d.]+) punti/g)]
-          .map(m => (m[1] === "−" ? -1 : 1) * Number(m[2]));
+        const punti = leggiPunti(senzaTendine, nomeAlto);
         quanteVoci.add(punti.length);
         const scartoVoci = Math.abs(punti.reduce((t, v) => t + v, 0) - atteso);
         if (scartoVoci > 0.15) vociSbagliate++;
         if (scartoVoci > peggiorVoci) peggiorVoci = scartoVoci;
 
-        const tech = h.match(/Efficienza tecnica[\s\S]*?([+−])([\d.]+) punti/);
-        const somma = h.match(/I tre sommano a ([+−])([\d.]+) punti/);
-        if (tech && somma) {
-          const t = (tech[1] === "−" ? -1 : 1) * Number(tech[2]);
-          const q = (somma[1] === "−" ? -1 : 1) * Number(somma[2]);
+        // La riga dell'efficienza tecnica va isolata PRIMA della sua tendina: cercando il
+        // primo "punti" dopo l'etichetta si finiva dentro il riepilogo dei tre pezzi, e il
+        // controllo confrontava un numero con se stesso passando sempre.
+        const rigaTech = (h.match(/Efficienza tecnica([\s\S]*?)<details/) || [])[1];
+        const dentroTendina = (h.match(/<details[\s\S]*?<\/details>/) || [])[0];
+        if (rigaTech && dentroTendina) {
+          const t = leggiPunti(rigaTech, nomeAlto)[0];
+          const q = leggiPunti(dentroTendina, nomeAlto).reduce((a, b) => a + b, 0);
+          // Tolleranza 0.16 e non zero: si sommano tre numeri gia' arrotondati a un
+          // decimale, quindi fino a 0.05 ciascuno di scarto legittimo. Un'attribuzione
+          // davvero sbagliata produce scarti di oltre un punto, ben fuori da qui.
           const scartoPezzi = Math.abs(t - q);
-          if (scartoPezzi > 0.06) pezziSbagliati++;
+          if (scartoPezzi > 0.16) pezziSbagliati++;
           if (scartoPezzi > peggiorPezzi) peggiorPezzi = scartoPezzi;
         }
       }
+    }
+    verifica("il verdetto nomina sempre il giocatore di sinistra", senzaNome === 0,
+      `${senzaNome} coppie senza nome`);
+
+    // Colore e verso devono seguire il giocatore di SINISTRA: verde e barra a sinistra
+    // quando e' in vantaggio, rosso e barra a destra quando e' in svantaggio. Se il colore
+    // guardasse chi sta piu' in alto in classifica i numeri tornerebbero comunque, ma per
+    // leggere una riga bisognerebbe prima ricordarsi quale dei due e' il primo.
+    {
+      let controcorrente = 0, coloreSbagliato = 0, verificate = 0;
+      for (let i = 0; i < rosa.length && controcorrente === 0 && coloreSbagliato === 0; i++) {
+        for (let j = i + 1; j < rosa.length; j++) {
+          magazzino["h2hA"].value = rosa[i]; magazzino["h2hB"].value = rosa[j]; cambia();
+          const nome = rosa[i];   // il giocatore scelto a sinistra, non quello annunciato
+          const blocchi = String(magazzino["h2hVoci"].innerHTML)
+            .replace(/<details[\s\S]*?<\/details>/g, "").split(/border-bottom:1px solid var\(--panel-2/);
+          blocchi.forEach(b => {
+            const p = leggiPunti(b, nome);
+            if (!p.length || p[0] === 0) return;
+            verificate++;
+            // "right:50%" ancora la barra al centro e la fa crescere verso sinistra.
+            if ((p[0] > 0) !== /right:50%/.test(b)) controcorrente++;
+            if ((p[0] > 0) !== /--win/.test(b)) coloreSbagliato++;
+          });
+          if (controcorrente || coloreSbagliato) break;
+        }
+      }
+      verifica(`la barra punta verso chi guadagna la voce (${verificate} righe)`,
+        controcorrente === 0, `${controcorrente} righe con barra dalla parte sbagliata`);
+      verifica("verde quando il giocatore di sinistra e' in vantaggio, rosso quando e' in svantaggio",
+        coloreSbagliato === 0, `${coloreSbagliato} righe col colore invertito`);
     }
     verifica(`le voci mostrate sono sempre sei (${coppieViste} coppie)`,
       quanteVoci.size === 1 && quanteVoci.has(6), `viste ${[...quanteVoci].join(", ")}`);
