@@ -378,8 +378,15 @@ console.log("\nConfronto testa a testa");
         const senzaTendine = h.replace(/<details[\s\S]*?<\/details>/g, "");
         const punti = leggiPunti(senzaTendine, nomeAlto);
         quanteVoci.add(punti.length);
+        // Tolleranza 0.35 e non un numero a caso: si sommano sei voci gia' arrotondate a un
+        // decimale e le si confronta con un totale anch'esso arrotondato, quindi sette
+        // arrotondamenti da 0.05. Con 59 partite non si superava 0.15 e la soglia sembrava
+        // stretta a sufficienza; a 69 partite e' arrivata una coppia a 0.20, che non era un
+        // difetto: verificato che la somma ESATTA coincide col distacco a meno di 1e-14.
+        // Un'attribuzione davvero sbagliata produce scarti di parecchi punti - le rotture
+        // provate apposta davano 23.8 e 125.3 - quindi il controllo resta severo.
         const scartoVoci = Math.abs(punti.reduce((t, v) => t + v, 0) - atteso);
-        if (scartoVoci > 0.15) vociSbagliate++;
+        if (scartoVoci > 0.35) vociSbagliate++;
         if (scartoVoci > peggiorVoci) peggiorVoci = scartoVoci;
 
         // La riga dell'efficienza tecnica va isolata PRIMA della sua tendina: cercando il
