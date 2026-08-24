@@ -328,18 +328,58 @@ console.log("\nConfronto testa a testa");
     verifica("le voci vengono elencate con i valori grezzi",
       /nella rosa da/.test(String(magazzino["h2hVoci"].innerHTML)));
 
+    verifica("ogni pezzo dichiara su cosa e' calcolato",
+      /sui passaggi tentati/.test(String(magazzino["h2hVoci"].innerHTML))
+      && /gol sui tiri tentati/.test(String(magazzino["h2hVoci"].innerHTML))
+      && /sui contrasti tentati/.test(String(magazzino["h2hVoci"].innerHTML)));
+
     // Il controllo che conta: si leggono i numeri STAMPATI e si verifica che sommino al
     // distacco annunciato. Ricalcolarli a parte non basta - il difetto puo' stare nel modo
     // in cui vengono mostrati, per esempio un segno sbagliato sui cartellini, e in quel
     // caso il conto tornerebbe lo stesso mentre a schermo compare l'opposto.
-    const annunciato = Number((testo.match(/([\d.]+) punti/) || [])[1]);
-    const stampati = [...String(magazzino["h2hVoci"].innerHTML)
-      .matchAll(/([+−])([\d.]+) punti/g)].map(m => (m[1] === "−" ? -1 : 1) * Number(m[2]));
-    verifica("le voci mostrate a schermo sono sei", stampati.length === 6, `sono ${stampati.length}`);
-    const sommaStampata = stampati.reduce((t, v) => t + v, 0);
-    verifica("i punti stampati sommano al distacco annunciato",
-      Math.abs(sommaStampata - annunciato) < 0.15,
-      `stampati ${sommaStampata.toFixed(1)}, annunciato ${annunciato}`);
+    //
+    // E va fatto su TUTTE le coppie, non su quella aperta per prima: una versione
+    // precedente ne guardava una sola e non si accorse di un'attribuzione sbagliata dei
+    // pezzi dell'efficienza tecnica, perche' quella coppia non era fra le undici che la
+    // rendevano visibile.
+    let coppieViste = 0, vociSbagliate = 0, pezziSbagliati = 0, quanteVoci = new Set();
+    let peggiorVoci = 0, peggiorPezzi = 0;
+    for (let i = 0; i < rosa.length; i++) {
+      for (let j = i + 1; j < rosa.length; j++) {
+        magazzino["h2hA"].value = rosa[i];
+        magazzino["h2hB"].value = rosa[j];
+        cambia();
+        coppieViste++;
+        const testoV = String(magazzino["h2hVerdetto"].innerHTML);
+        const h = String(magazzino["h2hVoci"].innerHTML);
+        const atteso = Number((testoV.match(/([\d.]+) punti/) || [])[1]);
+        // Le tendine contengono a loro volta dei punti: vanno tolte, altrimenti i pezzi
+        // dell'efficienza tecnica verrebbero contati insieme al loro totale.
+        const senzaTendine = h.replace(/<details[\s\S]*?<\/details>/g, "");
+        const punti = [...senzaTendine.matchAll(/([+−])([\d.]+) punti/g)]
+          .map(m => (m[1] === "−" ? -1 : 1) * Number(m[2]));
+        quanteVoci.add(punti.length);
+        const scartoVoci = Math.abs(punti.reduce((t, v) => t + v, 0) - atteso);
+        if (scartoVoci > 0.15) vociSbagliate++;
+        if (scartoVoci > peggiorVoci) peggiorVoci = scartoVoci;
+
+        const tech = h.match(/Efficienza tecnica[\s\S]*?([+−])([\d.]+) punti/);
+        const somma = h.match(/I tre sommano a ([+−])([\d.]+) punti/);
+        if (tech && somma) {
+          const t = (tech[1] === "−" ? -1 : 1) * Number(tech[2]);
+          const q = (somma[1] === "−" ? -1 : 1) * Number(somma[2]);
+          const scartoPezzi = Math.abs(t - q);
+          if (scartoPezzi > 0.06) pezziSbagliati++;
+          if (scartoPezzi > peggiorPezzi) peggiorPezzi = scartoPezzi;
+        }
+      }
+    }
+    verifica(`le voci mostrate sono sempre sei (${coppieViste} coppie)`,
+      quanteVoci.size === 1 && quanteVoci.has(6), `viste ${[...quanteVoci].join(", ")}`);
+    verifica("in ogni coppia i punti stampati sommano al distacco annunciato",
+      vociSbagliate === 0, `${vociSbagliate} coppie fuori, scarto massimo ${peggiorVoci.toFixed(2)}`);
+    verifica("in ogni coppia i tre pezzi sommano all'efficienza tecnica",
+      pezziSbagliati === 0, `${pezziSbagliati} coppie fuori, scarto massimo ${peggiorPezzi.toFixed(2)}`);
   } catch (e) {
     verifica("il confronto si esegue senza eccezioni", false, e.message);
   }

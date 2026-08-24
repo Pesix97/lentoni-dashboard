@@ -192,6 +192,17 @@ Due cose da non rompere:
   carriera accanto a un punteggio che contiene anche la forma produceva righe assurde tipo
   «+13.4 punti, 7.10 contro 7.10». Funziona perché la normalizzazione è lineare: mescolare
   i valori grezzi dà lo stesso risultato che mescolare i normalizzati.
+- **I tre pezzi dell'efficienza tecnica si attribuiscono ripartendo il totale ottenuto**,
+  in proporzione a quanto ciascuno contribuisce alla differenza. Dividere invece per
+  l'ampiezza della scala sembra più diretto e **non torna in 21 coppie su 66**: la parte
+  storica e quella di forma si normalizzano su intervalli che non coincidono, e chi esce
+  dai bordi viene schiacciato.
+
+Allargare le scale per comprendere anche i valori di forma è stato **provato e scartato**:
+risolverebbe lo schiacciamento (nella vista predefinita nessuno cambia posizione, scarto
+massimo 1,7 punti) ma richiede di cambiare anche la normalizzazione dello storico, che oggi
+usa un intervallo calcolato per conto suo. Farne metà è peggio di non farne: le due metà
+dell'indice finirebbero su scale diverse. Se un giorno si riprende, vanno cambiate insieme.
 
 ### La percentuale di contrasti misura in parte la selettività (24/08/2026)
 

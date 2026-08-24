@@ -1316,6 +1316,9 @@ function computeFormScores(windowSize){
         motmRate:  a.mom / a.games,
         winRate:   (a.win / a.games) * 100,
         techEff:   efficienzaTecnica(pass, tackle, shot),
+        // I tre pezzi si conservano anche separati: il testa a testa apre l'efficienza
+        // tecnica per mostrare da quale dei tre nasce il distacco.
+        passaggi: pass, contrasti: tackle, tiro: shot,
         redRate:   a.red / a.games,
       };
     });
@@ -1375,9 +1378,11 @@ function computeBlendedScores(windowSize, weight){
       rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
       win: g.win_rate, tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate),
       disc: g.red_cards / gp,
+      passaggi: g.pass_success_rate, contrasti: g.tackle_success_rate, tiro: g.shot_success_rate,
     };
     const daForma = hasForm ? { rating: f.ratingAve, contrib: f.contrib, motm: f.motmRate,
-                                win: f.winRate, tech: f.techEff, disc: f.redRate } : null;
+                                win: f.winRate, tech: f.techEff, disc: f.redRate,
+                                passaggi: f.passaggi, contrasti: f.contrasti, tiro: f.tiro } : null;
     const grezzi = {};
     Object.keys(carriera).forEach(k => {
       grezzi[k] = hasForm ? (1 - pesoForma) * carriera[k] + pesoForma * daForma[k] : carriera[k];
@@ -2725,6 +2730,7 @@ function computeOutfieldLineup(){
   selB.value = roster[1].player_name;
 
   const dec2 = v => v.toFixed(2);
+  const pc = v => v.toFixed(1) + "%";
   const VOCI = [
     { k:"rating",  eti:"Media voto",           fmt:dec2 },
     { k:"contrib", eti:"Gol+assist a partita", fmt:dec2 },
@@ -2734,19 +2740,76 @@ function computeOutfieldLineup(){
     { k:"disc",    eti:"Cartellini rossi",     fmt:v => v.toFixed(3) + "/partita" },
   ];
 
+  // L'efficienza tecnica e' l'unica voce composta, ed era anche l'unica opaca: diceva
+  // "61.7 contro 49.1" senza far vedere da quale dei tre pezzi nascesse il divario.
+  const PEZZI_TECNICA = [
+    { k:"passaggi",  eti:"Passaggi riusciti",  su:"sui passaggi tentati" },
+    { k:"tiro",      eti:"Realizzazione",      su:"gol sui tiri tentati" },
+    { k:"contrasti", eti:"Contrasti vinti",    su:"sui contrasti tentati" },
+  ];
+
   // Minimo, mediana e massimo: senza questo riferimento "7.80 contro 7.50" non si puo'
   // leggere. La mediana e non la media, cosi' un solo valore estremo non la sposta. Si
   // calcola sugli stessi valori mescolati che si mostrano, altrimenti il confronto sarebbe
   // con una rosa diversa da quella a cui appartengono i due numeri.
   function scaleDi(punteggi){
     const s = {};
-    VOCI.forEach(v => {
+    [...VOCI, ...PEZZI_TECNICA].forEach(v => {
       const vals = punteggi.map(p => p.grezziMescolati[v.k]).sort((a,b)=>a-b);
       s[v.k] = { min: vals[0], max: vals[vals.length-1],
                  med: vals.length % 2 ? vals[(vals.length-1)/2]
                                       : (vals[vals.length/2 - 1] + vals[vals.length/2]) / 2 };
     });
     return s;
+  }
+
+  // I tre pezzi dell'efficienza tecnica, con quanti punti porta ciascuno. La somma torna
+  // esatta perche' la voce e' una combinazione lineare dei tre e nessuno viene piu'
+  // schiacciato ai bordi della scala: se un giorno non tornasse, il test se ne accorge.
+  function pezziTecnica(alto, basso, scale, totale){
+    // I punti si ripartiscono in proporzione a quanto ciascun pezzo contribuisce alla
+    // differenza di efficienza tecnica. E' esatto per costruzione: l'efficienza e' una
+    // combinazione lineare dei tre, quindi i loro scarti pesati SONO la differenza.
+    //
+    // Dividere invece per l'ampiezza della scala sembra piu' diretto e non torna: la parte
+    // storica e quella di forma vengono normalizzate su intervalli che non coincidono, e
+    // chi esce dai bordi viene schiacciato. Ripartire il totale realmente ottenuto assorbe
+    // entrambe le cose senza inventare niente.
+    const contributi = PEZZI_TECNICA.map(p => ({
+      p, quota: PESI_TECNICA[p.k] * (alto.grezziMescolati[p.k] - basso.grezziMescolati[p.k]),
+      a: alto.grezziMescolati[p.k], b: basso.grezziMescolati[p.k],
+    }));
+    const totQuote = contributi.reduce((t, c) => t + c.quota, 0);
+    if(Math.abs(totQuote) < 1e-9) return "";
+    const righe = contributi
+      .map(c => ({ ...c, diff: totale * c.quota / totQuote }))
+      .sort((x, y) => y.diff - x.diff);
+    const somma = righe.reduce((t, r) => t + r.diff, 0);
+    return `
+      <details style="margin-top:8px;">
+        <summary style="font-size:11.5px; color:var(--muted); cursor:pointer;">
+          Da dove arrivano questi ${Math.abs(totale).toFixed(1)} punti</summary>
+        <div style="margin:8px 0 2px; padding-left:12px; border-left:2px solid var(--panel-2,rgba(255,255,255,.10));">
+          ${righe.map(r => `
+            <div style="display:flex; justify-content:space-between; gap:10px; padding:5px 0; font-size:12px;">
+              <span>${r.p.eti}
+                <span style="color:var(--muted); font-size:10.5px;">
+                  — ${r.p.su}, pesa ${(100 * PESI_TECNICA[r.p.k]).toFixed(0)}%</span>
+              </span>
+              <span style="white-space:nowrap;">
+                <span style="color:var(--muted);">${pc(r.a)} contro ${pc(r.b)}</span>
+                <strong style="color:${r.diff >= 0 ? "var(--ok,#4ade80)" : "var(--accent)"}; margin-left:8px;">
+                  ${r.diff >= 0 ? "+" : "−"}${Math.abs(r.diff).toFixed(1)}</strong>
+              </span>
+            </div>`).join("")}
+          <div style="font-size:10.5px; color:var(--muted); padding-top:5px; opacity:.8;">
+            I tre sommano a ${somma >= 0 ? "+" : "−"}${Math.abs(somma).toFixed(1)} punti.
+            Nella rosa: passaggi ${pc(scale.passaggi.min)}–${pc(scale.passaggi.max)},
+            realizzazione ${pc(scale.tiro.min)}–${pc(scale.tiro.max)},
+            contrasti ${pc(scale.contrasti.min)}–${pc(scale.contrasti.max)}.
+          </div>
+        </div>
+      </details>`;
   }
 
   function draw(){
@@ -2809,6 +2872,7 @@ function computeOutfieldLineup(){
           ${f(r.grezzoA)} contro ${f(r.grezzoB)}
           <span style="opacity:.75;"> · nella rosa da ${f(s.min)} a ${f(s.max)}, mediana ${f(s.med)}</span>
         </div>
+        ${r.v.k === "tech" ? pezziTecnica(alto, basso, scale, r.diff) : ""}
       </div>`;
     }).join("");
 
