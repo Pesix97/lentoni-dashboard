@@ -178,6 +178,11 @@ tutto quello che verrà dopo.
 
 ## Come si lavora a questo progetto
 
+Le stesse regole vivono in tre posti, con raggi d'azione diversi: qui, in `CLAUDE.md`
+(letto automaticamente da Claude appena lavora in questa cartella) e nella skill
+`lentoni-dashboard`, che compare in ogni sessione anche senza aprire il progetto. Se una
+regola cambia, vanno aggiornati tutti e tre.
+
 Questa sezione non parla di codice. Serve a una conversazione nuova — o a una che ha perso
 la memoria delle prime ore — per non ripetere errori già fatti.
 

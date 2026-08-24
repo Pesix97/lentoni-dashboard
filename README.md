@@ -138,6 +138,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 
 | File | Cosa fa |
 | --- | --- |
+| `CLAUDE.md` | Le regole di lavoro. Letto automaticamente da Claude quando opera in questa cartella. |
 | `index.html` | La dashboard pubblicata. **Generata**, non modificarla a mano. |
 | `lentoni.db` | Database SQLite con tutto lo storico. |
 | `ingest.py` | Scrive i JSON scaricati nel database. Nessuna chiamata di rete. |
