@@ -37,10 +37,25 @@ Si consulta qui: **[stato.json](../../blob/stato/stato.json)**. È un ramo orfan
 ogni volta, quindi la sua cronologia è lunga uno e non pesa sul repository.
 
 ```json
-{ "ultimo_giro": "2026-08-23T13:48:00Z", "partite": 49,
-  "fonte": "ok", "ultimo_successo_fonte": "2026-08-23T13:48:00Z",
-  "fallimenti_di_fila": 0, "problema": null }
+{ "ultimo_giro": "2026-08-25T05:00:00Z", "partite": 64,
+  "fonte": "ok", "ultimo_successo_fonte": "2026-08-25T05:00:00Z",
+  "fallimenti_di_fila": 0, "problema": null,
+  "guasti_in_memoria": 1, "guasto_in_corso": false,
+  "ultimo_guasto": { "fonte": "irraggiungibile", "partite": 59, "problema": null,
+                     "da": "2026-08-25T03:00:00Z", "a": "2026-08-25T03:40:00Z", "giri": 3 },
+  "storia": [ "..." ] }
 ```
+
+**La memoria sta dentro il file, non nella storia del ramo.** Il ramo ha un commit solo per
+scelta — così non cresce mai — ma il prezzo era che il battito diceva com'è *adesso*, non
+com'è *andata*: un guasto notturno rientrato prima del mattino non lasciava traccia da
+nessuna parte. Ed è proprio il caso che conta, perché in quelle ore le partite giocate
+possono uscire dalla finestra delle dieci e sparire per sempre.
+
+`battito.py` tiene quindi un registro di **cambiamenti**, non di campionamenti: finché i
+giri raccontano la stessa cosa la voce esistente si allunga e il contatore `giri` sale, e
+una voce nuova nasce solo quando qualcosa cambia davvero. Con cento voci si coprono mesi di
+funzionamento regolare restando su pochi KB.
 
 **Il battito distingue tre guasti diversi**, che prima erano lo stesso silenzio:
 
@@ -148,12 +163,13 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `modello/stile.css` | Tutto il CSS. |
 | `modello/pagina.js` | Tutta la logica che gira nel browser. **File .js vero**: `node --check` lo verifica. |
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. |
+| `battito.py` | Lo stato dell'automazione, con la memoria dei guasti. Il ramo `stato` ha un commit solo per scelta, quindi il registro vive dentro il file: una voce per ogni **cambiamento**, non per ogni giro. |
 | `ruoli.py` | La regola dei ruoli in un posto solo: chi conta, in che reparto, in che serata. Condivisa fra gli script. |
 | `serata.py` | La griglia di una serata da confermare, con le osservazioni su cosa non torna. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 47 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello. |
+| `test_pipeline.py` | 53 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello, memoria del battito. |
 | `test_ruoli.js` | 40 controlli su ruoli, formazione e scheda osservatore, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 

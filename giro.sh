@@ -36,6 +36,11 @@ echo "  club attivo: $CLUB_ID ($PIATTAFORMA)"
 # falliva, e il ramo 'stato' finiva per ereditare la storia di main con tutti i suoi file
 # (verificato il 21/08/2026: 3 commit invece di 1). Cosi' invece il commit e' sempre
 # senza genitore e contiene un solo file, e il force-push sostituisce il precedente.
+#
+# Il rovescio di quella scelta e' che il ramo non ha storia: diceva com'e' adesso, non
+# com'e' andata. Un guasto notturno rientrato prima del mattino non lasciava traccia.
+# Dal 24/08/2026 la memoria sta DENTRO il file - vedi battito.py - cosi' il ramo resta di
+# un commit solo e il registro dei guasti esiste lo stesso.
 scrivi_battito() {
   esito="$1"            # ok | irraggiungibile
   problema="${2:-}"     # cosa si e' rotto dopo lo scaricamento, se qualcosa
@@ -46,40 +51,10 @@ scrivi_battito() {
     precedente=$(git show FETCH_HEAD:stato.json 2>/dev/null || echo '{}')
     partite=$(python3 -c "import sqlite3;print(sqlite3.connect('lentoni.db').execute('select count(*) from matches').fetchone()[0])" 2>/dev/null || echo 0)
 
-    export PRECEDENTE="$precedente"
-    python3 - "$esito" "$partite" "$problema" > /tmp/stato.json <<'PYSTATO'
-import json, sys, os
-from datetime import datetime, timezone
-
-esito, partite, problema = sys.argv[1], int(sys.argv[2]), (sys.argv[3] or None)
-adesso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-try:
-    prec = json.loads(os.environ.get("PRECEDENTE") or "{}")
-except Exception:
-    prec = {}
-
-if esito == "ok":
-    ultimo_successo, falliti = adesso, 0
-else:
-    ultimo_successo = prec.get("ultimo_successo_fonte")
-    falliti = int(prec.get("fallimenti_di_fila") or 0) + 1
-
-stato = {
-    "ultimo_giro": adesso,
-    "partite": partite,
-    # Da qui in giu': salute della FONTE, non dell'automazione. Sono due guasti diversi
-    # e prima erano indistinguibili: se proclubstracker fosse caduto, il ciclo avrebbe
-    # continuato a girare scrivendo "dati non scaricati" in un log che nessuno legge, e
-    # il battito sarebbe rimasto verde perche' il battito diceva solo "sono vivo".
-    "fonte": esito,
-    "ultimo_successo_fonte": ultimo_successo,
-    "fallimenti_di_fila": falliti,
-    # Un guasto a valle dello scaricamento: la fonte risponde ma qualcosa nella nostra
-    # pipeline non ha funzionato. Anche questo prima finiva solo in un log non letto.
-    "problema": problema,
-}
-print(json.dumps(stato))
-PYSTATO
+    # La costruzione dello stato sta in battito.py e non qui dentro: infilata in un
+    # documento incorporato nello script non era collaudabile, e questa e' proprio la parte
+    # che deve funzionare quando tutto il resto e' rotto. Ora ha i suoi test.
+    printf '%s' "$precedente" | python3 battito.py "$esito" "$partite" "$problema" > /tmp/stato.json
 
     blob=$(git hash-object -w /tmp/stato.json)
     albero=$(printf '100644 blob %s\tstato.json\n' "$blob" | git mktree)

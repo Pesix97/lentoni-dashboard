@@ -34,6 +34,20 @@ dashboard, si chiede prima. Una modifica all'interfaccia è già stata annullata
 apposta e guardarlo fallire, poi ripristinare. Un test che non si è mai visto rosso non
 dimostra niente.
 
+**7. Un controllo che si fida dell'output non controlla niente.** Deve partire da un
+riferimento indipendente da ciò che verifica. Tre test scritti il 24/08/2026 passavano
+mentre il codice era rotto, tutti per questo motivo:
+
+| Il test | Perché era cieco |
+| --- | --- |
+| somma dei tre pezzi dell'efficienza tecnica | cercava il primo valore dopo l'etichetta e finiva nel riepilogo della tendina: confrontava un numero con se stesso |
+| colore del testa a testa | ricavava il nome di riferimento dal testo stampato dalla pagina, quindi seguiva il codice invece di controllarlo |
+| attribuzione dei punti | guardava una coppia sola su sessantasei, e non era fra le ventuno in cui il difetto si vedeva |
+
+Le contromisure che funzionano: leggere i valori **stampati** e non ricalcolarli, ancorarsi
+ai **dati di partenza** (il valore vero di un menu, non il nome che la pagina scrive), e
+provare **tutti i casi**, non quello che si apre per primo.
+
 ## Cosa cercare quando qualcosa non torna
 
 I guasti di questo progetto **non sono crash**. Sono numeri plausibili e sbagliati, e

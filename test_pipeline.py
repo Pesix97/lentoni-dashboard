@@ -900,5 +900,79 @@ class TestEsclusioni(BaseConArchivio):
         self.assertNotIn("excludedRows", out.read_text(encoding="utf-8"))
 
 
+class TestBattito(unittest.TestCase):
+    """La memoria del battito.
+
+    Il ramo `stato` ha per scelta un commit solo, quindi la storia dei guasti vive dentro
+    il file. Se questa parte si rompe, si rompe in silenzio - e proprio quando serve.
+    """
+
+    def _giri(self, copione):
+        import battito
+        s = {}
+        for esito, partite, problema, quando in copione:
+            s = battito.nuovo_stato(s, esito, partite, problema, quando)
+        return s
+
+    def test_i_giri_uguali_non_generano_voci_nuove(self):
+        s = self._giri([("ok", 59, None, f"2026-08-25T0{i}:00:00Z") for i in range(1, 6)])
+        self.assertEqual(len(s["storia"]), 1, "cinque giri identici devono restare una voce")
+        self.assertEqual(s["storia"][0]["giri"], 5)
+        self.assertEqual(s["storia"][0]["da"], "2026-08-25T01:00:00Z")
+        self.assertEqual(s["storia"][0]["a"], "2026-08-25T05:00:00Z")
+
+    def test_un_guasto_rientrato_lascia_traccia(self):
+        # E' il caso per cui la memoria esiste: la fonte cade di notte e si riprende prima
+        # che qualcuno guardi. Senza registro, la mattina sembra che non sia successo nulla.
+        s = self._giri([
+            ("ok", 59, None, "2026-08-25T00:00:00Z"),
+            ("irraggiungibile", 59, None, "2026-08-25T03:00:00Z"),
+            ("irraggiungibile", 59, None, "2026-08-25T03:20:00Z"),
+            ("ok", 59, None, "2026-08-25T08:00:00Z"),
+        ])
+        self.assertEqual(s["fonte"], "ok")
+        self.assertEqual(s["fallimenti_di_fila"], 0)
+        self.assertFalse(s["guasto_in_corso"])
+        self.assertEqual(s["guasti_in_memoria"], 1, "il guasto deve restare nel registro")
+        self.assertEqual(s["ultimo_guasto"]["giri"], 2)
+        self.assertEqual(s["ultimo_guasto"]["da"], "2026-08-25T03:00:00Z")
+
+    def test_anche_un_guasto_a_valle_conta(self):
+        s = self._giri([
+            ("ok", 59, None, "2026-08-25T00:00:00Z"),
+            ("ok", 59, "pagina senza la sezione Serate", "2026-08-25T00:20:00Z"),
+        ])
+        self.assertEqual(s["guasti_in_memoria"], 1)
+        self.assertTrue(s["guasto_in_corso"])
+        self.assertEqual(s["ultimo_guasto"]["problema"], "pagina senza la sezione Serate")
+
+    def test_il_registro_non_cresce_senza_limite(self):
+        # Il caso peggiore: una voce nuova ad OGNI giro, per il triplo della memoria. Se il
+        # limite non ci fosse, il file crescerebbe per sempre e il ramo con lui.
+        import battito
+        quanti = battito.MEMORIA * 3
+        copione = [("ok" if i % 2 else "irraggiungibile", i, None,
+                    f"2026-08-25T00:00:{i % 60:02d}Z") for i in range(quanti)]
+        s = self._giri(copione)
+        self.assertLessEqual(len(s["storia"]), battito.MEMORIA,
+                             f"registro cresciuto a {len(s['storia'])} voci su {quanti} giri")
+        self.assertLess(len(json.dumps(s)), 40_000)
+        # E deve tenere le voci PIU' RECENTI, non le prime.
+        self.assertEqual(s["storia"][-1]["partite"], quanti - 1)
+
+    def test_lo_stato_precedente_illeggibile_non_ferma_il_battito(self):
+        import battito
+        for rotto in (None, "", [], "non-json"):
+            s = battito.nuovo_stato(rotto, "ok", 59, None, "2026-08-25T00:00:00Z")
+            self.assertEqual(s["partite"], 59)
+            self.assertEqual(len(s["storia"]), 1)
+
+    def test_giro_sh_usa_battito_py(self):
+        # Se qualcuno reinfilasse il calcolo dentro lo script, tornerebbe non collaudabile.
+        testo = Path("giro.sh").read_text(encoding="utf-8")
+        self.assertIn("python3 battito.py", testo)
+        self.assertNotIn("PYSTATO", testo)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
