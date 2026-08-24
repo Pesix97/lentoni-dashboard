@@ -2570,9 +2570,14 @@ function computeOutfieldLineup(){
   // ma finisce il giorno dopo. Senza dirlo, due schede dello stesso giorno sembravano
   // separate da pochi minuti quando in mezzo c'erano ventun ore: il 04/08/2026 una serata
   // finiva "alle 01:04" e l'altra cominciava "alle 01:11", su due notti diverse.
-  const quando = s => s.giornoFine && s.giornoFine !== s.giorno
-    ? `dalle ${s.inizio} del ${s.giorno} alle ${s.fine} del ${s.giornoFine}`
-    : `dalle ${s.inizio} alle ${s.fine}`;
+  // Una sessione cominciata dopo mezzanotte porta l'etichetta della sera precedente, ma
+  // le partite sono state giocate il giorno dopo: la dicitura lo dice per esteso, cosi'
+  // l'etichetta e gli orari non sembrano contraddirsi.
+  const quando = s => s.notte
+    ? `notte fra il ${s.giorno} e il ${s.giornoInizio}, dalle ${s.inizio} alle ${s.fine}`
+    : (s.giornoFine && s.giornoFine !== s.giornoInizio
+        ? `dalle ${s.inizio} alle ${s.fine} del ${s.giornoFine}`
+        : `dalle ${s.inizio} alle ${s.fine}`);
 
   // Lo skill rating non viene rilevato a ogni partita ma a ogni giro riuscito. Per la
   // serata si prende l'ultimo valore noto PRIMA che cominciasse e l'ultimo prima che

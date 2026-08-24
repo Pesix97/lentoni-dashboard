@@ -556,9 +556,22 @@ def elenco_serate(matches):
         out = []
         for g in gruppi:
             chiave = _r.chiave_serata(quando[g[0]][1])
+            # La serata appartiene alla SERA in cui e' cominciata, non alla data di
+            # calendario. Senza questo, la notte fra il 22 e il 23 e quella fra il 23 e il
+            # 24 finivano entrambe etichettate "23/08": una comincia poco dopo mezzanotte,
+            # l'altra poco prima, e per il calendario iniziano lo stesso giorno. Per chi ha
+            # giocato sono due serate diverse, e chiamarle allo stesso modo confondeva.
+            #
+            # Sei ore di scarto: una sessione che comincia prima delle 06:00 appartiene
+            # alla sera precedente. Restano insieme solo i doppioni veri, come il 18/08
+            # quando si e' giocato sia il pomeriggio sia la notte.
+            sera = g[0] - timedelta(hours=6)
+            notte = g[0].hour < 6
             out.append({
                 "chiave": chiave,
-                "giorno": f"{g[0]:%d/%m}",
+                "giorno": f"{sera:%d/%m}",
+                "notte": notte,
+                "giornoInizio": f"{g[0]:%d/%m}",
                 "giornoFine": f"{g[-1]:%d/%m}",
                 "inizio": f"{g[0]:%H:%M}",
                 "fine": f"{g[-1]:%H:%M}",
