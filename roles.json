@@ -729,6 +729,42 @@
       "quando": "24/08 01:59 beirutlb",
       "giocatore": "ktm-008",
       "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1000016956010247",
+      "quando": "24/08 02:17 beirutlb",
+      "giocatore": "gio05596",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1000016956010247",
+      "quando": "24/08 02:17 beirutlb",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1000016956010247",
+      "quando": "24/08 02:17 beirutlb",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1000016956010247",
+      "quando": "24/08 02:17 beirutlb",
+      "giocatore": "Pesix_97",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1000016956010247",
+      "quando": "24/08 02:17 beirutlb",
+      "giocatore": "FFLI_Adriano",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1000016956010247",
+      "quando": "24/08 02:17 beirutlb",
+      "giocatore": "ktm-008",
+      "gruppo": "ATTACCANTI"
     }
   ],
   "_esclusioni_partita": [
@@ -809,6 +845,10 @@
     {
       "serata": "2026-08-22T23:21Z",
       "partite": 7
+    },
+    {
+      "serata": "2026-08-23T21:27Z",
+      "partite": 10
     }
   ],
   "_serate_chiuse": [
