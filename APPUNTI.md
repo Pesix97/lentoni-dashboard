@@ -121,9 +121,11 @@ media voto              +0.07     praticamente rumore
 premio migliore         +0.08     rumore
 ```
 
-**L'indice attuale dà il 40% del peso alla metrica meno stabile (media voto) e il 20% alla
-più stabile (gol+assist).** È pesato quasi al contrario, e nessuno se n'era accorto perché
-quei pesi sembrano ragionevoli a chiunque li legga.
+**L'indice dà il 50% del peso alla metrica meno stabile (media voto) e il 20% alla più
+stabile (gol+assist).** È pesato quasi al contrario, e nessuno se n'era accorto perché quei
+pesi sembrano ragionevoli a chiunque li legga. Il 24/08 il MOTM è sceso dal 15% al 5% e i
+dieci punti sono andati proprio alla media voto: era la scelta del club, fatta sapendo che
+va nella direzione opposta a questa (vedi sotto, "Cosa si è misurato provando a tarare").
 
 C'è anche un vizio strutturale: il voto di EA **già contiene** gol, assist e premi, quindi
 sommarli come voci separate li conta due o tre volte.
@@ -146,6 +148,63 @@ pulizia di ruoli ed esclusioni: è la parte più sporca dell'archivio.
 **La cosa da rifare a settembre non è l'indice: è la misura.** Lo script che l'ha prodotta
 va rieseguito quando le partite saranno il doppio, e solo allora i pesi vanno riscritti.
 Con 59 partite nessun indice regge davvero, incluso quello che proporrei io.
+
+### Cosa si è misurato provando a tarare (24/08/2026)
+
+Prima di toccare i pesi sono state confrontate quattro tarature: quelle attuali, una pesata
+sull'affidabilità, una sul legame con la vittoria, e la stessa senza le voci circolari.
+
+| | si conferma nel tempo | sale nelle vittorie |
+| --- | --- | --- |
+| efficienza tecnica | **+0.71** | +0.44 |
+| gol + assist | **+0.63** | +0.47 |
+| % vittorie | +0.17 | — |
+| MOTM | +0.08 | +0.79 |
+| media voto | +0.07 | +0.58 |
+
+Tre cose ne sono uscite, e vanno tenute a mente prima di riprovare:
+
+1. **Le voci si somigliano troppo.** Media voto, gol+assist, MOTM e % vittorie sono
+   correlate fra loro da +0.49 a +0.84: spostare peso dall'una all'altra non cambia la
+   classifica. L'unica voce indipendente è l'efficienza tecnica — che però è correlata
+   **negativamente** con le vittorie (−0.39). Capire cosa misuri davvero viene prima di
+   darle peso.
+2. **Nessuna taratura è più riproducibile delle altre.** Su 400 divisioni casuali
+   dell'archivio, i pesi attuali danno +0.72 e le alternative +0.67/+0.68. La taratura
+   "migliore" batte quella in uso in 4 divisioni su 400.
+3. **Una sola divisione a metà inganna.** Con la divisione cronologica le alternative
+   sembravano nettamente meglio (+0.48 contro +0.21). Era una divisione fortunata, e per
+   giunta confusa dal fatto che fra le due metà il club ha cambiato modulo.
+
+### La percentuale di contrasti misura in parte la selettività (24/08/2026)
+
+Chi tenta più contrasti ha la percentuale più bassa: **correlazione −0,78**. Non è un caso —
+se tenti solo i duelli facili li vinci quasi sempre.
+
+| | % vinti | tentati a partita | vinti a partita |
+| --- | --- | --- | --- |
+| Smilzo_87 | 9% | 12,9 | 1,16 |
+| ktm-008 | 9% | 12,6 | 1,13 |
+| gio05596 | 58% | 1,8 | 1,02 |
+| Pesix_97 | 42% | 1,3 | 0,56 |
+
+Il 9% di ktm è calcolato su 5233 contrasti, il 42% di Pesix su 502: il dato di ktm è dieci
+volte meglio sostenuto, e in contrasti vinti a partita ne fa il doppio.
+
+**Le altre due voci non hanno questo vizio**: tiri +0,36 e passaggi +0,44, cioè chi ne fa di
+più ha percentuali migliori. Il difetto è solo nei contrasti.
+
+Sostituire la percentuale con i **contrasti vinti a partita** è stato proposto e **scartato
+dal club**: la voce si chiama efficienza e deve restare efficienza, chi tenta tanto e
+sbaglia tanto va penalizzato lo stesso. I contrasti sono invece scesi dal 20% al **10%**
+dentro l'efficienza tecnica. La classifica generale è identica con i contrasti al 20, 15,
+10 o 5 per cento: cambia solo il valore della voce, non le posizioni.
+
+**Il dribbling non è disponibile.** Verificato su colonne del database, campi EA per
+giocatore/partita e campi di carriera: non esiste. L'unica traccia è
+`match_event_aggregate_0`, 146 codici numerici non documentati; nessuno di essi coincide
+con un valore noto (gol, tiri, passaggi, contrasti), quindi non è decodificabile senza
+inventare.
 
 ## Verifiche ancora aperte
 

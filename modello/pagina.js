@@ -112,6 +112,47 @@ function gruppoBadge(gruppo, daAssegnare){
   r.gruppo_da_assegnare = !GROUP_OF_PLAYER[r.player_name];
 });
 
+// ---- I pesi dell'Indice di Forza, in un posto solo ----
+// Erano ripetuti in quattro punti (generale storico, generale forma, per reparto, per
+// ruolo EA). Quattro copie della stessa regola significa vederla cambiare in tre.
+//
+// MOTM sceso dal 15% al 5% il 24/08/2026, i dieci punti alla media voto. Il premio di
+// migliore in campo e' quasi tautologico - quando si vince lo prende quasi sempre uno dei
+// nostri - e nella misura di affidabilita' si conferma +0.08, cioe' rumore. Restava pero'
+// il terzo peso piu' alto della formula.
+const PESI_INDICE = { rating: 0.50, contrib: 0.20, motm: 0.05, win: 0.10, tech: 0.10, disc: 0.05 };
+
+// ---- Efficienza tecnica: quanto contano i suoi tre pezzi ----
+// Era la media semplice di passaggi, contrasti e tiro: un terzo a testa.
+//
+// La percentuale di contrasti vinti e' la piu' fragile delle tre, e non per il campione:
+// misurato il 24/08/2026, chi tenta piu' contrasti ha la percentuale piu' bassa, con una
+// correlazione di -0.78. Se tenti solo i contrasti facili la vinci quasi sempre, quindi la
+// voce premia in parte la selettivita' invece della bravura. ktm-008 e' al 9% ma ne tenta
+// 12.6 a partita e ne vince 1.13; Pesix_97 e' al 42% tentandone 1.3 e vincendone 0.56.
+//
+// Le altre due non hanno questo vizio: sui tiri la correlazione e' +0.36 e sui passaggi
+// +0.44, cioe' chi ne fa di piu' ha percentuali MIGLIORI. Li' la percentuale misura davvero.
+//
+// Decisione del club: la voce si chiama efficienza e deve restare efficienza - chi tenta
+// tanto e sbaglia tanto va penalizzato lo stesso. Quindi la percentuale resta, ma i
+// contrasti scendono a un decimo. Sostituirli con i contrasti VINTI a partita e' stato
+// valutato e scartato: e' un dato di volume, non di efficienza.
+//
+// Nel reparto difensori risalgono a meta': li' un contrasto vinto vale piu' di un tiro in
+// porta. E' l'unico punto dove i pesi cambiano col ruolo, perche' e' l'unico dove il ruolo
+// si conosce partita per partita.
+//
+// Il dribbling non c'e': EA non lo espone, ne' per partita ne' in carriera. Verificato il
+// 24/08/2026 su colonne del database, campi per giocatore e campi di carriera.
+const PESI_TECNICA        = { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 };
+const PESI_TECNICA_DIFESA = { passaggi: 0.35, contrasti: 0.50, tiro: 0.15 };
+
+function efficienzaTecnica(passaggi, contrasti, tiro, gruppo){
+  const p = gruppo === "DIFENSORI" ? PESI_TECNICA_DIFESA : PESI_TECNICA;
+  return p.passaggi * passaggi + p.contrasti * contrasti + p.tiro * tiro;
+}
+
 function computeGroupScores(){
   const rosterNames = new Set((DATA.roster || []).map(r => r.player_name));
   const winByMatch = new Map((DATA.matches || []).map(m => [m.match_id, m.win ? 1 : 0]));
@@ -155,7 +196,9 @@ function computeGroupScores(){
       contrib:   (a.sumGoals + a.sumAssists) / a.games,
       motmRate:  (a.sumMom / a.games) * 100,
       winRate:   (a.sumWin / a.games) * 100,
-      techEff:   (passSuccess + tackleSuccess + shotSuccess) / 3,
+      // L'unico punto in cui i pesi della tecnica cambiano col ruolo: qui il reparto e'
+      // quello in cui si e' davvero giocato quella partita, non quello abituale.
+      techEff:   efficienzaTecnica(passSuccess, tackleSuccess, shotSuccess, a.group),
       redRate:   a.sumRedCards / a.games,
     };
   });
@@ -196,11 +239,11 @@ function rankGroup(pool){
   // quanto e' andato bene una sera.
   const partite = pool.map(a => a.games);
   const METRICHE = [
-    { chiave: "rating",  peso: 0.40, valori: versoLaMedia(pool.map(a => a.ratingAve), partite) },
-    { chiave: "contrib", peso: 0.20, valori: versoLaMedia(pool.map(a => a.contrib), partite) },
-    { chiave: "motm",    peso: 0.15, valori: versoLaMedia(pool.map(a => a.motmRate), partite) },
-    { chiave: "win",     peso: 0.10, valori: versoLaMedia(pool.map(a => a.winRate), partite) },
-    { chiave: "tech",    peso: 0.10, valori: versoLaMedia(pool.map(a => a.techEff), partite) },
+    { chiave: "rating",  peso: PESI_INDICE.rating,  valori: versoLaMedia(pool.map(a => a.ratingAve), partite) },
+    { chiave: "contrib", peso: PESI_INDICE.contrib, valori: versoLaMedia(pool.map(a => a.contrib), partite) },
+    { chiave: "motm",    peso: PESI_INDICE.motm,    valori: versoLaMedia(pool.map(a => a.motmRate), partite) },
+    { chiave: "win",     peso: PESI_INDICE.win,     valori: versoLaMedia(pool.map(a => a.winRate), partite) },
+    { chiave: "tech",    peso: PESI_INDICE.tech,    valori: versoLaMedia(pool.map(a => a.techEff), partite) },
   ];
   const disc = versoLaMedia(pool.map(a => a.redRate), partite);
   const haSpread = (v) => Math.max(...v) !== Math.min(...v);
@@ -253,7 +296,7 @@ function computePowerScores(roster){
   }
   const contrib = roster.map(r => r.games_played ? (r.goals + r.assists) / r.games_played : 0);
   const motmRate = roster.map(r => r.games_played ? r.man_of_the_match / r.games_played : 0);
-  const techEff = roster.map(r => (r.pass_success_rate + r.tackle_success_rate + r.shot_success_rate) / 3);
+  const techEff = roster.map(r => efficienzaTecnica(r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate));
   const redRate = roster.map(r => r.games_played ? r.red_cards / r.games_played : 0);
 
   const nRating = normalize(roster.map(r => r.rating_ave));
@@ -266,12 +309,12 @@ function computePowerScores(roster){
   return roster.map((r, i) => {
     const score = Math.max(0, Math.min(100,
       100 * (
-        0.40 * nRating[i] +
-        0.20 * nContrib[i] +
-        0.15 * nMotm[i] +
-        0.10 * nWin[i] +
-        0.10 * nTech[i] -
-        0.05 * nDisc[i]
+        PESI_INDICE.rating  * nRating[i] +
+        PESI_INDICE.contrib * nContrib[i] +
+        PESI_INDICE.motm    * nMotm[i] +
+        PESI_INDICE.win     * nWin[i] +
+        PESI_INDICE.tech    * nTech[i] -
+        PESI_INDICE.disc    * nDisc[i]
       )
     ));
     return {
@@ -307,7 +350,7 @@ const POWER_RANGES = (function(roster){
     contrib: mk(roster.map(r => r.games_played ? (r.goals + r.assists) / r.games_played : 0)),
     motm:    mk(roster.map(r => r.games_played ? r.man_of_the_match / r.games_played : 0)),
     win:     mk(roster.map(r => r.win_rate)),
-    tech:    mk(roster.map(r => (r.pass_success_rate + r.tackle_success_rate + r.shot_success_rate) / 3)),
+    tech:    mk(roster.map(r => efficienzaTecnica(r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate))),
     disc:    mk(roster.map(r => r.games_played ? r.red_cards / r.games_played : 0)),
   };
 })(DATA.roster);
@@ -358,7 +401,7 @@ function computeFormScores(windowSize){
         contrib:   (a.goals + a.assists) / a.games,
         motmRate:  a.mom / a.games,
         winRate:   (a.win / a.games) * 100,
-        techEff:   (pass + tackle + shot) / 3,
+        techEff:   efficienzaTecnica(pass, tackle, shot),
         redRate:   a.red / a.games,
       };
     });
@@ -368,12 +411,12 @@ function computeFormScores(windowSize){
   return new Map(pool.map(p => [p.name, {
     ...p,
     score: Math.max(0, Math.min(100, 100 * (
-      0.40 * normWith(p.ratingAve, POWER_RANGES.rating) +
-      0.20 * normWith(p.contrib,   POWER_RANGES.contrib) +
-      0.15 * normWith(p.motmRate,  POWER_RANGES.motm) +
-      0.10 * normWith(p.winRate,   POWER_RANGES.win) +
-      0.10 * normWith(p.techEff,   POWER_RANGES.tech) -
-      0.05 * normWith(p.redRate,   POWER_RANGES.disc)
+      PESI_INDICE.rating  * normWith(p.ratingAve, POWER_RANGES.rating) +
+      PESI_INDICE.contrib * normWith(p.contrib,   POWER_RANGES.contrib) +
+      PESI_INDICE.motm    * normWith(p.motmRate,  POWER_RANGES.motm) +
+      PESI_INDICE.win     * normWith(p.winRate,   POWER_RANGES.win) +
+      PESI_INDICE.tech    * normWith(p.techEff,   POWER_RANGES.tech) -
+      PESI_INDICE.disc    * normWith(p.redRate,   POWER_RANGES.disc)
     ))),
   }]));
 }
@@ -1573,7 +1616,9 @@ function computeRoleAggregates(){
       contrib: (a.sumGoals + a.sumAssists) / a.games,
       motmRate: a.sumMom / a.games,
       winRate: (a.sumWin / a.games) * 100,
-      techEff: (passSuccess + tackleSuccess + shotSuccess) / 3,
+      // Qui NON si usano i pesi difensivi: questa e' la base della formazione tipo, che
+      // per decisione esplicita del club resta com'e' finche' non si chiede di cambiarla.
+      techEff: efficienzaTecnica(passSuccess, tackleSuccess, shotSuccess),
       redRate: a.sumRedCards / a.games,
       fallback: false,
     };
@@ -1600,7 +1645,8 @@ function computeRoleScores(){
     byRole[role] = pool.map((a, i) => ({
       ...a,
       score: Math.max(0, Math.min(100, 100 * (
-        0.40 * nRating[i] + 0.20 * nContrib[i] + 0.15 * nMotm[i] + 0.10 * nWin[i] + 0.10 * nTech[i] - 0.05 * nDisc[i]
+        PESI_INDICE.rating * nRating[i] + PESI_INDICE.contrib * nContrib[i] + PESI_INDICE.motm * nMotm[i]
+        + PESI_INDICE.win * nWin[i] + PESI_INDICE.tech * nTech[i] - PESI_INDICE.disc * nDisc[i]
       ))),
     })).sort((x, y) => y.score - x.score);
   });

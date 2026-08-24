@@ -41,7 +41,8 @@ try {
   ambiente = new Function(codice + `
     return { DATA, GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, MACRO_TO_GROUP,
              groupForMatch, etichettaAttesa, mainPosOf, computeGroupScores, rankGroup,
-             GROUP_ORDER, ROLE_EXCEPTIONS, computeBlendedScores, credibilita };`)();
+             GROUP_ORDER, ROLE_EXCEPTIONS, computeBlendedScores, credibilita,
+             PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica };`)();
 } catch (e) {
   console.error("Impossibile eseguire il codice estratto:", e.message);
   process.exit(1);
@@ -58,7 +59,40 @@ function verifica(descrizione, condizione, dettaglio) {
 }
 
 const { GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, groupForMatch, etichettaAttesa,
-        computeGroupScores, rankGroup, GROUP_ORDER, computeBlendedScores } = ambiente;
+        computeGroupScores, rankGroup, GROUP_ORDER, computeBlendedScores,
+        PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica } = ambiente;
+
+// I pesi erano scritti a mano in quattro punti diversi. Ora c'e' una costante sola, e
+// questi controlli servono a impedire che le copie tornino: se qualcuno riscrive un peso
+// direttamente dentro una formula, la somma smette di tornare e il test se ne accorge.
+console.log("\nPesi dell'Indice di Forza");
+{
+  const somma = PESI_INDICE.rating + PESI_INDICE.contrib + PESI_INDICE.motm
+              + PESI_INDICE.win + PESI_INDICE.tech;
+  verifica("i pesi positivi sommano a 0.95 (il 5% restante e' la penalita' sui rossi)",
+    Math.abs(somma - 0.95) < 1e-9, `sommano ${somma.toFixed(3)}`);
+  verifica("il MOTM resta una voce minore: non piu' del 10%",
+    PESI_INDICE.motm <= 0.10, `vale ${PESI_INDICE.motm}`);
+  for (const [nome, p] of [["normale", PESI_TECNICA], ["difensori", PESI_TECNICA_DIFESA]]) {
+    const s = p.passaggi + p.contrasti + p.tiro;
+    verifica(`efficienza tecnica (${nome}): i tre pezzi sommano a 1`,
+      Math.abs(s - 1) < 1e-9, `sommano ${s.toFixed(3)}`);
+  }
+  verifica("per i difensori il contrasto pesa piu' del tiro",
+    PESI_TECNICA_DIFESA.contrasti > PESI_TECNICA_DIFESA.tiro,
+    `contrasti ${PESI_TECNICA_DIFESA.contrasti} vs tiro ${PESI_TECNICA_DIFESA.tiro}`);
+  verifica("per tutti gli altri vale il contrario",
+    PESI_TECNICA.contrasti < PESI_TECNICA.tiro,
+    `contrasti ${PESI_TECNICA.contrasti} vs tiro ${PESI_TECNICA.tiro}`);
+  // Stesso giocatore, stessi numeri grezzi: il reparto deve cambiare il risultato.
+  const bravoNeiContrasti = efficienzaTecnica(80, 60, 20, "DIFENSORI");
+  const stessoAltrove     = efficienzaTecnica(80, 60, 20, "ATTACCANTI");
+  verifica("chi vince i contrasti vale di piu' fra i difensori che altrove",
+    bravoNeiContrasti > stessoAltrove,
+    `${bravoNeiContrasti.toFixed(1)} contro ${stessoAltrove.toFixed(1)}`);
+  verifica("senza reparto si usano i pesi normali",
+    efficienzaTecnica(80, 60, 20) === stessoAltrove);
+}
 
 console.log("\nEtichette EA dichiarate");
 verifica("roles.json dichiara l'etichetta EA di ogni giocatore assegnato",

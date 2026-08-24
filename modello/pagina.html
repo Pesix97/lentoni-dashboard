@@ -174,10 +174,23 @@
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
       <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-        Punteggio 0-100 calcolato combinando (pesi tra parentesi): media voto (40%), gol+assist a partita (20%),
-        frequenza MOTM (15%), % vittorie (10%), efficienza tecnica media tra passaggi/contrasti/tiro (10%),
-        con una piccola penalità per i cartellini rossi a partita (5%). Ogni componente è normalizzato rispetto
+        Punteggio 0-100 calcolato combinando (pesi tra parentesi): media voto (50%), gol+assist a partita (20%),
+        % vittorie (10%), efficienza tecnica (10%), frequenza MOTM (5%), con una piccola penalità per i
+        cartellini rossi a partita (5%). Ogni componente è normalizzato rispetto
         al resto della rosa, quindi il punteggio è relativo a questa squadra, non un valore assoluto universale.
+        <br><br>
+        <strong style="color:var(--text);">L'efficienza tecnica</strong> combina precisione nei passaggi (45%),
+        precisione al tiro (45%) e percentuale di contrasti vinti (10%). I contrasti pesano poco perché sono
+        la voce più ambigua delle tre: chi ne tenta di più ha la percentuale più bassa (correlazione −0,78),
+        quindi in parte la percentuale premia chi contrasta poco e sceglie i duelli facili. Passaggi e tiri
+        non hanno questo problema — chi ne fa di più ha percentuali migliori, non peggiori. Nelle
+        <strong style="color:var(--text);">classifiche per reparto</strong>, dove il ruolo si conosce partita per
+        partita, per i difensori il rapporto si ribalta — contrasti 50%, passaggi 35%, tiro 15%.
+        <br><br>
+        <strong style="color:var(--text);">Perché il MOTM pesa solo il 5%.</strong> Era al 15%. Il premio di
+        migliore in campo è quasi automatico quando si vince, e messo alla prova non si conferma: chi lo
+        prendeva spesso nella prima metà dell'archivio non è chi lo prende nella seconda. Misurava il
+        risultato della squadra più che il singolo, quindi i dieci punti sono passati alla media voto.
         <br><br>
         <strong style="color:var(--text);">Peso della forma recente.</strong> Come per i coefficienti UEFA, il valore storico da
         solo reagisce troppo lentamente. Il punteggio finale è quindi una media pesata tra l'<strong style="color:var(--text);">indice
@@ -231,8 +244,11 @@
         L'Indice di Forza generale mette tutti nella stessa classifica, e chi gioca dietro parte
         svantaggiato: gol e assist pesano il 20% del punteggio. Qui invece ogni giocatore è
         <strong style="color:var(--text);">normalizzato dentro il proprio reparto</strong>, quindi un difensore compete
-        solo con altri difensori. Pesi e formula sono identici all'Indice di Forza: cambia solo il gruppo
-        di confronto.
+        solo con altri difensori. La formula è la stessa dell'Indice di Forza, con
+        <strong style="color:var(--text);">una sola differenza</strong>: per le partite giocate da difensore
+        l'efficienza tecnica pesa i contrasti al 50% invece che al 10%, perché lì un duello vinto conta
+        più di un tiro in porta. È l'unico punto della dashboard dove i pesi cambiano col ruolo, ed è
+        possibile solo qui perché è l'unico posto in cui il ruolo si conosce partita per partita.
         <br><br>
         <strong style="color:var(--text);">Come viene deciso il ruolo.</strong> EA conosce solo quattro etichette
         (portiere/difensore/centrocampista/attaccante) e non sa distinguere un COC da un CC: il ruolo
