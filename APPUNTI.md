@@ -240,11 +240,15 @@ giocatore/partita e campi di carriera: non esiste. L'unica traccia è
 con un valore noto (gol, tiri, passaggi, contrasti), quindi non è decodificabile senza
 inventare.
 
-## Il laboratorio, e cosa ha già detto (25/08/2026)
+## Il laboratorio: costruito, misurato e rimosso (25/08/2026)
 
-Sezione **sperimentale**, isolata apposta: contiene quattro modi diversi di fare la stessa
-classifica, così si decide con i numeri davanti quali tenere. Si calcola solo quando la si
-apre — il ricampionamento costa ~270 ms e non va pagato da chi non la guarda.
+Era una sezione sperimentale con quattro modi diversi di fare la stessa classifica, per
+decidere con i numeri davanti quali tenere. **È stata tolta lo stesso giorno**, su richiesta
+del club: con 69 partite le prove erano troppo povere di dati per significare qualcosa.
+
+La decisione è coerente con quello che le prove stesse dicevano — vedi l'ultima riga della
+tabella. Il codice è nella storia di git; qui restano le misure, che valgono comunque e
+vanno rilette quando l'archivio sarà molto più grande.
 
 Cosa hanno detto le prove su 69 partite:
 
@@ -260,9 +264,17 @@ quella che c'è già. Rifacendola 500 volte su campioni diversi delle stesse par
 secondo al settimo posto non c'è **nessuna differenza misurabile**. Regge il primo posto, e
 regge lo stacco fra il gruppo di testa e quello di coda.
 
-Prima di promuovere qualcosa in produzione, vanno decise due cose: se l'obiettivo è una
-classifica *fra compagni*, le fasce sono la risposta più onesta; e se si toccano i pesi,
-prima va rifatta la misura di affidabilità (punto 6 qui sopra).
+**Le tre cose da ricordare quando si riproverà:**
+
+1. i minuti giocati non contano — è già misurato, non serve rifarlo;
+2. se l'obiettivo è una classifica *fra compagni*, le fasce sono la risposta più onesta, ma
+   hanno senso solo quando saranno abbastanza strette da separare qualcuno;
+3. prima di toccare i pesi va rifatta la misura di affidabilità (punto 6 qui sopra).
+
+E la lezione che vale al di là di questo caso: **una misura può essere corretta e lo stesso
+inutile**. Le quattro prove erano giuste, i controlli passavano, il calcolo era esatto — ma
+non c'erano abbastanza partite perché dicessero qualcosa. Prima di costruire uno strumento
+di analisi conviene chiedersi se i dati bastano a farlo parlare.
 
 ## Verifiche ancora aperte
 

@@ -919,22 +919,6 @@
   </div>
 </section>
 
-<section id="laboratorio">
-  <h2>Laboratorio <span class="h2-sub">— quattro modi diversi di fare la classifica, da confrontare</span></h2>
-  <div class="panel" style="border-left:3px solid var(--accent-2); margin-bottom:16px;">
-    <div style="font-size:12.5px; line-height:1.6;">
-      <strong>Questa sezione è un banco di prova, non una classifica ufficiale.</strong> Serve a vedere
-      cosa succede cambiando una regola alla volta, per decidere con i numeri davanti quali tenere,
-      quali unire e quali buttare. L'Indice di Forza qui sopra non è toccato.
-      <br><br>
-      Ogni prova mostra <strong>quanto sposta</strong> rispetto alla classifica in uso: se non sposta
-      niente, la regola è irrilevante e si può scartare senza rimpianti.
-    </div>
-  </div>
-  <div id="labConfronto"></div>
-  <div id="labProve"></div>
-</section>
-
 <div class="footer-note">Dati dalle API pubbliche (non ufficiali) di EA — proclubs.ea.com. Generato localmente, nessun dato inviato a terzi.</div>
 
 <script>
@@ -1282,11 +1266,6 @@ let formWeight = 0.5;      // 0 = solo storico, 1 = solo forma recente
 // cambiano, deve rifare i conti anche lui, altrimenti spiega un distacco che non c'e' piu'.
 // Viene riempito dalla sezione del confronto, che si costruisce piu' in basso nel file.
 let ridisegnaConfronto = null;
-
-// Il laboratorio ricampiona la classifica cinquecento volte: costa troppo per pagarlo
-// all'apertura di una pagina che quasi sempre resta chiusa. Viene calcolato al primo
-// ingresso nella sezione, e una volta sola.
-let apriLaboratorio = null;
 
 // Scale di riferimento (min/max di ogni metrica sull'intera rosa, dai totali di
 // carriera). Storico e forma DEVONO essere normalizzati sulla stessa scala:
@@ -2992,257 +2971,6 @@ function computeOutfieldLineup(){
   draw();
 })();
 
-// ---- Laboratorio: quattro modi diversi di fare la stessa classifica ----
-//
-// Non e' una sezione di prodotto, e' un banco di prova. Ogni variante cambia UNA regola e
-// mostra quanto sposta rispetto alla classifica in uso: se non sposta niente, la regola e'
-// irrilevante e si scarta. Vive isolata apposta, cosi' si puo' cancellare in blocco senza
-// toccare nient'altro.
-(function laboratorio(){
-  const elConfronto = document.getElementById("labConfronto");
-  const elProve = document.getElementById("labProve");
-  if(!elConfronto || !elProve) return;
-
-  const MIN_PARTITE = 4;         // sotto questo, un giocatore non entra in nessuna prova
-  const SECONDI_VERI = 300;      // sotto i cinque minuti non si e' giocato: si e' comparsi
-  const RICAMPIONI = 500;
-
-  const inRosa = new Set((DATA.roster || []).map(r => r.player_name));
-  const vinta = new Map((DATA.matches || []).map(m => [m.match_id, m.win ? 1 : 0]));
-  const partite = (DATA.matches || []).map(m => m.match_id)
-    .filter(id => (DATA.matchPlayers[id] || []).length > 0);
-
-  // Durata di riferimento: la mediana di quanto durano le prestazioni. Non 90 minuti fissi,
-  // perche' EA conta anche i supplementari e la mediana vera qui e' oltre i 92.
-  const durate = partite.flatMap(id => (DATA.matchPlayers[id] || [])
-    .map(p => p.seconds_played).filter(Boolean)).sort((a,b) => a-b);
-  const DURATA_PIENA = durate.length ? durate[Math.floor(durate.length/2)] : 5400;
-
-  function aggrega(ids, opz){
-    const a = {};
-    ids.forEach(id => {
-      const righe = (DATA.matchPlayers[id] || []).filter(p => inRosa.has(p.player_name));
-      // Lo scarto rispetto ai compagni ha senso solo se i compagni ci sono.
-      const votoDi = new Map(righe.map(p => [p.player_name, p.rating || 0]));
-      righe.forEach(p => {
-        const sec = p.seconds_played || DURATA_PIENA;
-        if(opz.scartaBrevi && sec < SECONDI_VERI) return;
-        const q = a[p.player_name] = a[p.player_name] ||
-          { n:0, sec:0, voto:0, ga:0, mom:0, win:0, pm:0, pa:0, tm:0, ta:0, sh:0, gol:0, red:0, scarto:0, conScarto:0 };
-        q.n++; q.sec += sec;
-        q.voto += p.rating || 0;
-        q.ga  += (p.goals || 0) + (p.assists || 0);
-        q.gol += p.goals || 0;
-        q.mom += p.mom ? 1 : 0;
-        q.win += vinta.get(id) || 0;
-        q.pm += p.passes_made || 0;   q.pa += p.pass_attempts || 0;
-        q.tm += p.tackles_made || 0;  q.ta += p.tackle_attempts || 0;
-        q.sh += p.shots || 0;         q.red += p.red_cards || 0;
-        if(righe.length >= 3){
-          let somma = 0, quanti = 0;
-          votoDi.forEach((v, nome) => { if(nome !== p.player_name){ somma += v; quanti++; } });
-          if(quanti){ q.scarto += (p.rating || 0) - somma/quanti; q.conScarto++; }
-        }
-      });
-    });
-    const out = {};
-    Object.entries(a).forEach(([nome, q]) => {
-      if(q.n < MIN_PARTITE) return;
-      const pass = q.pa ? q.pm/q.pa*100 : 0, tac = q.ta ? q.tm/q.ta*100 : 0, tir = q.sh ? q.gol/q.sh*100 : 0;
-      // Il cuore della prova sui minuti: i conteggi si rapportano al tempo giocato davvero,
-      // non al numero di partite. Chi segna in diciotto minuti non ha segnato "in una
-      // partita": ha segnato in un quinto di partita.
-      const perPartita = opz.perMinuti ? (q.sec / DURATA_PIENA) : q.n;
-      out[nome] = {
-        n: q.n, minuti: q.sec/60,
-        rating:  q.voto / q.n,
-        contrib: q.ga / (perPartita || 1),
-        motm:    q.mom / q.n,
-        win:     q.win / q.n * 100,
-        tech:    efficienzaTecnica(pass, tac, tir),
-        disc:    q.red / q.n,
-        scarto:  q.conScarto ? q.scarto / q.conScarto : 0,
-      };
-    });
-    return out;
-  }
-
-  // Due scale a confronto. Il minimo-massimo schiaccia l'ultimo della rosa su zero, e quella
-  // voce gli costa TUTTO il peso invece di una parte; il percentile guarda solo l'ordine,
-  // quindi un distacco enorme e uno minimo valgono un gradino uguale.
-  function scalaMinMax(valori){
-    const mn = Math.min(...valori), mx = Math.max(...valori);
-    return valori.map(v => mx === mn ? 0.5 : (v - mn)/(mx - mn));
-  }
-  function scalaPercentile(valori){
-    const ordinati = [...valori].sort((a,b) => a-b);
-    return valori.map(v => {
-      const sotto = ordinati.filter(x => x < v).length;
-      const pari  = ordinati.filter(x => x === v).length;
-      return valori.length < 2 ? 0.5 : (sotto + (pari - 1)/2) / (valori.length - 1);
-    });
-  }
-
-  function punteggi(dati, opz){
-    const nomi = Object.keys(dati);
-    if(nomi.length < 3) return {};
-    const scala = opz.percentile ? scalaPercentile : scalaMinMax;
-    const voce = opz.usaScarto ? "scarto" : "rating";
-    const colonne = {
-      rating:  scala(nomi.map(n => dati[n][voce])),
-      contrib: scala(nomi.map(n => dati[n].contrib)),
-      motm:    scala(nomi.map(n => dati[n].motm)),
-      win:     scala(nomi.map(n => dati[n].win)),
-      tech:    scala(nomi.map(n => dati[n].tech)),
-      disc:    scala(nomi.map(n => dati[n].disc)),
-    };
-    const out = {};
-    nomi.forEach((n, i) => {
-      out[n] = Math.max(0, Math.min(100, 100 * (
-        PESI_INDICE.rating * colonne.rating[i] + PESI_INDICE.contrib * colonne.contrib[i] +
-        PESI_INDICE.motm * colonne.motm[i] + PESI_INDICE.win * colonne.win[i] +
-        PESI_INDICE.tech * colonne.tech[i] - PESI_INDICE.disc * colonne.disc[i])));
-    });
-    return out;
-  }
-
-  const ordina = p => Object.keys(p).sort((a,b) => p[b] - p[a]);
-  const posizioni = p => { const o = {}; ordina(p).forEach((n,i) => o[n] = i+1); return o; };
-
-  // ---- le quattro prove ----
-  const BASE = { scartaBrevi:false, perMinuti:false, percentile:false, usaScarto:false };
-  const PROVE = [
-    { id:"minuti", titolo:"Minuti giocati davvero",
-      spiega:"Scarta le prestazioni sotto i cinque minuti e rapporta gol e assist al tempo in campo, non al numero di partite.",
-      opz:{ ...BASE, scartaBrevi:true, perMinuti:true } },
-    { id:"scarto", titolo:"Scarto rispetto ai compagni",
-      spiega:"Al posto del voto grezzo usa il voto meno la media dei compagni nella stessa partita: cancella l'avversario e l'andamento della squadra.",
-      opz:{ ...BASE, usaScarto:true } },
-    { id:"percentile", titolo:"Scala a percentili",
-      spiega:"Stessa formula, scala diversa: conta l'ordine e non la distanza, cosi' l'ultimo della rosa in una voce non ne perde tutto il peso.",
-      opz:{ ...BASE, percentile:true } },
-  ];
-
-  // Il ricampionamento costa circa trecento millisecondi, e su un telefono di piu'. Non si
-  // paga all'apertura della dashboard per una sezione che quasi sempre resta chiusa: si
-  // calcola la prima volta che il laboratorio viene aperto davvero.
-  let gia = false;
-  apriLaboratorio = function(){
-    if(gia) return;
-    gia = true;
-    disegna();
-  };
-  if(location.hash.slice(1) === "laboratorio") apriLaboratorio();
-  return;
-
-  function disegna(){
-  const datiBase = aggrega(partite, BASE);
-  const puntiBase = punteggi(datiBase, BASE);
-  const posBase = posizioni(puntiBase);
-
-  // ---- fasce di incertezza: la stessa classifica rifatta su campioni diversi ----
-  function fasce(){
-    const conta = {};
-    let seme = 12345;
-    const caso = () => (seme = (seme * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-    for(let g = 0; g < RICAMPIONI; g++){
-      const campione = partite.map(() => partite[Math.floor(caso() * partite.length)]);
-      const p = posizioni(punteggi(aggrega(campione, BASE), BASE));
-      Object.entries(p).forEach(([n, r]) => (conta[n] = conta[n] || []).push(r));
-    }
-    const out = {};
-    Object.entries(conta).forEach(([n, v]) => {
-      v.sort((a,b) => a-b);
-      out[n] = { lo: v[Math.floor(v.length*0.05)], hi: v[Math.floor(v.length*0.95)], quante: v.length };
-    });
-    return out;
-  }
-  const forchette = fasce();
-
-  const tabella = (righe) => `
-    <div class="table-wrap"><table class="responsive-table"><thead><tr>
-      <th>#</th><th>Giocatore</th><th>Punteggio</th><th>Rispetto a oggi</th>
-    </tr></thead><tbody>${righe}</tbody></table></div>`;
-
-  function spostamento(nome, nuovaPos){
-    const d = (posBase[nome] || nuovaPos) - nuovaPos;
-    if(!d) return `<span style="color:var(--muted);">=</span>`;
-    return `<span style="color:${d>0?"var(--win,#33c17a)":"var(--loss,#e5566d)"};">
-              ${d>0?"▲":"▼"} ${Math.abs(d)}</span>`;
-  }
-
-  // ---- la prova delle fasce, che non e' una classifica alternativa ma una lettura ----
-  const righeFasce = ordina(puntiBase).map((n, i) => {
-    const f = forchette[n];
-    const largo = f ? f.hi - f.lo : 0;
-    const barra = f
-      ? `<span style="color:${largo >= 4 ? "var(--loss,#e5566d)" : largo >= 2 ? "var(--tie,#e0b23f)" : "var(--win,#33c17a)"};">
-           dal ${f.lo}° al ${f.hi}°</span>`
-      : "—";
-    return `<tr>
-      <td data-label="#"><span class="lb-rank ${i===0?"g1":i===1?"g2":i===2?"g3":""}">#${i+1}</span></td>
-      <td data-label="Giocatore"><span class="player-link" data-player="${n}">${n}</span></td>
-      <td data-label="Punteggio" class="lb-value">${puntiBase[n].toFixed(1)}</td>
-      <td data-label="In 9 casi su 10">${barra}</td></tr>`;
-  }).join("");
-
-  const indistinguibili = (() => {
-    const o = ordina(puntiBase);
-    let coppie = 0, totali = 0;
-    for(let i=0;i<o.length;i++) for(let j=i+1;j<o.length;j++){
-      const a = forchette[o[i]], b = forchette[o[j]];
-      if(!a || !b) continue;
-      totali++;
-      if(a.lo <= b.hi && b.lo <= a.hi) coppie++;
-    }
-    return { coppie, totali };
-  })();
-
-  let html = `
-    <div class="panel" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 4px; font-size:16px;">Quanto è sicura la classifica di oggi</h3>
-      <div style="font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:10px;">
-        La stessa classifica rifatta ${RICAMPIONI} volte pescando a sorte fra le partite giocate.
-        Se la forchetta di due giocatori si sovrappone, fra loro <strong>non c'è una differenza
-        misurabile</strong>: l'ordine che vedi fra i due è caso.
-      </div>
-      ${tabella(righeFasce).replace("Rispetto a oggi", "In 9 casi su 10")}
-      <div style="font-size:12px; color:var(--muted); margin-top:10px;">
-        Su ${indistinguibili.totali} coppie possibili, <strong style="color:var(--text);">${indistinguibili.coppie}</strong>
-        hanno forchette che si sovrappongono: per quelle, dire chi è più forte non è sostenibile con
-        ${partite.length} partite.
-      </div>
-    </div>`;
-
-  PROVE.forEach(prova => {
-    const dati = aggrega(partite, prova.opz);
-    const punti = punteggi(dati, prova.opz);
-    const pos = posizioni(punti);
-    const mossi = Object.keys(pos).filter(n => posBase[n] && posBase[n] !== pos[n]).length;
-    const righe = ordina(punti).map((n, i) => `
-      <tr>
-        <td data-label="#"><span class="lb-rank ${i===0?"g1":i===1?"g2":i===2?"g3":""}">#${i+1}</span></td>
-        <td data-label="Giocatore"><span class="player-link" data-player="${n}">${n}</span></td>
-        <td data-label="Punteggio" class="lb-value">${punti[n].toFixed(1)}</td>
-        <td data-label="Rispetto a oggi">${spostamento(n, i+1)}</td>
-      </tr>`).join("");
-    html += `
-      <div class="panel" style="margin-bottom:16px;">
-        <h3 style="margin:0 0 4px; font-size:16px;">${prova.titolo}</h3>
-        <div style="font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:10px;">${prova.spiega}</div>
-        ${tabella(righe)}
-        <div style="font-size:12px; color:var(--muted); margin-top:10px;">
-          ${mossi === 0
-            ? `<strong style="color:var(--text);">Non sposta nessuno.</strong> La regola non cambia la classifica: si può scartare.`
-            : `Cambia posizione a <strong style="color:var(--text);">${mossi} giocatori su ${Object.keys(pos).length}</strong>.`}
-        </div>
-      </div>`;
-  });
-
-  elProve.innerHTML = html;
-  }
-})();
-
 // ---- Riepilogo periodo (wrapped) ----
 (function renderWrapped(){
   const el = document.getElementById("wrappedGrid");
@@ -4426,7 +4154,6 @@ const PAGE_MAP = {
   forza: "forza", formazione: "formazione", h2h: "h2h",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
   osservatore: "osservatore", serate: "serate", partite: "partite",
-  laboratorio: "laboratorio",
 };
 const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
@@ -4442,7 +4169,6 @@ const PAGES = [
   { key: "osservatore", icon: "🗒️", label: "Scheda osservatore" },
   { key: "serate", icon: "🌙", label: "Serate" },
   { key: "partite", icon: "📅", label: "Partite" },
-  { key: "laboratorio", icon: "🧪", label: "Laboratorio" },
 ].filter(p => Object.values(PAGE_MAP).includes(p.key));
 
 function showPage(pageKey){
@@ -4453,7 +4179,6 @@ function showPage(pageKey){
     el.classList.toggle("page-hidden", PAGE_MAP[sectionId] !== pageKey);
   });
   document.querySelectorAll("#navLinks a").forEach(l => l.classList.toggle("active", l.dataset.page === pageKey));
-  if(pageKey === "laboratorio" && apriLaboratorio) apriLaboratorio();
   window.scrollTo(0, 0);
   if(location.hash.slice(1) !== pageKey) history.replaceState(null, "", "#" + pageKey);
 }

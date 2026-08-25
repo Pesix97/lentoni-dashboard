@@ -334,7 +334,7 @@ console.log("\nConfronto testa a testa");
   try {
     const ambienteH2H = new Function(
       ritaglia("const DATA = {", "// ---- Cards ----") + "\n" +
-      ritaglia("// Il testa a testa spiegava poco", "// ---- Laboratorio") + "\n" +
+      ritaglia("// Il testa a testa spiegava poco", "// ---- Riepilogo periodo") + "\n" +
       "return { PESI_INDICE, computeBlendedScores, DATA };"
     )();
 
@@ -489,57 +489,6 @@ console.log("\nConfronto testa a testa");
       pezziSbagliati === 0, `${pezziSbagliati} coppie fuori, scarto massimo ${peggiorPezzi.toFixed(2)}`);
   } catch (e) {
     verifica("il confronto si esegue senza eccezioni", false, e.message);
-  }
-}
-
-// Il laboratorio e' una sezione sperimentale, ma non per questo puo' mentire: le forchette
-// devono contenere la posizione vera, e non deve costare nulla a chi non la apre.
-console.log("\nLaboratorio");
-{
-  const magazzino = {};
-  const finto = (id) => magazzino[id] = magazzino[id] || {
-    id, innerHTML: "", addEventListener(){}, get parentElement(){ return { innerHTML: "" }; },
-  };
-  global.document = { getElementById: finto, querySelector: () => ({ innerHTML: "" }), addEventListener(){} };
-  global.location = { hash: "" };
-
-  try {
-    const amb = new Function(
-      ritaglia("const DATA = {", "// ---- Cards ----") + "\n" +
-      ritaglia("// ---- Laboratorio", "// ---- Riepilogo periodo") + "\n" +
-      "return { apriLaboratorio };")();
-
-    verifica("aprendo la dashboard il laboratorio non calcola niente",
-      magazzino["labProve"].innerHTML === "", "la sezione era gia' piena");
-
-    const t0 = Date.now();
-    amb.apriLaboratorio();
-    const durata = Date.now() - t0;
-    const h = String(magazzino["labProve"].innerHTML);
-    verifica("aprendolo si riempie", h.length > 1000, `solo ${h.length} caratteri`);
-    verifica(`il calcolo resta sotto i due secondi (${durata} ms)`, durata < 2000);
-
-    const prima = h;
-    amb.apriLaboratorio();
-    verifica("riaprendolo non ricalcola", String(magazzino["labProve"].innerHTML) === prima);
-
-    // Le tre prove piu' la lettura delle fasce: quattro riquadri.
-    const riquadri = (h.match(/<h3[^>]*>/g) || []).length;
-    verifica("ci sono tutte e quattro le prove", riquadri === 4, `ne trovo ${riquadri}`);
-
-    // L'invariante che conta: la forchetta deve contenere la posizione mostrata. Se non la
-    // contenesse, la sezione starebbe dicendo due cose incompatibili nella stessa riga.
-    const blocco = h.split("<h3")[1] || "";
-    const righe = [...blocco.matchAll(/#(\d+)<\/span>[\s\S]*?dal (\d+)° al (\d+)°/g)]
-      .map(m => [Number(m[1]), Number(m[2]), Number(m[3])]);
-    verifica("le forchette esistono per ogni riga", righe.length >= 5, `ne trovo ${righe.length}`);
-    const fuori = righe.filter(([pos, lo, hi]) => pos < lo || pos > hi);
-    verifica("ogni forchetta contiene la posizione mostrata",
-      fuori.length === 0, fuori.map(x => `#${x[0]} fuori da ${x[1]}-${x[2]}`).join(", "));
-    const ordinate = righe.every(([, lo, hi]) => lo <= hi);
-    verifica("nessuna forchetta rovesciata", ordinate);
-  } catch (e) {
-    verifica("il laboratorio si esegue senza eccezioni", false, e.message);
   }
 }
 
