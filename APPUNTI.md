@@ -87,6 +87,21 @@ Cosa cambia con FC 27, ed è il motivo per cui tutto questo lavoro su FC 26 vale
 **l'archivio partirà completo dalla prima partita.** Le 35 partite perse per sempre e la
 copertura al 63% sono difetti di un archivio nato in corsa, e non si ripeteranno.
 
+**Il passaggio è stato provato il 25/08/2026**, su una copia usa e getta, simulando sia il
+primo giorno con zero partite sia i giorni successivi con poche. Ha trovato due difetti
+veri, entrambi corretti:
+
+| Cosa si rompeva | Perché |
+| --- | --- |
+| la pagina usciva intestata **"Club"**, e "Club — Club Dashboard" nel titolo della scheda | il nome del club sta nel database, dove lo scrive il primo scaricamento riuscito: al primo giorno quella riga non esiste. Ora `club.json` porta un campo `nome` che fa da ripiego |
+| l'avviso sulle esclusioni diventava un **falso allarme permanente** | le tre esclusioni di FC 26 non corrispondono a nessuna partita di FC 27: la riga avrebbe detto "0 su 3" per sempre, e un allarme che suona sempre insegna a non guardarlo |
+
+Ha retto senza toccare niente: l'isolamento fra titoli, i ruoli, le serate, e la pagina con
+zero partite in tutte le sue sezioni.
+
+Ora il passaggio non è più un'ipotesi: `TestPassaggioDiTitolo` lo percorre da capo a fondo
+ad ogni esecuzione dei test.
+
 FC 27 arriva il 18/09/2026. Database e script sono già pronti a contenere più
 titoli insieme (vedi `club.json`), e ogni query filtra per club attivo — verificato
 iniettando un secondo club finto e controllando che i numeri non cambiassero.

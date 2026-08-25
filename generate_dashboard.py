@@ -53,6 +53,9 @@ def carica_club(script_dir=None):
         club_id = int(attivo["club_id"])
         return {
             "club_id": club_id,
+            # Il nome vero sta nel database, ma al primo giorno di un titolo nuovo quella
+            # riga non c'e' ancora: senza questo ripiego la pagina esce intestata "Club".
+            "nome": attivo.get("nome") or "",
             "titolo": attivo.get("titolo") or "",
             "piattaforma": attivo.get("piattaforma") or "",
             "storico": raw.get("storico") or [],
@@ -248,6 +251,9 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
     match_players = {}
     tolte = 0
     tolte_voto = 0
+    # Le partite del titolo attivo, per distinguere una voce sbagliata di roles.json da una
+    # che semplicemente riguarda un titolo precedente.
+    id_partite = {str(m["match_id"]) for m in matches}
     for m in matches:
         rows = fetch_all(
             cur,
@@ -283,7 +289,20 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
     if righe_escluse:
         # Conta le righe davvero rimosse, non le voci elencate: se una si riferisce a una
         # partita non archiviata o a un nome sbagliato non toglie nulla, ed e' bene vederlo.
-        print(f"  prestazioni escluse a mano: {tolte} su {len(righe_escluse)} elencate")
+        #
+        # Le voci che puntano a partite di ALTRI titoli non sono errori e non entrano nel
+        # conteggio: dopo il passaggio a FC 27 le esclusioni di FC 26 resterebbero tutte
+        # spaiate, e l'avviso direbbe "0 su 3" per sempre. Un allarme che suona sempre
+        # insegna a non guardarlo, che e' il contrario di quello che serve. Provato il
+        # 25/08/2026 simulando il passaggio.
+        di_altri = sum(1 for k in righe_escluse if k.split("|", 1)[0] not in id_partite)
+        attese = len(righe_escluse) - di_altri
+        if attese:
+            print(f"  prestazioni escluse a mano: {tolte} su {attese} elencate"
+                  + (f" (altre {di_altri} sono di titoli precedenti)" if di_altri else ""))
+        elif di_altri:
+            print(f"  esclusioni a mano: nessuna per questo titolo "
+                  f"({di_altri} riguardano titoli precedenti)")
     if tolte_voto:
         print(f"  prestazioni senza voto (sentinella {voto_sentinella}): {tolte_voto}")
 
@@ -643,7 +662,12 @@ def main():
     data["serateAperte"] = serate_da_confermare(data["matches"])
     data["serate"] = elenco_serate(data["matches"])
     data["titolo"] = club.get("titolo") or ""
-    club_name = (data["club"].get("name") or "Club").title()
+    # Il nome viene dal database, dove lo scrive il primo scaricamento riuscito. Al
+    # passaggio a un titolo nuovo pero' quella riga non esiste ancora: provato il
+    # 25/08/2026 simulando il 18 settembre, la pagina usciva intestata "Club" e con
+    # "Club — Club Dashboard" nel titolo della scheda. Il ripiego sta quindi in club.json,
+    # che il nome lo conosce prima di qualsiasi scaricamento.
+    club_name = (data["club"].get("name") or club.get("nome") or "Club").title()
     # La piattaforma viene da club.json, non da raw/club_search.json. Quel file e' una
     # fotografia presa a mano del club di FC 26: al passaggio a un titolo nuovo avrebbe
     # continuato a dichiarare la piattaforma di quello vecchio, contraddicendo la regola

@@ -953,6 +953,102 @@ class TestEsclusioni(BaseConArchivio):
         self.assertNotIn("excludedRows", out.read_text(encoding="utf-8"))
 
 
+class TestPassaggioDiTitolo(BaseConArchivio):
+    """Il giorno in cui si passa a FC 27, e i due giorni prima.
+
+    Il passaggio era descritto in `club.json` in tre righe — sposta il club in 'storico',
+    scrivi il nuovo in 'attivo' — ma **non era mai stato eseguito**: nessuno script, nessun
+    test. Una migrazione mai provata è un'ipotesi, e si sarebbe scoperto il 18/09/2026,
+    cioè il giorno in cui serve.
+
+    Provata a mano il 25/08/2026 su una copia. Ha trovato due difetti veri, entrambi
+    corretti e sorvegliati da qui:
+
+    1. la pagina usciva intestata **"Club"** e con "Club — Club Dashboard" nel titolo della
+       scheda, perché il nome del club sta nel database e quella riga, al primo giorno di
+       un titolo nuovo, non esiste ancora;
+    2. l'avviso sulle esclusioni a mano diventava un **falso allarme permanente**: le tre
+       esclusioni di FC 26 non corrispondono a nessuna partita di FC 27, e la riga avrebbe
+       detto "0 su 3" per sempre. Un allarme che suona sempre insegna a non guardarlo.
+
+    Quello che invece ha retto senza toccare niente: l'isolamento fra titoli, i ruoli, le
+    serate, e la pagina con zero partite.
+    """
+
+    def _prepara(self, cartella, club_nuovo):
+        """Una copia del progetto con club.json già passato al titolo nuovo."""
+        for nome in ("generate_dashboard.py", "ruoli.py", "roles.json"):
+            shutil.copy(QUI / nome, cartella / nome)
+        shutil.copytree(QUI / "modello", cartella / "modello")
+        conf = json.loads((QUI / "club.json").read_text(encoding="utf-8"))
+        conf["storico"] = [conf["attivo"]]
+        conf["attivo"] = club_nuovo
+        (cartella / "club.json").write_text(
+            json.dumps(conf, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _genera_in(self, cartella, out):
+        r = subprocess.run([sys.executable, str(cartella / "generate_dashboard.py"),
+                            "--db", str(self.db), "--out", str(out)],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            raise AssertionError(f"generazione fallita dopo il passaggio:\n{r.stdout}\n{r.stderr}")
+        return r.stdout, Path(out).read_text(encoding="utf-8")
+
+    def _dati(self, html):
+        inizio = html.index("const DATA = ") + len("const DATA = ")
+        return json.loads(html[inizio:html.index(";\n", inizio)])
+
+    NUOVO = {"club_id": 9999999, "nome": "Lentoni", "titolo": "FC 27",
+             "piattaforma": "common-gen5", "dal": "2026-09-18"}
+
+    def test_il_primo_giorno_senza_neanche_una_partita(self):
+        cartella = self.tmp / "passaggio"
+        cartella.mkdir()
+        self._prepara(cartella, self.NUOVO)
+        stdout, html = self._genera_in(cartella, self.tmp / "nuovo.html")
+        dati = self._dati(html)
+
+        self.assertEqual(dati["matches"], [], "la dashboard mostra partite di un altro titolo")
+        self.assertEqual(dati["roster"], [], "la dashboard mostra la rosa di un altro titolo")
+        # Il difetto numero 1: senza il ripiego in club.json usciva "Club".
+        self.assertIn("<h1>Lentoni</h1>", html,
+                      "l'intestazione non porta il nome del club prima del primo scaricamento")
+        self.assertNotIn("<h1>Club</h1>", html)
+        # Il difetto numero 2: l'avviso non deve diventare un allarme che suona sempre.
+        self.assertNotIn("0 su 3 elencate", stdout)
+        self.assertIn("titoli precedenti", stdout,
+                      "le esclusioni di un titolo passato vanno dichiarate tali, non contate come errori")
+
+    def test_con_qualche_partita_non_arriva_niente_dal_titolo_vecchio(self):
+        con = sqlite3.connect(self.db)
+        prima = con.execute("SELECT COUNT(*) FROM matches WHERE club_id=?", (CLUB,)).fetchone()[0]
+        # Tre partite del titolo nuovo, copiate da quelle vere ma con id e club diversi.
+        for tabella, chiave in (("matches", "match_id"), ("match_player_stats", "match_id")):
+            cols = [r[1] for r in con.execute(f"PRAGMA table_info({tabella})") if r[1] != "id"]
+            sel = ", ".join("'N' || match_id" if c == chiave else
+                            ("?" if c == "club_id" else c) for c in cols)
+            con.execute(
+                f"INSERT INTO {tabella} ({', '.join(cols)}) SELECT {sel} FROM {tabella} "
+                f"WHERE club_id=? AND match_id IN "
+                f"(SELECT match_id FROM matches WHERE club_id=? ORDER BY ts DESC LIMIT 3)",
+                (self.NUOVO["club_id"], CLUB, CLUB))
+        con.commit()
+        con.close()
+
+        cartella = self.tmp / "passaggio2"
+        cartella.mkdir()
+        self._prepara(cartella, self.NUOVO)
+        _, html = self._genera_in(cartella, self.tmp / "nuovo2.html")
+        dati = self._dati(html)
+
+        self.assertEqual(len(dati["matches"]), 3,
+                         f"attese 3 partite del titolo nuovo, il vecchio ne aveva {prima}")
+        self.assertTrue(all(r["games_played"] <= 3 for r in dati["roster"]),
+                        "nella rosa del titolo nuovo compaiono partite di quello vecchio")
+        self.assertLessEqual(len(dati.get("serate", [])), 1,
+                             "le serate del titolo vecchio sono finite in quello nuovo")
+
+
 class TestBattito(unittest.TestCase):
     """La memoria del battito.
 

@@ -7,7 +7,11 @@
     "",
     "Al passaggio a un titolo nuovo:",
     "  1. spostare il club corrente in 'storico'",
-    "  2. scrivere il nuovo in 'attivo' con il suo club_id e il nome del titolo",
+    "  2. scrivere il nuovo in 'attivo' con il suo club_id, il nome e il titolo",
+    "",
+    "Il campo 'nome' serve al primo giorno: il nome vero del club sta nel database, dove",
+    "lo scrive il primo scaricamento riuscito, ma prima di quello la pagina uscirebbe",
+    "intestata 'Club'. Provato il 25/08/2026 simulando il passaggio a FC 27.",
     "Nient'altro: gli script leggono da qui, i dati vecchi restano nel database e",
     "continuano a essere consultabili.",
     "",
@@ -18,6 +22,7 @@
 
   "attivo": {
     "club_id": 2703620,
+    "nome": "Lentoni",
     "titolo": "FC 26",
     "piattaforma": "common-gen5",
     "dal": "2026-08-03"
