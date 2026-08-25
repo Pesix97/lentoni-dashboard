@@ -48,6 +48,10 @@
       "gruppo": "CENTROCAMPISTI",
       "etichetta_ea": "midfielder"
     },
+    "Bagherese_95": {
+      "gruppo": "CENTROCAMPISTI",
+      "etichetta_ea": "midfielder"
+    },
     "Jysmu": {
       "gruppo": "ESTERNI",
       "etichetta_ea": "midfielder"
@@ -987,7 +991,13 @@
   "_da_assegnare": [
     "Nessuno: tutti i giocatori in rosa hanno un ruolo assegnato, e chi ha lasciato il club",
     "e' elencato in 'ex_giocatori'. Se compare un nome nuovo, la dashboard lo segnala con un",
-    "punto interrogativo accanto al ruolo dedotto dall'etichetta EA."
+    "punto interrogativo accanto al ruolo dedotto dall'etichetta EA.",
+    "",
+    "Bagherese_95 e' stato aggiunto il 24/08/2026, la sera del suo esordio: cinque partite,",
+    "che EA ha etichettato tre volte 'forward' e due 'midfielder'. E' un centrocampista, e",
+    "quelle tre da attaccante contano come fuori ruolo. Il ruolo si assegna subito anche se",
+    "con 5 partite di carriera non compare ancora da nessuna parte - la soglia e' 30 - cosi'",
+    "quando ci arrivera' lo storico sara' gia' classificato bene fin dall'inizio."
   ],
   "_etichetta_ea": [
     "'etichetta_ea' e' l'etichetta che EA usa per questo giocatore quando gioca nel suo ruolo",
