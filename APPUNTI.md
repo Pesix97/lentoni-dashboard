@@ -240,6 +240,30 @@ giocatore/partita e campi di carriera: non esiste. L'unica traccia è
 con un valore noto (gol, tiri, passaggi, contrasti), quindi non è decodificabile senza
 inventare.
 
+## Il laboratorio, e cosa ha già detto (25/08/2026)
+
+Sezione **sperimentale**, isolata apposta: contiene quattro modi diversi di fare la stessa
+classifica, così si decide con i numeri davanti quali tenere. Si calcola solo quando la si
+apre — il ricampionamento costa ~270 ms e non va pagato da chi non la guarda.
+
+Cosa hanno detto le prove su 69 partite:
+
+| Prova | Esito |
+| --- | --- |
+| **Minuti giocati davvero** | **non sposta nessuno.** Scartare le prestazioni sotto i 5 minuti e rapportare gol e assist al tempo in campo cambia i punteggi di poco e le posizioni di zero. Si può buttare |
+| **Scarto rispetto ai compagni** | cambia 4 posizioni su 11 |
+| **Scala a percentili** | cambia 6 posizioni su 11 |
+| **Fasce di incertezza** | **33 coppie su 55 hanno forchette che si sovrappongono** |
+
+L'ultima riga è la più importante e non è una variante della classifica: è una lettura di
+quella che c'è già. Rifacendola 500 volte su campioni diversi delle stesse partite, dal
+secondo al settimo posto non c'è **nessuna differenza misurabile**. Regge il primo posto, e
+regge lo stacco fra il gruppo di testa e quello di coda.
+
+Prima di promuovere qualcosa in produzione, vanno decise due cose: se l'obiettivo è una
+classifica *fra compagni*, le fasce sono la risposta più onesta; e se si toccano i pesi,
+prima va rifatta la misura di affidabilità (punto 6 qui sopra).
+
 ## Verifiche ancora aperte
 
 **Il collaudo del ciclo: superato tre volte.** Le notti del 21, 22 e 23 agosto il ciclo
