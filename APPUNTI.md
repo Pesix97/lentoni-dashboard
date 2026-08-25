@@ -25,10 +25,15 @@ già in tre file. La frase era rimasta in **due** elenchi diversi, e nessun test
 accorto perché nessuno gli aveva insegnato quel caso.
 
 Ora la metà misurabile è coperta: ogni «N righe» accanto al nome di un file viene
-confrontato con il file vero, con tolleranza del 25%. **L'altra metà no, e non lo sarà**:
-"dentro un'unica stringa" era falso quanto il numero, ma nessun controllo sa che una leva
-rimandata non è più da rimandare. Quella si trova solo rileggendo — ed è stata trovata
-così.
+confrontato con il file vero, con tolleranza del 25%. **L'altra metà no**: "dentro un'unica
+stringa" era falso quanto il numero, ma nessun controllo sa che una leva rimandata non è
+più da rimandare.
+
+Per quella c'è un'attività pianificata, **`lentoni-rilettura-appunti`, ogni domenica**:
+rilegge questi tre file contro lo stato vero del codice e propone le correzioni, senza
+applicarle finché non c'è un sì esplicito. Non sostituisce il fatto che i difetti veri li
+trova chi legge — anche questo l'ha trovato Peppe — ma mette un limite a quanto a lungo una
+riga può restare falsa: sette giorni.
 
 ---
 
