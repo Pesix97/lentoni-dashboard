@@ -384,8 +384,24 @@ Quella metà si trova solo rileggendo — ed è stata trovata così.
 Per non lasciarla al caso c'è un'attività pianificata, **`lentoni-rilettura-appunti`, ogni
 domenica**: rilegge `APPUNTI.md`, `README.md` e `CLAUDE.md` contro lo stato vero del
 codice, guarda cosa è cambiato nella settimana e propone le correzioni. Non applica niente
-senza un sì esplicito. Non sostituisce chi legge, ma mette un limite a quanto a lungo una
-riga può restare falsa: sette giorni.
+senza un sì esplicito.
+
+Cerca **due guasti diversi**, ed è importante che siano due:
+
+- **le righe diventate false** — una leva descritta come da valutare che è già stata
+  realizzata, una cosa data per mancante che ora c'è;
+- **le cose fatte e mai scritte** — il guasto opposto, e altrettanto comune: il 25/08/2026
+  quattro modifiche importanti erano state documentate solo a metà.
+
+Il secondo non è meccanizzabile, e conviene sapere perché invece di riprovarci. Un test del
+tipo "ogni sezione della dashboard dev'essere nominata nel README" è stato costruito e
+scartato: **8 sezioni su 17 non lo sono, e la maggior parte va benissimo così.** Questo file
+spiega *perché* le cose sono come sono, non cataloga l'interfaccia — e cosa meriti una
+riga è un giudizio, non una regola.
+
+Niente di tutto questo sostituisce chi legge: le lacune di quel giorno le ha trovate il
+club, non un controllo. Quello che cambia è il limite — una riga falsa resta in piedi al
+massimo sette giorni invece che indefinitamente.
 
 ## Test
 
