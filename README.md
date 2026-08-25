@@ -181,16 +181,29 @@ Ogni titolo EA crea un club nuovo con un id diverso, ma le persone restano le st
 L'archivio tiene **tutti i titoli insieme**, distinti da `club_id`, e la dashboard ne
 mostra uno alla volta: quello indicato in `attivo`.
 
-Al passaggio a FC 27 si sposta il club corrente in `storico`, si scrive il nuovo in
-`attivo`, e non serve toccare nient'altro. La **piattaforma mostrata viene da qui**, non da
-`raw/club_search.json`: quel file è una fotografia presa a mano del club di FC 26 e avrebbe
-continuato a dichiarare la piattaforma di quello vecchio, contraddicendo proprio la regola
-dell'unico file da toccare. **La transizione è stata provata a vuoto il
-23/08/2026**: con un club nuovo e zero partite la pagina si genera comunque, tutte e 15 le
-sezioni ci sono, le guardie di pubblicazione passano e non compaiono `NaN` o valori vuoti.
-`serata.py` risponde "Nessuna partita in archivio" invece di rompersi. Ogni query di `generate_dashboard.py` filtra
-per club attivo — senza quel filtro due stagioni finirebbero sommate nella stessa rosa
-senza che nulla lo segnali.
+Al passaggio a FC 27 (**18 settembre 2026**) si sposta il club corrente in `storico`, si
+scrive il nuovo in `attivo` con `club_id`, `nome` e `titolo`, e non serve toccare
+nient'altro. La **piattaforma mostrata viene da qui**, non da `raw/club_search.json`: quel
+file è una fotografia presa a mano del club di FC 26 e avrebbe continuato a dichiarare la
+piattaforma di quello vecchio, contraddicendo proprio la regola dell'unico file da toccare.
+Ogni query di `generate_dashboard.py` filtra per club attivo — senza quel filtro due
+stagioni finirebbero sommate nella stessa rosa senza che nulla lo segnali.
+
+**La transizione è stata provata due volte, e la seconda serviva.** Il 23/08/2026 a vuoto:
+con un club nuovo e zero partite la pagina si genera, tutte le sezioni ci sono, le guardie
+di pubblicazione passano e non compaiono `NaN`. Quella prova però verificava che la pagina
+*si generasse*, non **cosa dicesse** — e due difetti erano lì da allora senza che nessuno li
+guardasse:
+
+| Cosa si rompeva | Perché, e come è stato risolto |
+| --- | --- |
+| la pagina usciva intestata **"Club"**, con «Club — Club Dashboard» nel titolo della scheda | il nome vero sta nel database, dove lo scrive il primo scaricamento riuscito: al primo giorno di un titolo nuovo quella riga non esiste. Il ripiego è il campo `nome` di `club.json` |
+| l'avviso `prestazioni escluse a mano: 3 su 3` sarebbe diventato **`0 su 3` per sempre** | le esclusioni sono elencate per `match_id` e quelli di FC 26 non esistono in FC 27. Ora le voci che riguardano titoli precedenti vengono dichiarate tali invece di essere contate come errori: un allarme che suona sempre insegna a non guardarlo |
+
+Dal 25/08/2026 il passaggio non è più una prova a mano ma un test:
+`TestPassaggioDiTitolo` in `test_pipeline.py` lo percorre da capo a fondo — primo giorno
+senza partite e giorni successivi con poche — e verifica che il titolo vecchio non filtri
+in quello nuovo.
 
 ---
 
@@ -362,6 +375,18 @@ Alla prima esecuzione ha trovato tre disallineamenti veri, fra cui due file mai
 documentati. Le frasi **datate** non vengono toccate: "al 24/08 erano 59 partite" resta
 vero per sempre, ed è la differenza fra raccontare la storia e descrivere lo stato.
 
+**Metà del problema però non è meccanizzabile**, e va detto invece di far finta. Il
+25/08/2026 gli appunti tenevano ancora fra le leve da valutare una cosa risolta due giorni
+prima: il numero sbagliato adesso lo prende un test, ma la frase diceva anche "dentro
+un'unica stringa", e nessun controllo sa che una leva rimandata non è più da rimandare.
+Quella metà si trova solo rileggendo — ed è stata trovata così.
+
+Per non lasciarla al caso c'è un'attività pianificata, **`lentoni-rilettura-appunti`, ogni
+domenica**: rilegge `APPUNTI.md`, `README.md` e `CLAUDE.md` contro lo stato vero del
+codice, guarda cosa è cambiato nella settimana e propone le correzioni. Non applica niente
+senza un sì esplicito. Non sostituisce chi legge, ma mette un limite a quanto a lungo una
+riga può restare falsa: sette giorni.
+
 ## Test
 
 ```bash
@@ -412,6 +437,70 @@ gli avversari:
   livello che aveva quando è stato interrogato, non quello di stasera;
 - **16 partite su 49 non hanno l'id dell'avversario** nei dati EA, quindi restano fuori da
   ogni confronto per forza dell'avversario. Compaiono in tutto il resto.
+
+## I pesi dell'Indice di Forza stanno in un posto solo
+
+`PESI_INDICE` e `PESI_TECNICA` in `modello/pagina.js`. Erano ripetuti a mano in **quattro**
+punti — generale storico, generale forma, per reparto, per ruolo EA — ed è il tipo di
+duplicato che prima o poi si disallinea in silenzio. Otto controlli in `test_ruoli.js`
+impediscono che le copie tornino.
+
+Il 24/08/2026 il club ha deciso due ritocchi, entrambi con la misura davanti:
+
+- **il MOTM è sceso dal 15% al 5%**, i dieci punti alla media voto. Il premio di migliore in
+  campo è quasi automatico quando si vince (correla +0,79 con la vittoria) e messo alla
+  prova non si conferma: +0,08 fra prima e seconda metà dell'archivio;
+- **l'efficienza tecnica** era la media semplice di passaggi, contrasti e tiro. Ora pesa
+  passaggi 45%, tiro 45%, **contrasti 10%**. La percentuale di contrasti è la più ambigua
+  delle tre: chi ne tenta di più ha la percentuale più bassa (correlazione **−0,78**),
+  quindi in parte premia chi sceglie i duelli facili. Sulle altre due il vizio non c'è —
+  tiri +0,36 e passaggi +0,44.
+
+Sostituire la percentuale di contrasti con i **contrasti vinti a partita** è stato proposto
+e **scartato dal club**: la voce si chiama efficienza e deve restare efficienza, chi tenta
+tanto e sbaglia tanto va penalizzato lo stesso.
+
+Nelle **classifiche per reparto**, dove il ruolo si conosce partita per partita, per i
+difensori il rapporto si ribalta: contrasti 50%, passaggi 35%, tiro 15%. È l'unico punto
+della dashboard dove i pesi cambiano col ruolo.
+
+## Novità dall'ultima serata
+
+La sezione in cima confronta **l'ultima serata con la penultima**. Prima confrontava gli
+ultimi due aggiornamenti dello storico del club, e la finestra dipendeva da quando EA
+pubblicava: poteva contenere una partita, sei o zero, e non corrispondeva a niente di
+riconoscibile. La serata invece è l'unità in cui il club gioca e ragiona.
+
+Cambia anche la fonte dei numeri: non la differenza fra due istantanee di totali di
+carriera, ma le partite archiviate di quella serata. Sono esatte e non dipendono dai tempi
+di pubblicazione di EA.
+
+Per ogni giocatore: partite, media voto con la variazione rispetto alla **sua** serata
+precedente, gol, assist e premi. Chi la volta prima non c'era viene dichiarato invece di
+mostrare una variazione inventata, e in fondo si legge chi c'era prima e stavolta no.
+
+Lo skill rating è l'unico dato che non viene dalle partite — si legge dalle istantanee del
+club, prendendo l'ultima precedente all'inizio della serata. È una finestra, non una misura
+esatta, e l'etichetta lo dichiara.
+
+## Il confronto testa a testa spiega il distacco
+
+Mostrava un grafico a barre con gol e assist come **totali di carriera** accanto a delle
+percentuali: con 541 partite contro 96 il più anziano vinceva sempre, anche rendendo meno.
+
+Ora il distacco nell'Indice di Forza viene spezzato nelle voci che lo compongono, e i pezzi
+sommano esattamente al totale. Accanto a ogni voce ci sono i valori dei due giocatori e
+dove si collocano nella rosa: «7,80 contro 7,50» non si legge finché non sai che la rosa va
+da 6,80 a 8,00. L'efficienza tecnica si apre in una tendina nei suoi tre pezzi.
+
+Il punto di vista è **il giocatore scelto a sinistra**, non chi sta più in alto in
+classifica: verde quando è lui in vantaggio in quella voce, rosso quando è in svantaggio.
+Scambiando i due menu i colori si invertono, ed è voluto — ancorare il colore al primo in
+classifica obbligava a ricordarsi ogni volta quale dei due fosse.
+
+I salti interni alla pagina usano `data-vai`, non `href="#..."`: la dashboard mostra una
+sezione alla volta in base all'ancora, e un'ancora che non è una pagina fa tornare a home.
+Due controlli in `test_ruoli.js` impediscono che il difetto rientri.
 
 ## I campioni piccoli non pesano quanto quelli grandi
 
