@@ -170,7 +170,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
 | `test_pipeline.py` | 53 test: ingest, duplicati, isolamento tra titoli, qualità dei dati, modello, memoria del battito. |
-| `test_ruoli.js` | 67 controlli su ruoli, pesi dell’indice, testa a testa e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_ruoli.js` | 76 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---

@@ -492,6 +492,93 @@ console.log("\nConfronto testa a testa");
   }
 }
 
+// "Novità dall'ultima serata" confronta due serate, non due istantanee. I numeri vengono
+// ricalcolati qui da zero: se la sezione e quella ricostruzione divergono, uno dei due
+// sbaglia — ed e' il tipo di errore che produce cifre plausibili, non un messaggio.
+console.log("\nNovita' dall'ultima serata");
+{
+  const magazzino = {};
+  const finto = (id) => magazzino[id] = magazzino[id] || {
+    id, innerHTML: "", addEventListener(){}, get parentElement(){ return { innerHTML: "" }; },
+  };
+  global.document = { getElementById: finto, querySelector: () => ({ innerHTML: "" }), addEventListener(){} };
+
+  try {
+    new Function(
+      ritaglia("const DATA = {", "// ---- Cards ----") + "\n" +
+      ritaglia("// Confronta l'ULTIMA SERATA", "// ---- Crescita nel tempo"))();
+    const h = String(magazzino["newsBody"].innerHTML);
+    const D = ambiente.DATA;
+    const serate = D.serate || [];
+    verifica("ci sono almeno due serate da confrontare", serate.length >= 2);
+
+    const carta = (nome) => {
+      const blocco = h.split('<div class="news-card">').slice(1)
+        .find(c => (c.match(/class="nk">([^<]*)</) || [])[1] === nome);
+      return blocco ? (blocco.match(/class="nv [^"]*">([^<]*)</) || [])[1] : null;
+    };
+
+    // Ricostruzione indipendente della serata piu' recente.
+    const ids = serate[0].matchIds || [];
+    const perId = new Map((D.matches || []).map(m => [m.match_id, m]));
+    let v=0, n=0, p=0, gf=0, gs=0;
+    ids.forEach(id => { const m = perId.get(id); if(!m) return;
+      v += m.win?1:0; n += m.tie?1:0; p += m.loss?1:0;
+      gf += m.goals_for||0; gs += m.goals_against||0; });
+
+    verifica(`le partite mostrate sono quelle della serata (${ids.length})`,
+      carta("Partite") === String(ids.length), `mostra ${carta("Partite")}`);
+    verifica(`i gol fatti coincidono (${gf})`, carta("Gol fatti") === String(gf), `mostra ${carta("Gol fatti")}`);
+    verifica(`i gol subiti coincidono (${gs})`, carta("Gol subiti") === String(gs), `mostra ${carta("Gol subiti")}`);
+    verifica(`vittorie, pari e sconfitte coincidono (${v}V ${n}N ${p}P)`,
+      h.includes(`${v}V · ${n}N · ${p}P`));
+
+    // I giocatori elencati devono essere esattamente quelli che hanno giocato.
+    const attesi = new Set();
+    ids.forEach(id => (D.matchPlayers[id] || []).forEach(g => attesi.add(g.player_name)));
+    const elencati = new Set([...h.matchAll(/<div class="mover">\s*<b>([^<]+)<\/b>/g)].map(m => m[1]));
+    const mancanti = [...attesi].filter(x => !elencati.has(x));
+    const inPiu = [...elencati].filter(x => !attesi.has(x));
+    verifica(`sono elencati tutti e soli i ${attesi.size} che hanno giocato`,
+      mancanti.length === 0 && inPiu.length === 0,
+      `mancano ${mancanti.join(", ")||"-"}; in piu' ${inPiu.join(", ")||"-"}`);
+
+    // "non c'era" solo per chi davvero non c'era nella serata precedente.
+    const prima = new Set();
+    (serate[1].matchIds || []).forEach(id => (D.matchPlayers[id] || []).forEach(g => prima.add(g.player_name)));
+    // Una riga alla volta: cercando "non c'era" su tutto il blocco la ricerca scavalcava le
+    // righe e attribuiva l'assenza al giocatore sbagliato.
+    const blocchiGiocatore = h.split('<div class="mover">').slice(1);
+    const sbagliati = [], mancate = [];
+    blocchiGiocatore.forEach(b => {
+      const nome = (b.match(/<b>([^<]+)<\/b>/) || [])[1];
+      if(!nome) return;
+      const dice = /non c'era/.test(b.split("</div>")[0]);
+      if(dice && prima.has(nome)) sbagliati.push(nome);
+      if(!dice && !prima.has(nome)) mancate.push(nome);
+    });
+    verifica("chi e' dichiarato assente la volta prima lo era davvero",
+      sbagliati.length === 0, sbagliati.join(", "));
+    verifica("e chi non c'era viene dichiarato, invece di mostrare una variazione finta",
+      mancate.length === 0, mancate.join(", "));
+
+    // La finestra dello skill rating parte dalla PRIMA partita della serata. Prenderne una
+    // per posizione invece che per orario produce un numero plausibile e sbagliato.
+    const istanti = ids.map(id => (perId.get(id) || {}).played_at).filter(Boolean).sort();
+    const storia = D.history || [];
+    const precedente = [...storia].reverse().find(x => x.fetched_at < istanti[0]);
+    if(precedente && storia.length){
+      const atteso = storia[storia.length-1].skill_rating - precedente.skill_rating;
+      const mostrato = (h.match(/Skill rating[\s\S]*?class="ns">([+−]?\d+)/) || [])[1];
+      const num = mostrato ? Number(mostrato.replace("−","-")) : null;
+      verifica(`la variazione di skill rating parte dall'inizio della serata (${atteso >= 0 ? "+" : ""}${atteso})`,
+        num === atteso, `mostra ${mostrato}`);
+    }
+  } catch (e) {
+    verifica("la sezione si esegue senza eccezioni", false, e.message);
+  }
+}
+
 console.log(falliti === 0
   ? "\nTutti i controlli superati.\n"
   : `\n${falliti} controlli falliti.\n`);

@@ -500,7 +500,7 @@
 </section>
 
 <section id="novita">
-  <h2>Novità dall'ultimo aggiornamento <span class="h2-sub">— differenza tra gli ultimi due snapshot</span></h2>
+  <h2>Novità dall'ultima serata <span class="h2-sub">— confronto con la serata precedente</span></h2>
   <div id="newsBody"></div>
 </section>
 
@@ -1741,81 +1741,119 @@ function fmtStatValue(def, v){
 // Ogni run del task salva uno snapshot dei totali di carriera. La differenza
 // tra gli ultimi due dice esattamente cosa e' successo nel frattempo, senza
 // dipendere dall'archivio parziale delle singole partite.
+// Confronta l'ULTIMA SERATA con la penultima, non gli ultimi due aggiornamenti.
+//
+// Prima si confrontavano due istantanee consecutive dello storico del club, e la finestra
+// dipendeva da quando EA pubblicava: poteva contenere una partita, sei, o zero. Con le
+// serate la finestra e' quella in cui si e' giocato davvero, ed e' l'unita' in cui il club
+// ragiona: "com'e' andata ieri sera rispetto alla volta prima".
 (function renderNews(){
   const el = document.getElementById("newsBody");
-  const hist = DATA.history || [];
-  if(hist.length < 2){
-    el.innerHTML = '<div class="panel"><div class="empty">Serve almeno un secondo aggiornamento per confrontare i dati. Torna domani.</div></div>';
-    return;
-  }
-  const cur = hist[hist.length - 1], prev = hist[hist.length - 2];
-  const d = (k) => (Number(cur[k]) || 0) - (Number(prev[k]) || 0);
+  if(!el) return;
+  const serate = DATA.serate || [];
+  const partiteDi = new Map((DATA.matches || []).map(m => [m.match_id, m]));
 
-  const dGames = d("games_played"), dSr = d("skill_rating");
-  const dW = d("wins"), dL = d("losses"), dT = d("ties");
-  const dGf = d("goals"), dGa = d("goals_against");
-
-  if(dGames === 0){
+  if(serate.length < 2){
     el.innerHTML = `<div class="panel"><div class="empty">
-      Nessuna partita nuova tra il ${fmtDate(prev.fetched_at)} e il ${fmtDate(cur.fetched_at)}.
-    </div></div>`;
+      Serve una seconda serata in archivio per fare un confronto.</div></div>`;
     return;
   }
+  const ultima = serate[0], precedente = serate[1];
 
-  const sign = (n) => (n > 0 ? "+" + n : String(n));
-  const cls  = (n) => (n > 0 ? "up" : n < 0 ? "down" : "flat");
-  const cards = [
-    { k: "Partite giocate", v: sign(dGames), c: "flat", s: `${dW}V · ${dT}N · ${dL}P` },
-    { k: "Skill rating",    v: sign(dSr),    c: cls(dSr), s: `ora ${cur.skill_rating}` },
-    { k: "Gol fatti",       v: sign(dGf),    c: "up",   s: dGames ? `${(dGf/dGames).toFixed(1)} a partita` : "" },
-    { k: "Gol subiti",      v: sign(dGa),    c: "down", s: dGames ? `${(dGa/dGames).toFixed(1)} a partita` : "" },
-  ];
-
-  // Chi si e' mosso di piu': differenza sui totali per giocatore.
-  const mh = DATA.memberHistory || [];
-  const snaps = [...new Set(mh.map(r => r.fetched_at))].sort();
-  let moversHtml = "";
-  if(snaps.length >= 2){
-    const last = snaps[snaps.length - 1], before = snaps[snaps.length - 2];
-    const mapOf = (snap) => new Map(mh.filter(r => r.fetched_at === snap).map(r => [r.player_name, r]));
-    const a = mapOf(before), b = mapOf(last);
-    const movers = [];
-    b.forEach((now, name) => {
-      const was = a.get(name);
-      if(!was) return;
-      const dg = (now.games_played||0) - (was.games_played||0);
-      if(dg <= 0) return;
-      movers.push({
-        name, games: dg,
-        goals:   (now.goals||0)   - (was.goals||0),
-        assists: (now.assists||0) - (was.assists||0),
-        mom:     (now.man_of_the_match||0) - (was.man_of_the_match||0),
+  function riassunto(serata){
+    const ids = serata.matchIds || [];
+    const r = { partite: ids.length, v: 0, n: 0, p: 0, gf: 0, gs: 0, voto: 0, quanti: 0, per: {} };
+    ids.forEach(id => {
+      const m = partiteDi.get(id);
+      if(m){
+        r.v += m.win ? 1 : 0; r.p += m.loss ? 1 : 0; r.n += m.tie ? 1 : 0;
+        r.gf += m.goals_for || 0; r.gs += m.goals_against || 0;
+      }
+      (DATA.matchPlayers[id] || []).forEach(g => {
+        r.voto += g.rating || 0; r.quanti++;
+        const q = r.per[g.player_name] = r.per[g.player_name] ||
+          { partite:0, gol:0, assist:0, voto:0, mom:0 };
+        q.partite++; q.gol += g.goals || 0; q.assist += g.assists || 0;
+        q.voto += g.rating || 0; q.mom += g.mom ? 1 : 0;
       });
     });
-    movers.sort((x,y) => (y.goals + y.assists) - (x.goals + x.assists) || y.games - x.games);
-    if(movers.length){
-      moversHtml = `
-        <div class="news-movers">${movers.slice(0, 8).map(m => `
-          <div class="mover"><b>${m.name}</b> — ${m.games} pt
-            ${m.goals   ? ` · <span class="mv">${m.goals} gol</span>` : ""}
-            ${m.assists ? ` · <span class="mv">${m.assists} assist</span>` : ""}
-            ${m.mom     ? ` · ⭐${m.mom}` : ""}
-          </div>`).join("")}</div>`;
-    }
+    r.media = r.quanti ? r.voto / r.quanti : null;
+    Object.values(r.per).forEach(q => q.media = q.partite ? q.voto / q.partite : null);
+    return r;
   }
+  const A = riassunto(ultima), B = riassunto(precedente);
+
+  // Lo skill rating non e' un dato di partita: si legge dalle istantanee del club. Si prende
+  // l'ultima nota prima che la serata cominciasse e la piu' recente in assoluto. E' una
+  // finestra, non una misura esatta della serata, e va detto invece di far finta di no.
+  const storia = DATA.history || [];
+  let dSr = null, srOra = storia.length ? storia[storia.length-1].skill_rating : null;
+  if(storia.length >= 2 && ultima.matchIds && ultima.matchIds.length){
+    // Il minimo, non il primo elemento: dentro una serata i match_id sono dal piu' vecchio
+    // al piu' recente, ma le serate sono elencate al contrario. Prendere una posizione per
+    // buona significa sbagliare finestra alla prima volta che l'ordine cambia - ed esce un
+    // numero plausibile e sbagliato, che nessuno nota.
+    const istanti = ultima.matchIds
+      .map(id => (partiteDi.get(id) || {}).played_at).filter(Boolean).sort();
+    const inizio = istanti[0];
+    const prima = [...storia].reverse().find(h => inizio && h.fetched_at < inizio);
+    if(prima) dSr = srOra - prima.skill_rating;
+  }
+
+  const segno = (n, dec) => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(dec || 0);
+  const verso = (n) => n > 0 ? "up" : n < 0 ? "down" : "flat";
+  const quando = (s) => `${s.giorno} ${s.inizio}–${s.fine}`;
+
+  const schede = [
+    { k:"Partite", v:String(A.partite), c:"flat",
+      s:`${A.v}V · ${A.n}N · ${A.p}P` + (B.partite ? ` · la volta prima ${B.partite}` : "") },
+    { k:"Gol fatti", v:String(A.gf), c: verso(A.gf - B.gf),
+      s:`${segno(A.gf - B.gf)} rispetto alla serata precedente` },
+    { k:"Gol subiti", v:String(A.gs), c: verso(B.gs - A.gs),
+      s:`${segno(A.gs - B.gs)} rispetto alla serata precedente` },
+    { k:"Media voto squadra", v: A.media ? A.media.toFixed(2) : "—",
+      c: A.media && B.media ? verso(A.media - B.media) : "flat",
+      s: A.media && B.media ? `${segno(A.media - B.media, 2)} rispetto alla serata precedente` : "prima serata utile" },
+  ];
+  if(dSr !== null)
+    schede.push({ k:"Skill rating", v:String(srOra), c: verso(dSr),
+                  s:`${segno(dSr)} da prima della serata` });
+
+  // Chi c'era. Il confronto della media ha senso solo per chi ha giocato in entrambe: per
+  // gli altri si dichiara l'assenza invece di inventare una variazione.
+  const nomi = Object.keys(A.per).sort((x, y) =>
+    (A.per[y].gol + A.per[y].assist) - (A.per[x].gol + A.per[x].assist) ||
+    (A.per[y].media || 0) - (A.per[x].media || 0));
+  const righe = nomi.map(n => {
+    const a = A.per[n], b = B.per[n];
+    const delta = (a.media != null && b && b.media != null)
+      ? `<span class="${verso(a.media - b.media)}">${segno(a.media - b.media, 2)}</span>`
+      : `<span style="color:var(--muted);">non c'era</span>`;
+    return `<div class="mover">
+      <b>${n}</b> — ${a.partite} pt · media ${a.media ? a.media.toFixed(2) : "—"} ${delta}
+      ${a.gol ? ` · <span class="mv">${a.gol} gol</span>` : ""}
+      ${a.assist ? ` · <span class="mv">${a.assist} assist</span>` : ""}
+      ${a.mom ? ` · ⭐${a.mom}` : ""}
+    </div>`;
+  }).join("");
+
+  const assenti = Object.keys(B.per).filter(n => !A.per[n]);
 
   el.innerHTML = `
     <div class="news-grid">
-      ${cards.map(c => `
+      ${schede.map(c => `
         <div class="news-card">
           <div class="nk">${c.k}</div>
           <div class="nv ${c.c}">${c.v}</div>
           <div class="ns">${c.s}</div>
         </div>`).join("")}
     </div>
-    ${moversHtml}
+    <div class="news-movers">${righe}</div>
+    ${assenti.length ? `<div class="empty" style="text-align:left; padding:8px 0 0;">
+        Non hanno giocato l'ultima serata ma c'erano la volta prima: ${assenti.join(", ")}.
+      </div>` : ""}
     <div class="empty" style="text-align:left; padding:10px 0 0;">
-      Confronto tra ${fmtDate(prev.fetched_at)} e ${fmtDate(cur.fetched_at)}.
+      Ultima serata ${quando(ultima)} · precedente ${quando(precedente)}.
     </div>`;
 })();
 
