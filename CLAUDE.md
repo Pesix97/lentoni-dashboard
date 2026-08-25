@@ -43,6 +43,13 @@ di priorità la decisione resta sua — ma la deve prendere sapendo cosa ne pens
 apposta e guardarlo fallire, poi ripristinare. Un test che non si è mai visto rosso non
 dimostra niente.
 
+**6-bis. Non "funziona?", ma "cosa dice?".** Sono due prove diverse, e superare la prima
+non dice niente sulla seconda. Il passaggio a un titolo nuovo era stato provato il
+23/08/2026 e la prova era passata — la pagina si generava, quindici sezioni presenti,
+nessun `NaN`. Intanto l'intestazione diceva **"Club"** e un allarme era rotto: cose visibili
+a occhio, che nessuno aveva guardato perché si stava controllando che non esplodesse.
+Dopo aver verificato che una cosa gira, leggere cosa ha prodotto.
+
 **7. Un controllo che si fida dell'output non controlla niente.** Deve partire da un
 riferimento indipendente da ciò che verifica. Tre test scritti il 24/08/2026 passavano
 mentre il codice era rotto, tutti per questo motivo:
@@ -87,6 +94,11 @@ python3 generate_dashboard.py --db lentoni.db --out index.html
 python3 -m unittest test_pipeline
 node test_ruoli.js index.html
 ```
+
+**La documentazione va nello stesso commit, non dopo.** Un passo separato è quello che
+salta quando si va di fretta: il 25/08/2026 quattro modifiche importanti sono finite online
+documentate a metà, in un pomeriggio solo, e non perché la regola mancasse. Se una modifica
+merita una riga in README o APPUNTI, quella riga fa parte della modifica.
 
 E se sono stati toccati file, numeri o soglie citati nei testi: `TestDocumentazioneAllineata`
 verifica che README e APPUNTI dicano ancora il vero. Le frasi **datate** ("al 24/08 erano 59
