@@ -78,7 +78,16 @@ settembre saranno diverse centinaia. Queste cose oggi non si possono né costrui
 
 ### 1. Selettore del titolo nella dashboard
 
-FC 27 è atteso per inizio ottobre. Database e script sono già pronti a contenere più
+**Il club passa a FC 27 il 18 settembre 2026**, non a ottobre come diceva questo appunto
+fino al 25/08. È l'unica scadenza vera del progetto, e ora sono due settimane più vicina:
+il task `lentoni-piano-settembre` scatta il 1° settembre, quindi restano **diciassette
+giorni** per avere il selettore pronto.
+
+Cosa cambia con FC 27, ed è il motivo per cui tutto questo lavoro su FC 26 vale la pena:
+**l'archivio partirà completo dalla prima partita.** Le 35 partite perse per sempre e la
+copertura al 63% sono difetti di un archivio nato in corsa, e non si ripeteranno.
+
+FC 27 arriva il 18/09/2026. Database e script sono già pronti a contenere più
 titoli insieme (vedi `club.json`), e ogni query filtra per club attivo — verificato
 iniettando un secondo club finto e controllando che i numeri non cambiassero.
 
@@ -161,6 +170,12 @@ pulizia di ruoli ed esclusioni: è la parte più sporca dell'archivio.
 
 **La cosa da rifare a settembre non è l'indice: è la misura.** Lo script che l'ha prodotta
 va rieseguito quando le partite saranno il doppio, e solo allora i pesi vanno riscritti.
+
+**Va fatto entro il 18 settembre**, perché lì l'archivio di FC 26 si chiude e non crescerà
+più. Misurato il 25/08: 8,6 partite al giorno nell'ultima settimana, quindi si chiuderà fra
+le 144 e le 275 partite a seconda del ritmo. È anche l'ultima occasione per rifare la
+misura su questo titolo: da FC 27 si riparte da zero, e i pesi tarati qui saranno l'unica
+eredità utile.
 Con 59 partite nessun indice regge davvero, incluso quello che proporrei io.
 
 ### Cosa si è misurato provando a tarare (24/08/2026)
@@ -277,6 +292,17 @@ L'ultima riga è la più importante e non è una variante della classifica: è u
 quella che c'è già. Rifacendola 500 volte su campioni diversi delle stesse partite, dal
 secondo al settimo posto non c'è **nessuna differenza misurabile**. Regge il primo posto, e
 regge lo stacco fra il gruppo di testa e quello di coda.
+
+**Le fasce: perché non sono in dashboard.** Misurato il 25/08 quanto si stringono al
+crescere dell'archivio, ricampionando: 4,8 posti di larghezza media a 20 partite, 3,9 a 50,
+3,7 a 69, con le coppie indistinguibili scese dal 78% al 48%. Estrapolando servirebbero
+**circa 280 partite** perché quasi ogni posizione sia distinguibile dalla successiva.
+
+Una frase fissa del tipo "fra il 2° e il 7° posto le differenze non sono misurabili"
+sarebbe quindi vera oggi e falsa fra due mesi — cioè esattamente il difetto degli appunti.
+Se un giorno si rimette, il numero va **calcolato**, così sparisce da solo quando smette di
+valere. Ma non ne vale il prezzo: un ricampionamento a ogni caricamento di pagina per una
+riga destinata a spegnersi.
 
 **Le tre cose da ricordare quando si riproverà:**
 
