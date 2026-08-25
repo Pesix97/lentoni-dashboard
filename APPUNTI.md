@@ -18,6 +18,18 @@ fermo a 32 test su 46.
 Le frasi **datate** ("al 24/08 le partite erano 59") restano vere per sempre e non vanno
 toccate: è la differenza fra raccontare la storia e descrivere lo stato.
 
+Il 25/08 il meccanismo ha mostrato il suo limite. Fra le leve da valutare c'era ancora
+"`generate_dashboard.py` è un file da 3200 righe con HTML, CSS e JavaScript dentro
+un'unica stringa", risolta **due giorni prima**: il file era a 681 righe e il modello viveva
+già in tre file. La frase era rimasta in **due** elenchi diversi, e nessun test se n'era
+accorto perché nessuno gli aveva insegnato quel caso.
+
+Ora la metà misurabile è coperta: ogni «N righe» accanto al nome di un file viene
+confrontato con il file vero, con tolleranza del 25%. **L'altra metà no, e non lo sarà**:
+"dentro un'unica stringa" era falso quanto il numero, ma nessun controllo sa che una leva
+rimandata non è più da rimandare. Quella si trova solo rileggendo — ed è stata trovata
+così.
+
 ---
 
 ## Da fare quando capita

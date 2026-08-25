@@ -540,6 +540,47 @@ class TestDocumentazioneAllineata(unittest.TestCase):
                 self.assertNotIn("non ha ancora attraversato una sessione", appunti,
                                  "gli appunti negano un collaudo che nel frattempo è avvenuto")
 
+    def test_i_numeri_attaccati_a_un_file_non_diventano_assurdi(self):
+        """Ogni "N righe" accanto al nome di un file deve somigliare alla realtà.
+
+        Il caso vero (25/08/2026): gli appunti tenevano fra le leve da valutare
+        "generate_dashboard.py è un file da 3200 righe con HTML, CSS e JavaScript dentro
+        un'unica stringa". Era stato risolto due giorni prima — il file era passato a 681
+        righe e il modello viveva in tre file — ma la frase è rimasta in DUE elenchi
+        diversi, e una conversazione nuova ci si sarebbe fidata.
+
+        La tolleranza è larga apposta: non serve che il numero sia esatto, serve che non
+        sia assurdo. Una modifica normale sposta le righe di qualche punto percentuale; un
+        file che perde l'80% del suo contenuto ha cambiato natura, e la frase che lo
+        descrive quasi certamente non vale più.
+
+        Quello che questo test NON può vedere resta la parte semantica: "dentro un'unica
+        stringa" era falso quanto il numero, ma nessun controllo sa che una leva rimandata
+        non è più da rimandare. Quella metà si trova solo rileggendo.
+        """
+        import re
+
+        TOLLERANZA = 0.25
+        UNITA = {
+            "righe": lambda p: sum(1 for _ in p.open(encoding="utf-8")),
+        }
+        problemi = []
+        for nome in ("APPUNTI.md", "README.md", "CLAUDE.md"):
+            testo = self._leggi(nome)
+            for m in re.finditer(
+                    r"`([\w./-]+\.(?:py|js|json|sh|css|html))`[^.\n]{0,140}?(\d[\d.]*)\s*(righe)",
+                    testo):
+                percorso = QUI / m.group(1)
+                if not percorso.exists():
+                    continue
+                dichiarato = int(m.group(2).replace(".", ""))
+                vero = UNITA[m.group(3)](percorso)
+                if vero and abs(dichiarato - vero) / vero > TOLLERANZA:
+                    problemi.append(
+                        f"{nome}: dichiara {dichiarato} {m.group(3)} per {m.group(1)}, "
+                        f"ne ha {vero}")
+        self.assertEqual(problemi, [], "numeri non più veri:\n  " + "\n  ".join(problemi))
+
 
 class TestSpiegazioniRichiuse(unittest.TestCase):
     """Dietro un clic ci va solo il testo, mai i numeri.
