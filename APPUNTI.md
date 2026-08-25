@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 24/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 25/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -102,9 +102,6 @@ doverlo chiedere. Non dipende dal campione, si può fare in qualsiasi momento.
 
 **Spazio**: `matches.raw_json` occupa circa un terzo del database e duplica dati già
 presenti in colonne vere.
-
-**Manutenibilità**: `generate_dashboard.py` è un file da 3200 righe con HTML, CSS e
-JavaScript dentro un'unica stringa.
 
 ---
 
@@ -298,11 +295,6 @@ recenti — ridurrebbe di un terzo il peso di ogni commit. Va contro il principi
 perdere nessun campo di EA" su cui è nato il progetto, quindi è una scelta da fare a
 mente fredda, non una necessità.
 
-**Manutenibilità.** `generate_dashboard.py` è un file da 3200 righe che contiene HTML,
-CSS e JavaScript dentro un'unica stringa. Funziona, ma ogni modifica è una sostituzione
-di testo dentro quella stringa. Separare template, stile e logica in file distinti,
-assemblati alla generazione, non cambierebbe il risultato ma renderebbe più semplice
-tutto quello che verrà dopo.
 ---
 
 ## Come si lavora a questo progetto
