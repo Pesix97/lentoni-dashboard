@@ -1204,7 +1204,6 @@ let growthChart = null;
 // ---- Indice di Forza (power ranking) ----
 (function renderPowerRanking(){
   const podiumEl = document.getElementById("powerPodium");
-  const roleFiltersEl = document.getElementById("powerRoleFilters");
   const tbody = document.querySelector("#powerTable tbody");
   const roster = DATA.roster || [];
   if(roster.length === 0){
@@ -1216,7 +1215,6 @@ let growthChart = null;
   const winEl    = document.getElementById("formWindowFilters");
   const weightEl = document.getElementById("formWeightFilters");
   const covEl    = document.getElementById("formCoverage");
-  let activeRole = "Tutti";
   let scored = [];
 
   const WEIGHT_OPTS = [
@@ -1276,24 +1274,27 @@ let growthChart = null;
          Peso applicato: ${Math.round((1-formWeight)*100)}% storico + ${Math.round(formWeight*100)}% forma.`;
   }
 
-  function renderRoleFilters(){
-    const presenti = new Set(roster.map(r => r.gruppo).filter(Boolean));
-    const roles = ["Tutti", ...GROUP_ORDER.filter(g => presenti.has(g))];
-    roleFiltersEl.innerHTML = roles.map(role =>
-      `<span class="filter-btn ${role===activeRole?"active":""}" data-role="${role}">${GROUP_LABELS[role] || role}</span>`).join("");
-    roleFiltersEl.querySelectorAll(".filter-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        activeRole = btn.dataset.role;
-        roleFiltersEl.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b === btn));
-        draw();
-      });
-    });
-  }
+  // QUI C'ERANO I FILTRI PER REPARTO. Tolti il 25/08/2026 perche' promettevano una cosa
+  // che questa classifica non puo' mantenere.
+  //
+  // La generale e' calcolata sulle CARRIERE COMPLETE, e nelle carriere EA non esiste
+  // traccia del ruolo: c'e' un totale e basta. Il reparto di ciascuno era quindi quello
+  // abituale di roles.json, uno solo per giocatore. Filtrando "Centrocampisti" si otteneva
+  // "chi fa il centrocampista di mestiere", ma chiunque leggeva capiva "chi ha giocato a
+  // centrocampo" - e i due insiemi sono diversi.
+  //
+  // Il caso che l'ha fatto notare: Maverik_44_ ha 4 partite a centrocampo su 20, ma il suo
+  // ruolo abituale e' ESTERNI, quindi filtrando i centrocampisti spariva. Sembrava un dato
+  // mancante, era il filtro che rispondeva a un'altra domanda.
+  //
+  // Due file di bottoni identici a pochi centimetri di distanza, con significati diversi e
+  // niente a dirlo. Ora il confronto fra pari ruolo si fa solo dove il ruolo si conosce
+  // davvero, cioe' in "Reparto per reparto", che usa il dato di ogni singola partita.
 
   function draw(){
-    const rows = scored.filter(s => activeRole === "Tutti" || s.r.gruppo === activeRole);
+    const rows = scored;
     if(rows.length === 0){
-      tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun giocatore per questo ruolo.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun giocatore.</td></tr>`;
       return;
     }
     // Chi non ha dati recenti sta sotto la classifica, non dentro: senza posizione e con
@@ -1346,7 +1347,6 @@ let growthChart = null;
     if(ridisegnaConfronto) ridisegnaConfronto();
   }
 
-  renderRoleFilters();
   recompute();
 })();
 

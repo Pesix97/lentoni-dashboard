@@ -660,7 +660,13 @@
   </div>
   <div class="power-podium" id="powerPodium"></div>
   <div class="panel">
-    <div class="filter-bar" id="powerRoleFilters"></div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">
+      Il <strong style="color:var(--text);">Ruolo</strong> qui accanto è quello abituale, non quello
+      della singola partita: queste sono carriere complete, e nelle carriere EA non registra dove si
+      è giocato. Per vedere il rendimento di ciascuno <strong style="color:var(--text);">nei ruoli in
+      cui ha davvero giocato</strong> — comprese le partite fuori ruolo — c'è
+      <a href="#per-reparto" style="color:var(--accent-2);">Reparto per reparto</a>, qui sotto.
+    </div>
     <div class="table-wrap">
       <table id="powerTable" class="responsive-table">
         <thead><tr>
@@ -681,7 +687,7 @@
     </div>
   </div>
 
-  <h3 style="margin:34px 0 4px; font-size:17px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:24px;">
+  <h3 id="per-reparto" style="margin:34px 0 4px; font-size:17px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:24px; scroll-margin-top:70px;">
     Reparto per reparto <span class="h2-sub">— chi incide di più tra i pari ruolo</span>
   </h3>
   <div id="daConfermare"></div>
@@ -2113,7 +2119,6 @@ let growthChart = null;
 // ---- Indice di Forza (power ranking) ----
 (function renderPowerRanking(){
   const podiumEl = document.getElementById("powerPodium");
-  const roleFiltersEl = document.getElementById("powerRoleFilters");
   const tbody = document.querySelector("#powerTable tbody");
   const roster = DATA.roster || [];
   if(roster.length === 0){
@@ -2125,7 +2130,6 @@ let growthChart = null;
   const winEl    = document.getElementById("formWindowFilters");
   const weightEl = document.getElementById("formWeightFilters");
   const covEl    = document.getElementById("formCoverage");
-  let activeRole = "Tutti";
   let scored = [];
 
   const WEIGHT_OPTS = [
@@ -2185,24 +2189,27 @@ let growthChart = null;
          Peso applicato: ${Math.round((1-formWeight)*100)}% storico + ${Math.round(formWeight*100)}% forma.`;
   }
 
-  function renderRoleFilters(){
-    const presenti = new Set(roster.map(r => r.gruppo).filter(Boolean));
-    const roles = ["Tutti", ...GROUP_ORDER.filter(g => presenti.has(g))];
-    roleFiltersEl.innerHTML = roles.map(role =>
-      `<span class="filter-btn ${role===activeRole?"active":""}" data-role="${role}">${GROUP_LABELS[role] || role}</span>`).join("");
-    roleFiltersEl.querySelectorAll(".filter-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        activeRole = btn.dataset.role;
-        roleFiltersEl.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b === btn));
-        draw();
-      });
-    });
-  }
+  // QUI C'ERANO I FILTRI PER REPARTO. Tolti il 25/08/2026 perche' promettevano una cosa
+  // che questa classifica non puo' mantenere.
+  //
+  // La generale e' calcolata sulle CARRIERE COMPLETE, e nelle carriere EA non esiste
+  // traccia del ruolo: c'e' un totale e basta. Il reparto di ciascuno era quindi quello
+  // abituale di roles.json, uno solo per giocatore. Filtrando "Centrocampisti" si otteneva
+  // "chi fa il centrocampista di mestiere", ma chiunque leggeva capiva "chi ha giocato a
+  // centrocampo" - e i due insiemi sono diversi.
+  //
+  // Il caso che l'ha fatto notare: Maverik_44_ ha 4 partite a centrocampo su 20, ma il suo
+  // ruolo abituale e' ESTERNI, quindi filtrando i centrocampisti spariva. Sembrava un dato
+  // mancante, era il filtro che rispondeva a un'altra domanda.
+  //
+  // Due file di bottoni identici a pochi centimetri di distanza, con significati diversi e
+  // niente a dirlo. Ora il confronto fra pari ruolo si fa solo dove il ruolo si conosce
+  // davvero, cioe' in "Reparto per reparto", che usa il dato di ogni singola partita.
 
   function draw(){
-    const rows = scored.filter(s => activeRole === "Tutti" || s.r.gruppo === activeRole);
+    const rows = scored;
     if(rows.length === 0){
-      tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun giocatore per questo ruolo.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun giocatore.</td></tr>`;
       return;
     }
     // Chi non ha dati recenti sta sotto la classifica, non dentro: senza posizione e con
@@ -2255,7 +2262,6 @@ let growthChart = null;
     if(ridisegnaConfronto) ridisegnaConfronto();
   }
 
-  renderRoleFilters();
   recompute();
 })();
 

@@ -324,6 +324,21 @@ descrivere come si gioca invece di premiare chi sta davanti.
 **La soglia per entrare in classifica nei reparti è 3**, scelta sapendo il compromesso.
 Va rialzata solo se il club lo chiede.
 
+**L'Indice di Forza generale non si filtra per reparto**, dal 25/08/2026. Quei bottoni
+promettevano una cosa che quella classifica non può mantenere: è calcolata sulle carriere
+complete, e nelle carriere EA non registra in che ruolo si è giocato. Il reparto era quindi
+quello abituale di `roles.json`, uno solo per giocatore, e filtrare "Centrocampisti"
+rispondeva a "chi fa il centrocampista di mestiere" mentre chi leggeva capiva "chi ha
+giocato a centrocampo".
+
+Il caso che l'ha fatto notare: Maverik_44_ ha **4 partite a centrocampo su 20** ma ruolo
+abituale ESTERNI, quindi filtrando i centrocampisti spariva — e sembrava un dato mancante.
+Le sue presenze sono 10 da esterno, 4 a centrocampo, 4 in difesa, 2 in attacco: in "Reparto
+per reparto" compare in tutti e quattro.
+
+Il difetto non era nel calcolo ma nell'avere **due file di bottoni identici a pochi
+centimetri di distanza con significati diversi**, senza niente a dirlo. Non vanno rimessi.
+
 **"Come regge la serata" è stata tolta il 24/08/2026** dalle schede giocatore, perché
 misurava rumore. Confrontava le prime due partite della serata con quelle dalla quinta in
 poi, e dava un giudizio con due decimali. Tre misure, in ordine di gravità:

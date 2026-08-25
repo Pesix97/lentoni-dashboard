@@ -94,6 +94,27 @@ console.log("\nPesi dell'Indice di Forza");
     efficienzaTecnica(80, 60, 20) === stessoAltrove);
 }
 
+// La classifica generale non deve piu' avere filtri per reparto: e' calcolata sulle
+// carriere, dove il ruolo della singola partita non esiste. Chi filtrava "Centrocampisti"
+// otteneva "chi fa il centrocampista di mestiere" e non se ne accorgeva - Maverik_44_, 4
+// partite a centrocampo su 20 ma ruolo abituale esterno, spariva dall'elenco.
+console.log("\nClassifica generale: nessun filtro per reparto");
+{
+  verifica("i bottoni dei reparti non ci sono piu' nella generale",
+    !html.includes('id="powerRoleFilters"'));
+  verifica("nessun residuo del filtro nel codice",
+    !script.includes("activeRole") && !script.includes("renderRoleFilters"));
+  // Il rimando alla sezione dove il ruolo si conosce davvero deve puntare a qualcosa.
+  const ancora = (html.match(/href="#([\w-]+)"[^>]*>Reparto per reparto/) || [])[1];
+  verifica("il rimando a Reparto per reparto esiste e punta a un'ancora vera",
+    !!ancora && html.includes(`id="${ancora}"`), ancora ? `ancora #${ancora} non trovata` : "nessun rimando");
+  // E la generale deve elencare tutti, non un sottoinsieme.
+  const inRosa = (ambiente.DATA.roster || []).length;
+  const inClassifica = ambiente.computeBlendedScores(30, 0.5).length;
+  verifica(`la generale elenca tutta la rosa (${inRosa})`,
+    inClassifica === inRosa, `ne mostra ${inClassifica}`);
+}
+
 console.log("\nEtichette EA dichiarate");
 verifica("roles.json dichiara l'etichetta EA di ogni giocatore assegnato",
   Object.keys(GROUP_OF_PLAYER).every(n => EA_LABEL_OF_PLAYER[n]),

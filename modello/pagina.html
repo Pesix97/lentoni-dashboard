@@ -212,7 +212,13 @@
   </div>
   <div class="power-podium" id="powerPodium"></div>
   <div class="panel">
-    <div class="filter-bar" id="powerRoleFilters"></div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">
+      Il <strong style="color:var(--text);">Ruolo</strong> qui accanto è quello abituale, non quello
+      della singola partita: queste sono carriere complete, e nelle carriere EA non registra dove si
+      è giocato. Per vedere il rendimento di ciascuno <strong style="color:var(--text);">nei ruoli in
+      cui ha davvero giocato</strong> — comprese le partite fuori ruolo — c'è
+      <a href="#per-reparto" style="color:var(--accent-2);">Reparto per reparto</a>, qui sotto.
+    </div>
     <div class="table-wrap">
       <table id="powerTable" class="responsive-table">
         <thead><tr>
@@ -233,7 +239,7 @@
     </div>
   </div>
 
-  <h3 style="margin:34px 0 4px; font-size:17px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:24px;">
+  <h3 id="per-reparto" style="margin:34px 0 4px; font-size:17px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:24px; scroll-margin-top:70px;">
     Reparto per reparto <span class="h2-sub">— chi incide di più tra i pari ruolo</span>
   </h3>
   <div id="daConfermare"></div>
