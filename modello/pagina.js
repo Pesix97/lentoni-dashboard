@@ -814,7 +814,7 @@ function fmtStatValue(def, v){
 // gioca invece di premiare chi sta davanti. Le sezioni analitiche che le sostituiscono
 // sono "Vittorie e sconfitte" e "Scheda osservatore".
 
-// ---- Novita: differenza tra gli ultimi due snapshot ----
+// ---- Novita: confronto fra l'ultima serata e la penultima ----
 // Ogni run del task salva uno snapshot dei totali di carriera. La differenza
 // tra gli ultimi due dice esattamente cosa e' successo nel frattempo, senza
 // dipendere dall'archivio parziale delle singole partite.
