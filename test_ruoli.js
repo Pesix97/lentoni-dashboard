@@ -104,15 +104,38 @@ console.log("\nClassifica generale: nessun filtro per reparto");
     !html.includes('id="powerRoleFilters"'));
   verifica("nessun residuo del filtro nel codice",
     !script.includes("activeRole") && !script.includes("renderRoleFilters"));
-  // Il rimando alla sezione dove il ruolo si conosce davvero deve puntare a qualcosa.
-  const ancora = (html.match(/href="#([\w-]+)"[^>]*>Reparto per reparto/) || [])[1];
-  verifica("il rimando a Reparto per reparto esiste e punta a un'ancora vera",
-    !!ancora && html.includes(`id="${ancora}"`), ancora ? `ancora #${ancora} non trovata` : "nessun rimando");
+  // Il rimando alla sezione dove il ruolo si conosce davvero deve portarci davvero.
+  const salto = (html.match(/data-vai="([\w-]+)"[^>]*>Reparto per reparto/) || [])[1];
+  verifica("il rimando a Reparto per reparto punta a un elemento che esiste",
+    !!salto && html.includes(`id="${salto}"`), salto ? `id ${salto} non trovato` : "nessun rimando");
   // E la generale deve elencare tutti, non un sottoinsieme.
   const inRosa = (ambiente.DATA.roster || []).length;
   const inClassifica = ambiente.computeBlendedScores(30, 0.5).length;
   verifica(`la generale elenca tutta la rosa (${inRosa})`,
     inClassifica === inRosa, `ne mostra ${inClassifica}`);
+}
+
+// La dashboard mostra UNA SEZIONE ALLA VOLTA in base all'ancora, e showPage() rimanda a
+// home qualsiasi ancora che non sia una pagina. Un <a href="#sottotitolo"> fa quindi
+// l'opposto di quel che promette: invece di portarti al punto indicato ti sbatte in home.
+// Successo davvero il 25/08/2026 con il rimando a "Reparto per reparto".
+console.log("\nCollegamenti interni");
+{
+  const chiavi = new Set(Object.values(
+    new Function(script.match(/const PAGE_MAP = \{[\s\S]*?\};/)[0] + "return PAGE_MAP;")()));
+  // Solo il markup vero: fuori dal JS, che contiene modelli di stringa, e fuori dal CSS,
+  // dove un commento puo' nominare un href senza che sia un collegamento.
+  const corpo = html.split("<script>")[0].replace(/<style>[\s\S]*?<\/style>/g, "");
+  const rotti = [...new Set([...corpo.matchAll(/href="#([^"]+)"/g)].map(m => m[1]))]
+    .filter(a => !chiavi.has(a));
+  verifica("nessun collegamento punta a un'ancora che non e' una pagina",
+    rotti.length === 0, rotti.map(a => "#" + a).join(", ") + " -> porterebbero a home");
+
+  // I salti interni usano data-vai e devono trovare il loro bersaglio.
+  const senzaBersaglio = [...new Set([...html.matchAll(/data-vai="([^"]+)"/g)].map(m => m[1]))]
+    .filter(id => !html.includes(`id="${id}"`));
+  verifica("ogni salto interno trova il suo bersaglio",
+    senzaBersaglio.length === 0, senzaBersaglio.join(", "));
 }
 
 console.log("\nEtichette EA dichiarate");

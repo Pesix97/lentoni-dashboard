@@ -74,6 +74,14 @@
   /* ---- Card giocatore (modal) ---- */
   .player-link{cursor:pointer;}
   .player-link:hover{color:var(--accent-2); text-decoration:underline;}
+
+  /* Salto a un punto della STESSA pagina. Non e' un <a href="#...">: la dashboard mostra
+     una sezione alla volta in base all'ancora, e showPage() rimanda a home qualsiasi
+     ancora che non sia una pagina. Un collegamento a un sottotitolo faceva quindi
+     esattamente il contrario di quel che prometteva. */
+  .vai-a{color:var(--accent-2); cursor:pointer; text-decoration:underline;
+         text-underline-offset:2px;}
+  .vai-a:hover{color:var(--text);}
   #playerModalOverlay{
     position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:400;
     opacity:0; pointer-events:none; transition:opacity .2s;

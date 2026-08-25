@@ -81,6 +81,14 @@
   /* ---- Card giocatore (modal) ---- */
   .player-link{cursor:pointer;}
   .player-link:hover{color:var(--accent-2); text-decoration:underline;}
+
+  /* Salto a un punto della STESSA pagina. Non e' un <a href="#...">: la dashboard mostra
+     una sezione alla volta in base all'ancora, e showPage() rimanda a home qualsiasi
+     ancora che non sia una pagina. Un collegamento a un sottotitolo faceva quindi
+     esattamente il contrario di quel che prometteva. */
+  .vai-a{color:var(--accent-2); cursor:pointer; text-decoration:underline;
+         text-underline-offset:2px;}
+  .vai-a:hover{color:var(--text);}
   #playerModalOverlay{
     position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:400;
     opacity:0; pointer-events:none; transition:opacity .2s;
@@ -665,7 +673,7 @@
       della singola partita: queste sono carriere complete, e nelle carriere EA non registra dove si
       è giocato. Per vedere il rendimento di ciascuno <strong style="color:var(--text);">nei ruoli in
       cui ha davvero giocato</strong> — comprese le partite fuori ruolo — c'è
-      <a href="#per-reparto" style="color:var(--accent-2);">Reparto per reparto</a>, qui sotto.
+      <span class="vai-a" data-vai="per-reparto">Reparto per reparto</span>, qui sotto.
     </div>
     <div class="table-wrap">
       <table id="powerTable" class="responsive-table">
@@ -4199,6 +4207,22 @@ function closeDrawer(){
   document.getElementById("drawerClose").addEventListener("click", closeDrawer);
   document.getElementById("drawerOverlay").addEventListener("click", closeDrawer);
   document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeDrawer(); });
+
+  // Salti interni alla pagina gia' aperta. Con un <a href="#sottotitolo"> succedeva il
+  // contrario di quel che il collegamento prometteva: showPage() riceve l'ancora nuova,
+  // non la riconosce come pagina e rimanda a home. Qui invece non si tocca l'ancora, si
+  // scorre e basta - e se il bersaglio fosse in un'altra pagina, prima la si apre.
+  document.addEventListener("click", (e) => {
+    const salto = e.target.closest?.("[data-vai]");
+    if(!salto) return;
+    const bersaglio = document.getElementById(salto.dataset.vai);
+    if(!bersaglio) return;
+    const sezione = bersaglio.closest("section");
+    if(sezione && PAGE_MAP[sezione.id] && location.hash.slice(1) !== PAGE_MAP[sezione.id]){
+      showPage(PAGE_MAP[sezione.id]);
+    }
+    bersaglio.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   window.addEventListener("hashchange", () => showPage(location.hash.slice(1)));
   const initial = location.hash.slice(1);

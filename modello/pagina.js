@@ -3285,6 +3285,22 @@ function closeDrawer(){
   document.getElementById("drawerOverlay").addEventListener("click", closeDrawer);
   document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeDrawer(); });
 
+  // Salti interni alla pagina gia' aperta. Con un <a href="#sottotitolo"> succedeva il
+  // contrario di quel che il collegamento prometteva: showPage() riceve l'ancora nuova,
+  // non la riconosce come pagina e rimanda a home. Qui invece non si tocca l'ancora, si
+  // scorre e basta - e se il bersaglio fosse in un'altra pagina, prima la si apre.
+  document.addEventListener("click", (e) => {
+    const salto = e.target.closest?.("[data-vai]");
+    if(!salto) return;
+    const bersaglio = document.getElementById(salto.dataset.vai);
+    if(!bersaglio) return;
+    const sezione = bersaglio.closest("section");
+    if(sezione && PAGE_MAP[sezione.id] && location.hash.slice(1) !== PAGE_MAP[sezione.id]){
+      showPage(PAGE_MAP[sezione.id]);
+    }
+    bersaglio.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
   window.addEventListener("hashchange", () => showPage(location.hash.slice(1)));
   const initial = location.hash.slice(1);
   showPage(PAGES.some(p => p.key === initial) ? initial : "home");
