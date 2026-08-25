@@ -557,10 +557,16 @@ class TestDocumentazioneAllineata(unittest.TestCase):
         Quello che questo test NON può vedere resta la parte semantica: "dentro un'unica
         stringa" era falso quanto il numero, ma nessun controllo sa che una leva rimandata
         non è più da rimandare. Quella metà si trova solo rileggendo.
+
+        I PARAGRAFI DATATI sono esclusi, ed è la stessa regola che vale per tutto il file:
+        "al 24/08 le partite erano 59" resta vero per sempre. Senza questa esclusione il
+        test si mordeva la coda — raccontare in APPUNTI il caso delle 3200 righe lo faceva
+        fallire, e l'unico modo di tenerlo verde sarebbe stato non documentare l'errore.
         """
         import re
 
         TOLLERANZA = 0.25
+        DATA = re.compile(r"\b\d{1,2}/\d{1,2}(/\d{2,4})?\b")
         UNITA = {
             "righe": lambda p: sum(1 for _ in p.open(encoding="utf-8")),
         }
@@ -572,6 +578,12 @@ class TestDocumentazioneAllineata(unittest.TestCase):
                     testo):
                 percorso = QUI / m.group(1)
                 if not percorso.exists():
+                    continue
+                # Il paragrafo che contiene l'affermazione, per capire se è datata.
+                inizio = testo.rfind("\n\n", 0, m.start()) + 2
+                fine = testo.find("\n\n", m.end())
+                paragrafo = testo[inizio:fine if fine > 0 else len(testo)]
+                if DATA.search(paragrafo):
                     continue
                 dichiarato = int(m.group(2).replace(".", ""))
                 vero = UNITA[m.group(3)](percorso)
