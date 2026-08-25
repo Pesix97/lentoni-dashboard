@@ -765,6 +765,90 @@
       "quando": "24/08 02:17 beirutlb",
       "giocatore": "ktm-008",
       "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1002516103370173",
+      "quando": "24/08 22:55 ANTI COMMUNISM",
+      "giocatore": "Maverik_44_",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1002436410890458",
+      "quando": "24/08 23:12 Ä°zmir CF",
+      "giocatore": "Maverik_44_",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1002392755960445",
+      "quando": "24/08 23:24 INEGOLSPOR",
+      "giocatore": "Maverik_44_",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1002462739110320",
+      "quando": "24/08 23:30 3LA JNBB",
+      "giocatore": "Maverik_44_",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1002436822090037",
+      "quando": "24/08 23:48 ÅAMLAR UTD FC",
+      "giocatore": "Ironman-6-6",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1002708235530391",
+      "quando": "25/08 00:27 DrCongo FC",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1002708235530391",
+      "quando": "25/08 00:27 DrCongo FC",
+      "giocatore": "ktm-008",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1002728406370287",
+      "quando": "25/08 00:48 LATIGERS",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1002728406370287",
+      "quando": "25/08 00:48 LATIGERS",
+      "giocatore": "ktm-008",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1002756538660104",
+      "quando": "25/08 01:07 Sinjid SK",
+      "giocatore": "FFLI_Adriano",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1002756538660104",
+      "quando": "25/08 01:07 Sinjid SK",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1002730790700275",
+      "quando": "25/08 01:25 GhostLock",
+      "giocatore": "FFLI_Adriano",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1002730790700275",
+      "quando": "25/08 01:25 GhostLock",
+      "giocatore": "Ironman-6-6",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1002730790700275",
+      "quando": "25/08 01:25 GhostLock",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
     }
   ],
   "_esclusioni_partita": [
@@ -848,6 +932,10 @@
     },
     {
       "serata": "2026-08-23T21:27Z",
+      "partite": 10
+    },
+    {
+      "serata": "2026-08-24T20:55Z",
       "partite": 10
     }
   ],
