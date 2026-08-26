@@ -853,6 +853,108 @@
       "quando": "25/08 01:25 GhostLock",
       "giocatore": "domenicocasaburi",
       "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005150488170408",
+      "quando": "25/08 22:46 AstuziaÂ§Zuctutt",
+      "giocatore": "Ironman-6-6",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005150488170408",
+      "quando": "25/08 22:46 AstuziaÂ§Zuctutt",
+      "giocatore": "gio05596",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1005234487840394",
+      "quando": "25/08 23:05 Bombastic SK",
+      "giocatore": "Ironman-6-6",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005234487840394",
+      "quando": "25/08 23:05 Bombastic SK",
+      "giocatore": "gio05596",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1005480049660392",
+      "quando": "25/08 23:51 CMMS FC",
+      "giocatore": "Ocirne_1197",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005480049660392",
+      "quando": "25/08 23:51 CMMS FC",
+      "giocatore": "ktm-008",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005304962050376",
+      "quando": "26/08 00:13 baaaaer",
+      "giocatore": "Ocirne_1197",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005304962050376",
+      "quando": "26/08 00:13 baaaaer",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1005304962050376",
+      "quando": "26/08 00:13 baaaaer",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1005304962050376",
+      "quando": "26/08 00:13 baaaaer",
+      "giocatore": "ktm-008",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005522405770394",
+      "quando": "26/08 00:34 FORTA SHAORMA",
+      "giocatore": "FFLI_Adriano",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005522405770394",
+      "quando": "26/08 00:34 FORTA SHAORMA",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1005522405770394",
+      "quando": "26/08 00:34 FORTA SHAORMA",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1005522405770394",
+      "quando": "26/08 00:34 FORTA SHAORMA",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1005390953270488",
+      "quando": "26/08 00:53 DrÄ±FTT",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1005390953270488",
+      "quando": "26/08 00:53 DrÄ±FTT",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1005390953270488",
+      "quando": "26/08 00:53 DrÄ±FTT",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
     }
   ],
   "_esclusioni_partita": [
@@ -940,6 +1042,10 @@
     },
     {
       "serata": "2026-08-24T20:55Z",
+      "partite": 10
+    },
+    {
+      "serata": "2026-08-25T19:50Z",
       "partite": 10
     }
   ],
