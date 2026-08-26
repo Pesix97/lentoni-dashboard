@@ -170,7 +170,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
 | `test_pipeline.py` | 56 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito, numeri dichiarati nei testi. |
-| `test_ruoli.js` | 76 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -517,6 +517,22 @@ classifica obbligava a ricordarsi ogni volta quale dei due fosse.
 I salti interni alla pagina usano `data-vai`, non `href="#..."`: la dashboard mostra una
 sezione alla volta in base all'ancora, e un'ancora che non è una pagina fa tornare a home.
 Due controlli in `test_ruoli.js` impediscono che il difetto rientri.
+
+## La scheda si apre anche per chi non è ancora in rosa
+
+La rosa mostra solo chi ha almeno **30 partite di carriera**. La sezione **Serate** invece
+elenca chiunque abbia giocato quella sera, e quei nomi sono cliccabili: per un giocatore
+appena arrivato il clic quindi non apriva niente, **in silenzio**. Nessun errore, nessun
+messaggio, solo un nome che non risponde — segnalato dal club il 25/08/2026 su
+Bagherese_95, cinque partite giocate la sera prima.
+
+Ora la scheda si costruisce dalle **partite archiviate**: presenze, media voto, gol,
+assist, premi, percentuali di passaggi, contrasti e tiro, e in che ruolo ha giocato. Un
+riquadro dichiara che i numeri sono veri ma parziali, e cosa manca — totali di carriera,
+OVR e traguardi, che EA manda solo per chi è in rosa.
+
+Il silenzio resta giusto in un caso solo: un nome che non ha proprio giocato non apre
+niente, ed è quello che deve succedere.
 
 ## I campioni piccoli non pesano quanto quelli grandi
 

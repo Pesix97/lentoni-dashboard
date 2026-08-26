@@ -138,6 +138,66 @@ console.log("\nCollegamenti interni");
     senzaBersaglio.length === 0, senzaBersaglio.join(", "));
 }
 
+// La sezione Serate elenca chiunque abbia giocato quella sera, e quei nomi sono
+// cliccabili. La rosa invece contiene solo chi ha almeno 30 partite di CARRIERA: per un
+// giocatore nuovo il clic non apriva niente, in silenzio. Segnalato il 25/08/2026 su
+// Bagherese_95, che aveva giocato cinque partite la sera prima.
+console.log("\nScheda di chi non e' ancora in rosa");
+{
+  const chi = new Set((ambiente.DATA.roster || []).map(r => r.player_name));
+  const fuori = new Set();
+  (ambiente.DATA.matches || []).forEach(m =>
+    (ambiente.DATA.matchPlayers[m.match_id] || []).forEach(p => {
+      if (!chi.has(p.player_name)) fuori.add(p.player_name);
+    }));
+
+  const codice = ritaglia("// Chi ha giocato ma non e' ancora in rosa", 'document.addEventListener("click"');
+  const magazzino = {};
+  const finto = (id) => magazzino[id] = magazzino[id] || {
+    id, innerHTML: "",
+    classList: { add(){}, remove(){}, contains(){ return false; }, toggle(){} },
+    addEventListener(){}, querySelector(){ return { addEventListener(){} }; },
+    get parentElement(){ return finto("p:" + id); },
+  };
+  global.document = { getElementById: finto, querySelector: () => ({ innerHTML: "", addEventListener(){} }),
+                      querySelectorAll: () => [], addEventListener(){} };
+
+  try {
+    const amb = new Function(
+      ritaglia("const DATA = {", "// ---- Cards ----") + "\n" + codice +
+      "\nfunction closePlayerCard(){}\nfunction getAchievements(){return [];}" +
+      "\nreturn { openPlayerCard, schedaDaPartite };")();
+
+    verifica(`ci sono giocatori che hanno giocato ma non sono in rosa (${fuori.size})`,
+      fuori.size > 0, "nessuno: il controllo non sta provando niente");
+
+    let muti = 0, senzaAvviso = 0, ruoloSbagliato = 0;
+    for (const nome of fuori) {
+      finto("playerModal").innerHTML = "";
+      amb.openPlayerCard(nome);
+      const h = String(finto("playerModal").innerHTML);
+      if (!h) { muti++; continue; }
+      // Deve dichiarare che i numeri sono parziali, altrimenti sembrano di carriera.
+      if (!/Non è ancora in rosa/.test(h)) senzaAvviso++;
+      // E non deve dire "nessuna partita archiviata" proprio a chi le ha.
+      if (/nessuna partita archiviata/.test(h)) ruoloSbagliato++;
+    }
+    verifica("cliccando su di loro la scheda si apre", muti === 0, `${muti} non aprono niente`);
+    verifica("la scheda dichiara che i numeri sono parziali",
+      senzaAvviso === 0, `${senzaAvviso} senza avviso`);
+    verifica("non dichiara zero partite archiviate a chi le ha",
+      ruoloSbagliato === 0, `${ruoloSbagliato} schede sbagliate`);
+
+    // Un nome inventato non deve aprire niente: e' il caso in cui il silenzio e' giusto.
+    finto("playerModal").innerHTML = "";
+    amb.openPlayerCard("QuestoNomeNonEsiste_000");
+    verifica("un nome inesistente non apre nulla",
+      String(finto("playerModal").innerHTML) === "");
+  } catch (e) {
+    verifica("la scheda parziale si costruisce senza eccezioni", false, e.message);
+  }
+}
+
 console.log("\nEtichette EA dichiarate");
 verifica("roles.json dichiara l'etichetta EA di ogni giocatore assegnato",
   Object.keys(GROUP_OF_PLAYER).every(n => EA_LABEL_OF_PLAYER[n]),

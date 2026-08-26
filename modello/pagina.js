@@ -3159,8 +3159,55 @@ function getAchievements(r){
 function closePlayerCard(){
   document.getElementById("playerModalOverlay").classList.remove("open");
 }
+// Chi ha giocato ma non e' ancora in rosa: la scheda si costruisce dalle partite
+// archiviate invece di non aprirsi.
+//
+// La rosa contiene solo chi ha almeno LEADERBOARD_MIN_GAMES partite di CARRIERA, ma la
+// sezione Serate elenca chiunque abbia giocato quella sera - e quei nomi sono cliccabili.
+// Per un giocatore nuovo il clic quindi non apriva niente, in silenzio: nessun errore,
+// nessun messaggio, solo un nome che non risponde (segnalato il 25/08/2026 su
+// Bagherese_95, cinque partite giocate la sera prima).
+//
+// Quello che si puo' mostrare e' meno, ma non e' poco: presenze, media, gol, assist,
+// premi e percentuali si calcolano tutti dalle partite archiviate. Mancano i totali di
+// carriera, l'OVR e la nazionalita', che vivono solo nei dati di rosa di EA.
+function schedaDaPartite(name){
+  const righe = [];
+  (DATA.matches || []).forEach(m => {
+    const p = (DATA.matchPlayers[m.match_id] || []).find(x => x.player_name === name);
+    if(p) righe.push(p);
+  });
+  if(righe.length === 0) return null;
+  const somma = (f) => righe.reduce((t, p) => t + (f(p) || 0), 0);
+  const pa = somma(p => p.pass_attempts), ta = somma(p => p.tackle_attempts);
+  const sh = somma(p => p.shots), gol = somma(p => p.goals);
+  const perc = (fatti, tentati) => tentati ? Math.round(100 * fatti / tentati) + "%" : "—";
+  return {
+    player_name: name,
+    parziale: true,
+    games_played: righe.length,
+    rating_ave: (somma(p => p.rating) / righe.length).toFixed(2),
+    goals: gol, assists: somma(p => p.assists),
+    man_of_the_match: somma(p => p.mom ? 1 : 0),
+    red_cards: somma(p => p.red_cards),
+    passes_made: somma(p => p.passes_made),
+    pass_success_rate: perc(somma(p => p.passes_made), pa),
+    tackle_success_rate: perc(somma(p => p.tackles_made), ta),
+    shot_success_rate: perc(gol, sh),
+    tackles_made: somma(p => p.tackles_made),
+    gruppo: gruppoGiocatore(name, (righe[0] || {}).pos),
+    gruppo_da_assegnare: !GROUP_OF_PLAYER[name],
+    // Senza questi due la scheda scriveva "nessuna partita archiviata" proprio a chi le
+    // partite archiviate ce le ha - sono l'unica cosa che ha.
+    role_from_matches: true,
+    role_counts: righe.reduce((c, p) => (c[p.pos] = (c[p.pos] || 0) + 1, c), {}),
+    favorite_position: null,
+  };
+}
+
 function openPlayerCard(name){
-  const r = (DATA.roster || []).find(p => p.player_name === name);
+  let r = (DATA.roster || []).find(p => p.player_name === name);
+  if(!r) r = schedaDaPartite(name);
   if(!r) return;
 
   const powerEntry = POWER_SCORE_BY_NAME.get(name);
@@ -3168,7 +3215,16 @@ function openPlayerCard(name){
   const heightStr = r.pro_height ? `${r.pro_height} cm` : null;
   const subParts = [r.pro_name && r.pro_name !== r.player_name ? `"${r.pro_name}"` : null, heightStr, nationalityStr].filter(Boolean);
 
-  const stats = [
+  // Per chi non e' ancora in rosa le percentuali arrivano gia' formattate e la % vittorie
+  // non esiste: e' un dato di carriera, e la carriera qui non c'e'.
+  const pc = (v) => r.parziale ? v : v + "%";
+  const stats = r.parziale ? [
+    ["Partite archiviate", r.games_played], ["Media voto", r.rating_ave],
+    ["Gol", r.goals], ["Assist", r.assists], ["MOTM", r.man_of_the_match],
+    ["Passaggi", r.passes_made], ["% Passaggi", pc(r.pass_success_rate)],
+    ["Contrasti", r.tackles_made], ["% Contrasti", pc(r.tackle_success_rate)],
+    ["% Tiro", pc(r.shot_success_rate)], ["Cartellini rossi", r.red_cards],
+  ] : [
     ["Partite", r.games_played], ["Win %", r.win_rate + "%"], ["Media voto", r.rating_ave],
     ["Gol", r.goals], ["Assist", r.assists], ["MOTM", r.man_of_the_match],
     ["Passaggi", r.passes_made], ["% Passaggi", r.pass_success_rate + "%"], ["% Contrasti", r.tackle_success_rate + "%"],
@@ -3177,7 +3233,10 @@ function openPlayerCard(name){
   if(r.clean_sheets_gk > 0) stats.push(["Clean sheet (POR)", r.clean_sheets_gk]);
   if(r.clean_sheets_def > 0) stats.push(["Clean sheet (DIF)", r.clean_sheets_def]);
 
-  const achievements = getAchievements(r);
+  // I traguardi si calcolano sui totali di carriera: per chi non e' ancora in rosa non
+  // esistono, e mostrare "nessun traguardo" farebbe pensare che non ne abbia invece che
+  // che non li sappiamo.
+  const achievements = r.parziale ? [] : getAchievements(r);
 
   // ultime partite di questo giocatore, dalle più recenti (DATA.matches è già ordinato ts DESC)
   const recentMatches = [];
@@ -3212,15 +3271,25 @@ function openPlayerCard(name){
       </div>
       <button class="pm-close" id="pmCloseBtn" aria-label="Chiudi">✕</button>
     </div>
+    ${r.parziale ? `
+      <div style="font-size:12px; color:var(--muted); line-height:1.5; margin:10px 0 2px;
+                  border-left:3px solid var(--accent-2); padding-left:10px;">
+        <strong style="color:var(--text);">Non è ancora in rosa.</strong> La rosa mostra chi
+        ha almeno ${LEADERBOARD_MIN_GAMES} partite di carriera. Questi numeri vengono dalle
+        <strong style="color:var(--text);">${r.games_played} partite archiviate</strong>:
+        sono veri, ma parziali. Mancano i totali di carriera, l'OVR e i traguardi, che EA
+        manda solo per chi è in rosa — comparirà da solo al raggiungimento della soglia.
+      </div>` : ""}
     <div class="pm-stats-grid">
       ${stats.map(([k,v]) => `<div class="pm-stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}
     </div>
+    ${r.parziale ? "" : `
     <div class="pm-section-title">Traguardi</div>
     <div class="pm-achievements">
       ${achievements.length === 0 ? '<div class="empty">Nessun traguardo raggiunto ancora.</div>' : achievements.map(a => `<span class="pm-badge">${a.icon} ${a.label}</span>`).join("")}
     </div>
     <div class="pm-section-title">Forma (gol ultime partite)</div>
-    ${sparkline((r.prev_goals_trend||[]).slice().reverse())}
+    ${sparkline((r.prev_goals_trend||[]).slice().reverse())}`}
     <div class="pm-section-title">Ultime partite giocate</div>
     <div class="pm-matches">
       ${recentMatches.length === 0 ? '<div class="empty">Nessun dettaglio partita disponibile per questo giocatore.</div>' : recentMatches.map(({match, p}) => `
