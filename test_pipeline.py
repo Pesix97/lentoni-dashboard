@@ -1155,6 +1155,43 @@ class TestBattito(unittest.TestCase):
         self.assertLessEqual(len(s["giri_recenti"]), battito.ORARI)
         self.assertLess(len(json.dumps(s)), 40_000)
 
+    def test_si_conta_quante_esecuzioni_del_workflow_ci_sono_state(self):
+        """La domanda del 27/08/2026: «solo 2 run su 24?».
+
+        Non era rispondibile: il battito sapeva quanti GIRI erano stati fatti, non da
+        quante ESECUZIONI. E le Actions non si possono leggere — il connettore GitHub
+        sincronizza i file di un ramo, non la cronologia. Ora ogni giro porta con sé
+        GITHUB_RUN_ID e il conto si fa leggendo.
+        """
+        import battito
+        s = {}
+        for i in range(7):
+            s = battito.nuovo_stato(s, "ok", 88, None,
+                                    f"2026-08-27T{3 + (i * 20) // 60:02d}:{(i * 20) % 60:02d}:00Z",
+                                    esecuzione="111", evento="schedule")
+        for i in range(7):
+            s = battito.nuovo_stato(s, "ok", 90, None,
+                                    f"2026-08-27T{11 + (i * 20) // 60:02d}:{(i * 20) % 60:02d}:00Z",
+                                    esecuzione="222", evento="schedule")
+        self.assertEqual(len(s["esecuzioni"]), 2, "le due esecuzioni non sono state distinte")
+        self.assertEqual([e["run"] for e in s["esecuzioni"]], ["111", "222"])
+        self.assertTrue(all(e["giri"] == 7 for e in s["esecuzioni"]),
+                        [e["giri"] for e in s["esecuzioni"]])
+        # E il buco fra le due si vede lo stesso.
+        self.assertEqual(len(s["interruzioni"]), 1)
+
+    def test_i_giri_registrati_prima_della_modifica_non_rompono_niente(self):
+        # Il ramo `stato` contiene gia' la forma vecchia: una lista di istanti e basta.
+        import battito
+        vecchio = {"giri_recenti": ["2026-08-27T03:00:00Z", "2026-08-27T03:20:00Z"]}
+        s = battito.nuovo_stato(vecchio, "ok", 88, None, "2026-08-27T03:40:00Z",
+                                esecuzione="999", evento="schedule")
+        self.assertEqual(len(s["giri_recenti"]), 3)
+        self.assertEqual(s["giri_recenti"][-1]["r"], "999")
+        # I giri vecchi non sanno da quale esecuzione venivano, e va dichiarato.
+        self.assertEqual(s["giri_recenti"][0]["r"], "?")
+        self.assertEqual([e["run"] for e in s["esecuzioni"]], ["?", "999"])
+
     def test_giro_sh_usa_battito_py(self):
         # Se qualcuno reinfilasse il calcolo dentro lo script, tornerebbe non collaudabile.
         testo = Path("giro.sh").read_text(encoding="utf-8")

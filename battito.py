@@ -30,11 +30,23 @@ una media: 51 giri dove ne erano attesi 78 in ventisei ore. Si sapeva che ne man
 non dove. Da allora `giri_recenti` tiene l'istante di ogni giro, senza accorpare, e
 `interruzioni` elenca i vuoti oltre un'ora e mezza.
 
+E CHI HA FATTO OGNI GIRO.
+
+Ogni giro porta anche GITHUB_RUN_ID, cioe' l'esecuzione del workflow che lo ha prodotto:
+`esecuzioni` diventa quindi l'elenco dei run partiti davvero, con quanti giri ha fatto
+ciascuno. Alla domanda "quanti run ci sono stati oggi" si risponde leggendo il battito.
+
+Serviva un modo di guardare le Actions e la strada piu' ovvia non funziona: il connettore
+GitHub sincronizza i FILE di un ramo, non la cronologia ne' i metadati - quindi niente
+esecuzioni (verificato sulla documentazione il 27/08/2026). Invece di aggiungere un accesso
+esterno, e' il workflow stesso a lasciare la propria traccia dove gia' scriviamo.
+
 Uso da riga di comando (e' cosi' che lo chiama giro.sh):
     battito.py <ok|irraggiungibile> <partite> [problema]     # stato precedente su stdin
 """
 
 import json
+import os
 import sys
 from datetime import datetime, timezone
 
@@ -64,12 +76,19 @@ def _confrontabile(voce):
     return (voce.get("fonte"), voce.get("partite"), voce.get("problema") or None)
 
 
-def nuovo_stato(precedente, esito, partite, problema=None, adesso=None):
+def nuovo_stato(precedente, esito, partite, problema=None, adesso=None,
+                esecuzione=None, evento=None):
     """Lo stato aggiornato, a partire da quello di prima.
 
     `precedente` e' il contenuto di stato.json letto dal ramo, o {} al primo giro.
+    `esecuzione` ed `evento` sono GITHUB_RUN_ID e GITHUB_EVENT_NAME: servono a sapere
+    quante esecuzioni del workflow sono partite davvero.
     """
     adesso = adesso or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if esecuzione is None:
+        esecuzione = os.environ.get("GITHUB_RUN_ID")
+    if evento is None:
+        evento = os.environ.get("GITHUB_EVENT_NAME")
     prec = precedente if isinstance(precedente, dict) else {}
     problema = problema or None
 
@@ -95,11 +114,15 @@ def nuovo_stato(precedente, esito, partite, problema=None, adesso=None):
     in_corso = bool(guasti) and guasti[-1] is storia[-1]
 
     # Gli istanti dei giri, senza accorpamenti: e' l'unica cosa che permette di vedere i
-    # buchi invece di dedurli.
-    orari = [x for x in (prec.get("giri_recenti") or []) if isinstance(x, str)]
-    orari.append(adesso)
-    orari = orari[-ORARI:]
-    buchi = _buchi(orari)
+    # buchi invece di dedurli. Ogni giro porta anche l'identificativo dell'esecuzione di
+    # GitHub che lo ha prodotto, cosi' contare le esecuzioni diventa una lettura invece di
+    # una deduzione - e non serve nessun accesso ai log delle Actions, che il connettore
+    # GitHub comunque non fornisce (verificato sulla documentazione il 27/08/2026: sincronizza
+    # i file di un ramo, non la cronologia ne' i metadati).
+    giri = _normalizza(prec.get("giri_recenti"))
+    giri.append({"q": adesso, "r": esecuzione or "?", "e": evento or "?"})
+    giri = giri[-ORARI:]
+    buchi = _buchi([g["q"] for g in giri])
 
     return {
         "ultimo_giro": adesso,
@@ -123,9 +146,35 @@ def nuovo_stato(precedente, esito, partite, problema=None, adesso=None):
         # girato affatto, e nel registro per stato non si vedrebbe.
         "interruzioni": buchi,
         "interruzione_piu_lunga": max(buchi, key=lambda b: b["minuti"]) if buchi else None,
+        # Quante esecuzioni del workflow ci sono state, e quanti giri ha fatto ciascuna.
+        # E' la risposta diretta a "quanti run sono partiti oggi", senza leggere le Actions.
+        "esecuzioni": _esecuzioni(giri),
         "storia": storia,
-        "giri_recenti": orari,
+        "giri_recenti": giri,
     }
+
+
+def _normalizza(vecchi):
+    """Accetta sia la forma vecchia (solo istanti) sia quella nuova."""
+    fuori = []
+    for x in (vecchi or []):
+        if isinstance(x, str):
+            fuori.append({"q": x, "r": "?", "e": "?"})
+        elif isinstance(x, dict) and x.get("q"):
+            fuori.append({"q": x["q"], "r": x.get("r") or "?", "e": x.get("e") or "?"})
+    return fuori
+
+
+def _esecuzioni(giri):
+    """Un riepilogo per esecuzione: quando e' partita, quando ha finito, quanti giri."""
+    fuori = []
+    for g in giri:
+        if fuori and fuori[-1]["run"] == g["r"]:
+            fuori[-1]["a"] = g["q"]
+            fuori[-1]["giri"] += 1
+        else:
+            fuori.append({"run": g["r"], "evento": g["e"], "da": g["q"], "a": g["q"], "giri": 1})
+    return fuori
 
 
 def _buchi(orari):

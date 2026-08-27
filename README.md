@@ -69,6 +69,19 @@ non dove. Da allora `giri_recenti` conserva l'istante di ogni giro senza accorpa
 `interruzioni` elenca i vuoti oltre **un'ora e mezza** — sotto quella soglia è la
 pianificazione di GitHub che salta un colpo, non un guasto.
 
+**E chi ha fatto ogni giro.** Ogni giro porta anche `GITHUB_RUN_ID`, così `esecuzioni`
+elenca i run del workflow partiti davvero, con quanti giri ha fatto ciascuno. Alla domanda
+*«quanti run ci sono stati oggi»* si risponde leggendo il battito.
+
+Serviva un modo di guardare le Actions, e la strada ovvia non funziona: **il connettore
+GitHub sincronizza i file di un ramo, non la cronologia né i metadati** — quindi niente
+esecuzioni (verificato sulla documentazione il 27/08/2026). Invece di aggiungere un accesso
+esterno, è il workflow stesso a lasciare la propria traccia dove già scriviamo. Non serve
+toccare il workflow: `GITHUB_RUN_ID` è già nell'ambiente di ogni esecuzione.
+
+Resta scoperto un caso solo: un run che muore **prima** del primo giro non lascia traccia.
+Per quello servirebbero davvero i log.
+
 **Il battito distingue tre guasti diversi**, che prima erano lo stesso silenzio:
 
 | Sintomo | Significato |
@@ -181,7 +194,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 59 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito e interruzioni, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 61 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni ed esecuzioni, numeri dichiarati nei testi. |
 | `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
