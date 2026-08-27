@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 27/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 28/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -482,6 +482,21 @@ lasciato al suo posto, in `modello/pagina.js`.
   significando nulla.
 - EA elenca solo i giocatori **umani** di ogni partita, di solito 5 o 6. Il resto sono CPU.
 - Le partite **abbandonate o interrotte** non vengono conteggiate da EA.
+- **Se il ciclo dura più dell'intervallo fra due partenze, `cancel-in-progress` significa
+  non finire mai.** Il 27/08/2026 il ciclo è passato a 5h20 e i cron a due l'ora, entrambe
+  modifiche fatte *per ridurre i buchi*: quella notte hanno prodotto il buco più lungo mai
+  misurato, sedici ore, perché ogni esecuzione programmata veniva uccisa dalla successiva
+  dopo trenta minuti — e con i ritardi di dispatch di GitHub spesso *mentre era ancora in
+  coda*, quindi senza eseguire un solo passo. Lezione più larga del caso specifico: **due
+  difese giuste separatamente possono annullarsi a vicenda**, e nessuna delle due sembra
+  sbagliata guardandola da sola. Quando si cambiano due parametri che interagiscono, la
+  disuguaglianza fra i due va scritta come test, non tenuta a mente.
+- **Un'esecuzione cancellata in coda non lascia nemmeno l'avvio.** Il segno si scrive dopo
+  il checkout: se GitHub la cancella prima, il battito la vede identica a una mai lanciata.
+  È il limite noto di `avvii`, ed è costato una diagnosi sbagliata ("GitHub non lancia")
+  proprio la notte in cui `avvii` è stato scritto. Il battito restringe il campo, non lo
+  chiude: la lista delle Actions va guardata lo stesso, e va guardato **l'esito** dei run,
+  non solo se esistono. Una lista piena di run *cancellati* è un guasto nostro.
 - **Il connettore GitHub non serve a guardare le Actions**: sincronizza i *file* di un
   ramo, non la cronologia né i metadati (verificato sulla documentazione il 27/08/2026).
   Chiedere "quanti run sono partiti stanotte" a un connettore è la strada che sembra ovvia

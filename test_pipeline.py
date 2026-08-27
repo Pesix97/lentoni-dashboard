@@ -1281,6 +1281,67 @@ class TestBattito(unittest.TestCase):
         self.assertLessEqual(len(s["avvii"]), battito.AVVII)
         self.assertLess(len(json.dumps(s)), 40_000)
 
+    def test_un_ciclo_piu_lungo_dell_intervallo_fra_i_cron_non_puo_cancellarsi(self):
+        """Il guasto del 27-28/08/2026, in una riga.
+
+        Quella mattina il ciclo e' passato a 5h20 e i cron da uno a due l'ora, ma
+        `cancel-in-progress` e' rimasto attivo: ogni esecuzione programmata veniva uccisa
+        dalla successiva entro trenta minuti, spesso mentre era ancora in coda. Sedici ore
+        senza un giro, con la lista delle Actions piena di esecuzioni cancellate.
+
+        La regola e' aritmetica, non un'opinione: se il ciclo dura piu' dell'intervallo fra
+        due partenze, cancellare significa non finire mai. Il test la ricalcola dai numeri
+        veri del workflow, cosi' resta valido se domani i giri o i cron cambiano ancora.
+        """
+        import re
+        testo = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+
+        minuti_cron = sorted(int(m) for m in re.findall(r"cron: '(\d+) \* \* \* \*'", testo))
+        self.assertTrue(minuti_cron, "nessun cron orario trovato: il test va aggiornato")
+        # Il piu' piccolo intervallo fra due partenze consecutive, girando l'ora.
+        partenze = minuti_cron + [minuti_cron[0] + 60]
+        intervallo = min(b - a for a, b in zip(partenze, partenze[1:]))
+
+        giri = int(re.search(r"then GIRI=(\d+)", testo).group(1))
+        pausa = int(re.search(r"sleep (\d+)", testo).group(1)) // 60
+        durata = (giri - 1) * pausa
+
+        if durata <= intervallo:
+            return  # cancellare sarebbe innocuo: il ciclo finisce prima della successiva
+
+        riga = re.search(r"cancel-in-progress: (.+)", testo).group(1).strip()
+        self.assertNotEqual(
+            riga, "true",
+            f"il ciclo dura {durata} minuti ma le partenze distano {intervallo}: con "
+            "cancel-in-progress attivo ogni esecuzione programmata viene uccisa dalla "
+            "successiva e non finisce mai (guasto del 27-28/08/2026)")
+        self.assertIn("schedule", riga,
+                      "cancel-in-progress deve escludere esplicitamente le esecuzioni "
+                      f"programmate: {riga}")
+
+    def test_le_verifiche_da_push_si_cancellano_ancora(self):
+        # L'altra meta' della regola: le verifiche durano un minuto e contano solo le
+        # ultime. Accodarle allungherebbe la fila senza dare niente in cambio.
+        import re
+        testo = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        riga = re.search(r"cancel-in-progress: (.+)", testo).group(1).strip()
+        self.assertRegex(riga, r"!=\s*'schedule'|'schedule'\s*&&\s*false|event_name\s*!=",
+                         f"le verifiche da push devono restare cancellabili: {riga}")
+
+    def test_il_ciclo_copre_l_intervallo_fra_due_partenze(self):
+        # Se il ciclo finisse molto prima della partenza successiva resterebbe una finestra
+        # scoperta ad ogni ora, che e' il problema opposto e altrettanto reale.
+        import re
+        testo = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        minuti_cron = sorted(int(m) for m in re.findall(r"cron: '(\d+) \* \* \* \*'", testo))
+        partenze = minuti_cron + [minuti_cron[0] + 60]
+        intervallo = min(b - a for a, b in zip(partenze, partenze[1:]))
+        giri = int(re.search(r"then GIRI=(\d+)", testo).group(1))
+        pausa = int(re.search(r"sleep (\d+)", testo).group(1)) // 60
+        self.assertGreaterEqual((giri - 1) * pausa, intervallo,
+                                "fra la fine di un ciclo e la partenza successiva resta "
+                                "una finestra scoperta")
+
     def test_il_workflow_segna_l_avvio_prima_del_ciclo(self):
         """Il segno deve stare PRIMA, altrimenti non copre il caso per cui esiste."""
         testo = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")

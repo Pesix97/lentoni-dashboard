@@ -35,13 +35,32 @@ on:
 # uccideva il ciclo che stava coprendo la notte, e la finestra rimanente andava persa.
 #
 # Ora il ciclo lungo (pianificato) e la verifica breve (dopo un push) vivono in gruppi
-# separati e non si cancellano a vicenda. Restano cancel-in-progress dentro il proprio
-# gruppo, cosi' due cicli notturni non si sovrappongono mai. Due esecuzioni contemporanee
-# che scrivono sullo stesso database non sono un problema: giro.sh gestisce gia' il push
+# separati e non si cancellano a vicenda.
+#
+# DENTRO il gruppo del ciclo, invece, cancellare e' esattamente l'errore da non fare, ed e'
+# costato una serata intera. Fra il 27 e il 28/08/2026 l'automazione e' rimasta ferma
+# sedici ore con la lista delle Actions piena di esecuzioni, tutte cancellate.
+#
+# Il meccanismo: la mattina del 27/08 il ciclo e' passato da 2h20 a 5h20 e i cron da uno a
+# due l'ora. Con cancel-in-progress ogni esecuzione programmata veniva quindi uccisa dalla
+# successiva entro trenta minuti - e poiche' la pianificazione di GitHub arriva anche con
+# un'ora di ritardo, la vittima era spesso ancora IN CODA, cioe' moriva senza eseguire un
+# solo passo. Nessun giro, e nemmeno un avvio nel battito: un'esecuzione cancellata prima
+# di partire non arriva mai al checkout. Le due modifiche erano nate per ridurre i buchi e
+# ne hanno prodotto uno da sedici ore.
+#
+# La regola generale: se il ciclo dura piu' dell'intervallo fra due cron, cancellare
+# significa non finire mai. Ora le esecuzioni programmate si ACCODANO. GitHub ne tiene al
+# massimo una in esecuzione e una in attesa, quindi non si accumulano, e quando il ciclo
+# lungo finisce la successiva parte subito: la copertura non ha stacchi.
+#
+# Per le verifiche da push resta invece giusto cancellare: durano un minuto, contano solo
+# le ultime, e accodarle allungherebbe solo la fila. Due esecuzioni contemporanee che
+# scrivono sullo stesso database non sono un problema: giro.sh gestisce gia' il push
 # respinto rifacendo un rebase.
 concurrency:
   group: aggiorna-dashboard-${{ github.event_name == 'schedule' && 'ciclo' || 'verifica' }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 jobs:
   aggiorna:

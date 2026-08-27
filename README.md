@@ -90,7 +90,7 @@ passo separato prima del ciclo (`giro.sh --solo-avvio`). Confrontando `avvii` co
 
 | Cosa si legge | Cosa è successo |
 | --- | --- |
-| nessun avvio | GitHub non ha lanciato il workflow |
+| nessun avvio | il workflow non è mai arrivato al checkout — **o non è partito, o è stato cancellato mentre era in coda** |
 | avvio senza giri (`morti_sul_nascere`) | il run è partito ed è morto subito |
 | avvio con pochi giri | è stato ucciso a metà |
 | avvio con tutti i giri | tutto regolare |
@@ -99,6 +99,14 @@ L'avvio più recente non conta mai fra i `morti_sul_nascere`: è quello in corso
 primo giro deve ancora arrivare. Contarlo produrrebbe un allarme ad ogni esecuzione, cioè
 rumore continuo — il modo più sicuro di far ignorare un allarme vero. Il passo è
 `continue-on-error`: è diagnostica, non deve poter fermare l'aggiornamento.
+
+**Il limite della prima riga, scoperto la notte stessa.** Il segno si scrive dopo il
+checkout, quindi un'esecuzione cancellata *mentre è in coda* non lo scrive — ed è
+indistinguibile da una mai lanciata. La notte fra il 27 e il 28/08/2026 si è concluso
+«GitHub non lancia» e la lista delle Actions era invece piena di run cancellati dalle
+nostre stesse impostazioni. Il battito **restringe il campo, non lo chiude**: quando la
+prima riga è quella vera, le Actions vanno guardate lo stesso. Vedi
+[Quando il ciclo non gira](#quando-il-ciclo-non-gira).
 
 **Il battito distingue cinque guasti diversi**, che prima erano lo stesso silenzio:
 
@@ -125,34 +133,55 @@ alle **09:45 e alle 23:45** e segnala quale dei cinque guasti è in corso. Quell
 arriva prima che si cominci a giocare, così un'automazione ferma si scopre in tempo per
 lanciare il workflow a mano.
 
-### Quando il cron non parte
+### Quando il ciclo non gira
 
 La notte fra il **27 e il 28/08/2026** l'automazione è rimasta ferma **sedici ore** e la
-serata non è finita in archivio. Il battito ha detto subito da che parte guardare: tre
-esecuzioni in tutto il giorno, **tutte da `push` e nessuna programmata**, e
-`morti_sul_nascere` vuoto.
+serata non è finita in archivio. Dieci partite si sono salvate per un soffio: la finestra
+di EA ne tiene dieci, e ne erano state giocate esattamente dieci.
 
-Le due righe insieme escludono il nostro codice. Se il workflow fosse partito e fosse
-morto, ci sarebbe un avvio senza giri; se fosse partito e avesse funzionato, ci sarebbero
-giri con evento `schedule`. Non c'è né l'uno né l'altro: **GitHub non ha lanciato**. È il
-primo caso in cui il segno di avvio ha fatto il lavoro per cui era stato scritto, la notte
-stessa in cui è stato scritto.
+**La causa eravamo noi.** Quella stessa mattina il ciclo era passato da 2h20 a **5h20** e i
+cron da uno a **due l'ora** — entrambe modifiche fatte *per ridurre i buchi*. Ma
+`cancel-in-progress` era rimasto attivo anche sul gruppo del ciclo: ogni esecuzione
+programmata veniva quindi uccisa dalla successiva entro trenta minuti. E poiché la
+pianificazione di GitHub arriva anche con un'ora di ritardo, la vittima era spesso ancora
+**in coda**, cioè moriva senza eseguire un solo passo.
 
-Cosa fare, in ordine:
+La regola, che è aritmetica e non un'opinione:
+
+> Se il ciclo dura più dell'intervallo fra due partenze, cancellare significa non finire mai.
+
+Ora le esecuzioni programmate si **accodano** (`cancel-in-progress` esclude `schedule`).
+GitHub ne tiene al massimo una in esecuzione e una in attesa, quindi non si accumulano, e
+quando il ciclo lungo finisce la successiva parte subito. Tre test in `test_pipeline.py`
+ricalcolano la disuguaglianza dai numeri veri del workflow, così la regola resta valida se
+domani i giri o i cron cambiano ancora.
+
+**Cosa aveva detto il battito, e cosa no.** Tre esecuzioni in tutto il giorno, tutte da
+`push`, e `morti_sul_nascere` vuoto. Da lì si era concluso *«GitHub non lancia»* — ed era
+**sbagliato**: GitHub lanciava eccome, la lista delle Actions era piena di esecuzioni
+cancellate. È il limite da ricordare: il segno di avvio si scrive dopo il checkout, quindi
+**un'esecuzione cancellata mentre è in coda resta indistinguibile da una mai partita**. Il
+battito restringe il campo, non lo chiude: la lista delle Actions va guardata lo stesso.
+
+Se dovesse ricapitare, in ordine:
 
 1. **Chiudere il buco subito.** Actions → *Aggiorna dashboard Lentoni* → *Run workflow*,
    anche dal telefono. In alternativa basta un commit che tocchi uno dei file elencati fra
    i `paths` del workflow: innesca un'esecuzione da push, che fa un giro solo. Un giro
    basta a salvare le partite ancora dentro la finestra delle dieci.
-2. **Poi capire.** La pianificazione di GitHub è nota per saltare i turni, ma un giorno
-   intero a zero non è un ritardo. Da verificare, in quest'ordine: il workflow non è stato
-   disabilitato (Actions lo segnala in cima alla pagina); la coda dei run programmati non è
-   in ritardo su tutta la piattaforma (githubstatus.com); non c'è un'esecuzione bloccata
-   che il gruppo di concorrenza continua a sostituire.
+2. **Guardare l'esito delle esecuzioni programmate, non solo se esistono.** Una lista piena
+   di run *cancellati* è il sintomo di questo guasto. Un run *fallito* è un'altra cosa e il
+   log dice cosa. Nessun run è la terza, e allora vale la pena controllare che il workflow
+   non sia stato disabilitato (Actions lo segnala in cima) e githubstatus.com.
+3. **Verificare il contatore di carriera di EA**, che è la prova indipendente di quante
+   partite si siano perse davvero: la differenza fra due letture consecutive di
+   `games_played` in `club_stats_history` dice quante se ne sono giocate, e si confronta
+   con quante ne sono entrate in archivio. La notte del 27/08: da 708 a 718, dieci
+   archiviate, **zero perse**.
 
-**Da qui non si rimedia via codice.** Questa macchina prende **403 dalla fonte** —
-proclubstracker risponde ai runner GitHub, non a questo data center — e `api.github.com`
-non è raggiungibile, quindi né i log delle Actions né `workflow_dispatch`. L'unico canale
+**Da Cowork non si rimedia via codice.** Quella macchina prende **403 dalla fonte** —
+proclubstracker risponde ai runner GitHub, non a quel data center — e `api.github.com` non
+è raggiungibile, quindi né i log delle Actions né `workflow_dispatch`. L'unico canale
 aperto è `github.com` in git: da lì passa il push, che è appunto il rimedio numero 1.
 
 ### Perché proclubstracker e non EA direttamente
@@ -199,7 +228,15 @@ attesi** in ventisei ore:
 | --- | --- |
 | **Ciclo da 16 giri** invece di 7 | un solo trigger riuscito copre 5h20 invece di 2h20: per scoprire una serata GitHub deve saltare sedici trigger di fila |
 | **Due orari di partenza** (`:00` e `:30`) | raddoppiano le occasioni che almeno uno scatti |
+| **Esecuzioni programmate in coda, non cancellate** | senza questa, le prime due si annullano a vicenda — vedi sotto |
 | **Controllo del battito due volte al giorno**, alle 09:45 e alle 23:45 | quello serale arriva prima che si cominci a giocare: se l'automazione è ferma, il workflow si lancia a mano da GitHub — anche dal telefono — e il buco si chiude in un minuto |
+
+**La terza difesa è nata da un danno fatto dalle prime due.** Allungare il ciclo e
+raddoppiare i cron, senza toccare `cancel-in-progress`, ha prodotto la notte stessa un buco
+di sedici ore: ogni esecuzione programmata veniva uccisa dalla successiva prima di
+finire — spesso prima ancora di cominciare. Due modifiche pensate per ridurre i buchi ne
+hanno creato il più lungo mai misurato. La lezione, in una riga: **se il ciclo dura più
+dell'intervallo fra due partenze, cancellare significa non finire mai.**
 
 Non è una garanzia, e vale la pena dirlo: una garanzia richiederebbe una fonte che conserva
 lo storico, e non esiste. È il massimo ottenibile con quello che EA espone.
@@ -213,8 +250,17 @@ Ogni pubblicazione di una modifica uccideva il ciclo che stava coprendo la notte
 finestra rimanente andava persa. Non è mai costato una partita solo perché non si stava
 giocando in quei momenti.
 
-Dentro il proprio gruppo `cancel-in-progress` resta attivo, così due cicli notturni non si
-sovrappongono mai. Due esecuzioni contemporanee sullo stesso database non sono un problema:
+**Ma dentro il gruppo del ciclo, cancellare è l'errore da non fare** — e questa riga ha
+sostituito il 28/08/2026 quella che diceva il contrario. Finché il ciclo durava 2h20 con un
+cron l'ora, ogni esecuzione aveva sessanta minuti prima di essere sostituita: bastavano.
+Portato il ciclo a 5h20 con due cron l'ora, la sostituzione arriva dopo trenta minuti e
+nessuna esecuzione finisce più — spesso nessuna comincia nemmeno, perché la pianificazione
+di GitHub ritarda anche di un'ora e la vittima viene uccisa mentre è ancora in coda.
+
+Ora `cancel-in-progress` vale solo per le verifiche da push, che durano un minuto e di cui
+contano solo le ultime. Le esecuzioni programmate si **accodano**: GitHub ne tiene una in
+esecuzione e una in attesa, quindi non si accumulano, e la copertura non ha stacchi. Due
+esecuzioni contemporanee sullo stesso database non sarebbero comunque un problema:
 `giro.sh` gestisce già il push respinto rifacendo un rebase.
 
 ### Il fuso orario, e perché le chiavi sono in UTC
@@ -275,7 +321,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 69 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 72 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, numeri dichiarati nei testi. |
 | `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 

@@ -77,9 +77,11 @@ scrivi_battito() {
 #
 # Ha risposto la notte stessa in cui e' stato scritto. Fra il 27 e il 28/08/2026 il battito
 # mostrava tre esecuzioni in sedici ore, TUTTE da push e NESSUNA programmata, e nessun
-# avvio senza giri: quindi non e' il nostro codice che muore, e' GitHub che non lancia.
-# Senza questo segno le due ipotesi sarebbero rimaste indistinguibili e si sarebbe cercato
-# il guasto in casa nostra. Vedi il README, "Quando il cron non parte".
+# avvio senza giri. Da questo si era concluso che GitHub non stesse lanciando: sbagliato.
+# GitHub lanciava, ed erano le nostre impostazioni a uccidere le esecuzioni mentre erano
+# ancora in coda - percio' non arrivavano mai al checkout e non scrivevano nemmeno l'avvio.
+# Un'esecuzione cancellata prima di partire e una mai partita restano indistinguibili anche
+# con questo segno, ed e' il limite da ricordare. Vedi il README, "Quando il ciclo non gira".
 if [ "${1:-}" = "--solo-avvio" ]; then
   scrivi_battito --avvio
   echo "  avvio registrato (run ${GITHUB_RUN_ID:-locale})"
