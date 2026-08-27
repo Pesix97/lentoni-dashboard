@@ -1116,6 +1116,45 @@ class TestBattito(unittest.TestCase):
             self.assertEqual(s["partite"], 59)
             self.assertEqual(len(s["storia"]), 1)
 
+    def test_un_buco_di_ore_si_vede_anche_se_lo_stato_non_cambia(self):
+        """Il caso vero del 27/08/2026.
+
+        Il registro per stato accorpa: se la fonte risponde e le partite non cambiano, sei
+        ore di silenzio e sei ore di funzionamento regolare producono la stessa riga. La
+        domanda "l'automazione ha smesso di girare?" restava senza risposta.
+        """
+        regolari = [("ok", 88, None, f"2026-08-27T{3 + (i * 20) // 60:02d}:{(i * 20) % 60:02d}:00Z")
+                    for i in range(20)]
+        dopo_il_buco = [("ok", 88, None, "2026-08-27T16:00:00Z")]
+        s = self._giri(regolari + dopo_il_buco)
+
+        self.assertEqual(len(s["storia"]), 1,
+                         "il registro per stato accorpa: e' proprio il motivo per cui serve l'altro")
+        self.assertEqual(len(s["interruzioni"]), 1, "il buco non e' stato visto")
+        buco = s["interruzione_piu_lunga"]
+        self.assertGreater(buco["minuti"], 300, f"buco misurato {buco['minuti']} minuti")
+        self.assertEqual(buco["a"], "2026-08-27T16:00:00Z")
+
+    def test_i_ritardi_normali_non_sono_interruzioni(self):
+        # Un giro saltato ogni tanto e' la pianificazione di GitHub, non un guasto: se
+        # finisse fra le interruzioni l'elenco diventerebbe rumore.
+        import battito
+        s = self._giri([("ok", 88, None, "2026-08-27T03:00:00Z"),
+                        ("ok", 88, None, "2026-08-27T03:40:00Z"),   # un giro saltato
+                        ("ok", 88, None, "2026-08-27T04:00:00Z")])
+        self.assertEqual(s["interruzioni"], [])
+        self.assertIsNone(s["interruzione_piu_lunga"])
+        self.assertGreaterEqual(battito.BUCO_MINUTI, 60,
+                                "una soglia sotto l'ora trasformerebbe i ritardi in allarmi")
+
+    def test_gli_orari_dei_giri_non_crescono_senza_limite(self):
+        import battito
+        quanti = battito.ORARI * 2
+        s = self._giri([("ok", 88, None, f"2026-08-27T{i // 60:02d}:{i % 60:02d}:00Z")
+                        for i in range(min(quanti, 1439))])
+        self.assertLessEqual(len(s["giri_recenti"]), battito.ORARI)
+        self.assertLess(len(json.dumps(s)), 40_000)
+
     def test_giro_sh_usa_battito_py(self):
         # Se qualcuno reinfilasse il calcolo dentro lo script, tornerebbe non collaudabile.
         testo = Path("giro.sh").read_text(encoding="utf-8")

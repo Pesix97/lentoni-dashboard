@@ -57,6 +57,18 @@ giri raccontano la stessa cosa la voce esistente si allunga e il contatore `giri
 una voce nuova nasce solo quando qualcosa cambia davvero. Con cento voci si coprono mesi di
 funzionamento regolare restando su pochi KB.
 
+**Due memorie, perché le domande sono due.** Il registro per stato risponde a *"la fonte ha
+mai smesso di rispondere?"*. Non risponde a *"l'automazione ha mai smesso di girare?"*, ed è
+un'altra cosa: se il ciclo non parte non scrive niente, e nel registro per stato la voce
+precedente si allunga e basta — sei ore di silenzio e sei ore di funzionamento regolare
+producono la stessa identica riga.
+
+Il 27/08/2026 è servito sapere proprio quello, e la risposta si è potuta solo **dedurre da
+una media**: 51 giri dove ne erano attesi 78 in ventisei ore. Si sapeva che ne mancavano 27,
+non dove. Da allora `giri_recenti` conserva l'istante di ogni giro senza accorpare, e
+`interruzioni` elenca i vuoti oltre **un'ora e mezza** — sotto quella soglia è la
+pianificazione di GitHub che salta un colpo, non un guasto.
+
 **Il battito distingue tre guasti diversi**, che prima erano lo stesso silenzio:
 
 | Sintomo | Significato |
@@ -169,7 +181,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 56 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 59 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito e interruzioni, numeri dichiarati nei testi. |
 | `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
