@@ -42,26 +42,43 @@ echo "  club attivo: $CLUB_ID ($PIATTAFORMA)"
 # Dal 24/08/2026 la memoria sta DENTRO il file - vedi battito.py - cosi' il ramo resta di
 # un commit solo e il registro dei guasti esiste lo stesso.
 scrivi_battito() {
-  esito="$1"            # ok | irraggiungibile
+  esito="$1"            # ok | irraggiungibile | --avvio
   problema="${2:-}"     # cosa si e' rotto dopo lo scaricamento, se qualcosa
   {
     # Lo stato precedente si rilegge dal ramo: il runner e' pulito ad ogni esecuzione,
     # quindi senza questo non si potrebbe sapere da quanto la fonte e' giu'.
     git fetch -q origin stato 2>/dev/null || true
     precedente=$(git show FETCH_HEAD:stato.json 2>/dev/null || echo '{}')
-    partite=$(python3 -c "import sqlite3;print(sqlite3.connect('lentoni.db').execute('select count(*) from matches').fetchone()[0])" 2>/dev/null || echo 0)
 
     # La costruzione dello stato sta in battito.py e non qui dentro: infilata in un
     # documento incorporato nello script non era collaudabile, e questa e' proprio la parte
     # che deve funzionare quando tutto il resto e' rotto. Ora ha i suoi test.
-    printf '%s' "$precedente" | python3 battito.py "$esito" "$partite" "$problema" > /tmp/stato.json
+    if [ "$esito" = "--avvio" ]; then
+      printf '%s' "$precedente" | python3 battito.py --avvio > /tmp/stato.json
+      messaggio="avvio $(date -u '+%Y-%m-%d %H:%M') UTC - run ${GITHUB_RUN_ID:-locale}"
+    else
+      partite=$(python3 -c "import sqlite3;print(sqlite3.connect('lentoni.db').execute('select count(*) from matches').fetchone()[0])" 2>/dev/null || echo 0)
+      printf '%s' "$precedente" | python3 battito.py "$esito" "$partite" "$problema" > /tmp/stato.json
+      messaggio="battito $(date -u '+%Y-%m-%d %H:%M') UTC - fonte $esito${problema:+ - $problema}"
+    fi
 
     blob=$(git hash-object -w /tmp/stato.json)
     albero=$(printf '100644 blob %s\tstato.json\n' "$blob" | git mktree)
-    commit=$(git commit-tree "$albero" -m "battito $(date -u '+%Y-%m-%d %H:%M') UTC - fonte $esito${problema:+ - $problema}")
+    commit=$(git commit-tree "$albero" -m "$messaggio")
     git push -qf origin "$commit:refs/heads/stato"
   } >/dev/null 2>&1 || echo "  battito non aggiornato (non bloccante)"
 }
+
+# Modo "segna e basta": il workflow lo chiama appena parte, PRIMA del primo giro. Serve a
+# distinguere un run che muore subito da un run che GitHub non ha mai lanciato - senza
+# questo segno i due casi sono identici, e si finisce per cercare il guasto dalla parte
+# sbagliata. E' l'unica alternativa a leggere i log delle Actions, che richiederebbero un
+# accesso esterno al repository.
+if [ "${1:-}" = "--solo-avvio" ]; then
+  scrivi_battito --avvio
+  echo "  avvio registrato (run ${GITHUB_RUN_ID:-locale})"
+  exit 0
+fi
 
 
 echo "--- giro delle $(date -u '+%H:%M:%S') UTC ---"

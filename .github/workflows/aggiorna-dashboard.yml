@@ -62,6 +62,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Il segno "sono partito", scritto PRIMA del ciclo e apposta in un passo separato.
+      # Senza, un'esecuzione che muore prima del primo giro non lascia traccia da nessuna
+      # parte ed e' identica a un'esecuzione che GitHub non ha mai lanciato: due guasti
+      # opposti che si cercherebbero nel posto sbagliato. L'alternativa era leggere i log
+      # delle Actions, che richiede un accesso esterno al repository - il connettore GitHub
+      # sincronizza i file di un ramo, non le esecuzioni.
+      # Non blocca: se il segno non si scrive, il ciclo deve partire lo stesso.
+      - name: Segna l'avvio
+        continue-on-error: true
+        run: |
+          git config user.name "Lentoni Dashboard Bot"
+          git config user.email "peppeblu84@gmail.com"
+          chmod +x giro.sh
+          ./giro.sh --solo-avvio
+
       - name: Ciclo di aggiornamento
         run: |
           git config user.name "Lentoni Dashboard Bot"

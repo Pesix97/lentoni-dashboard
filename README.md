@@ -79,10 +79,28 @@ esecuzioni (verificato sulla documentazione il 27/08/2026). Invece di aggiungere
 esterno, è il workflow stesso a lasciare la propria traccia dove già scriviamo. Non serve
 toccare il workflow: `GITHUB_RUN_ID` è già nell'ambiente di ogni esecuzione.
 
-Resta scoperto un caso solo: un run che muore **prima** del primo giro non lascia traccia.
-Per quello servirebbero davvero i log.
+**E chi è partito senza arrivare.** Restava scoperto un caso: un run che muore *prima* del
+primo giro non scriveva niente, quindi era indistinguibile da un run che GitHub non ha mai
+lanciato. Sono due guasti opposti — il nostro codice che esplode contro la pianificazione
+che salta — e senza distinguerli si cerca dalla parte sbagliata.
 
-**Il battito distingue quattro guasti diversi**, che prima erano lo stesso silenzio:
+Dal 27/08/2026 il workflow scrive il proprio avvio nel battito **appena parte**, in un
+passo separato prima del ciclo (`giro.sh --solo-avvio`). Confrontando `avvii` con
+`esecuzioni` il quadro si chiude senza leggere i log:
+
+| Cosa si legge | Cosa è successo |
+| --- | --- |
+| nessun avvio | GitHub non ha lanciato il workflow |
+| avvio senza giri (`morti_sul_nascere`) | il run è partito ed è morto subito |
+| avvio con pochi giri | è stato ucciso a metà |
+| avvio con tutti i giri | tutto regolare |
+
+L'avvio più recente non conta mai fra i `morti_sul_nascere`: è quello in corso, e il suo
+primo giro deve ancora arrivare. Contarlo produrrebbe un allarme ad ogni esecuzione, cioè
+rumore continuo — il modo più sicuro di far ignorare un allarme vero. Il passo è
+`continue-on-error`: è diagnostica, non deve poter fermare l'aggiornamento.
+
+**Il battito distingue cinque guasti diversi**, che prima erano lo stesso silenzio:
 
 | Sintomo | Significato |
 | --- | --- |
@@ -90,6 +108,7 @@ Per quello servirebbero davvero i log.
 | `fonte: irraggiungibile` | l'automazione è viva, ma la fonte dei dati non risponde |
 | `problema` valorizzato | la fonte risponde, ma la nostra pipeline si è rotta a valle |
 | `interruzioni` non vuoto | l'automazione ha smesso di girare per un periodo, poi è tornata |
+| `morti_sul_nascere` non vuoto | il workflow è partito ed è morto prima del primo giro |
 
 Il secondo caso è quello che mancava, e conta perché **è indistinguibile da "non abbiamo
 giocato"**: il ciclo continuerebbe a girare regolarmente scrivendo "fonte non
@@ -102,7 +121,7 @@ giù per una notte di gioco e nessuno se ne accorge, quelle partite escono dalla
 sono perse per sempre.
 
 Un task pianificato di Cowork (`lentoni-controllo-battito`) legge il battito ogni giorno
-alle **09:45 e alle 23:45** e segnala quale dei quattro guasti è in corso. Quello serale
+alle **09:45 e alle 23:45** e segnala quale dei cinque guasti è in corso. Quello serale
 arriva prima che si cominci a giocare, così un'automazione ferma si scopre in tempo per
 lanciare il workflow a mano.
 
@@ -219,14 +238,14 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `modello/pagina.html` | Struttura della pagina, con i segnaposto `__STILE__` e `__SCRIPT__`. |
 | `modello/stile.css` | Tutto il CSS. |
 | `modello/pagina.js` | Tutta la logica che gira nel browser. **File .js vero**: `node --check` lo verifica. |
-| `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. |
+| `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. Con `--solo-avvio` segna solo «sono partito» ed esce, senza toccare la fonte. |
 | `battito.py` | Lo stato dell'automazione, con la memoria dei guasti. Il ramo `stato` ha un commit solo per scelta, quindi il registro vive dentro il file: una voce per ogni **cambiamento**, non per ogni giro. |
 | `ruoli.py` | La regola dei ruoli in un posto solo: chi conta, in che reparto, in che serata. Condivisa fra gli script. |
 | `serata.py` | La griglia di una serata da confermare, con le osservazioni su cosa non torna. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 61 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni ed esecuzioni, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 69 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, numeri dichiarati nei testi. |
 | `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 

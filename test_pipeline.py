@@ -1198,6 +1198,108 @@ class TestBattito(unittest.TestCase):
         self.assertIn("python3 battito.py", testo)
         self.assertNotIn("PYSTATO", testo)
 
+    # ---- Il segno di avvio ---------------------------------------------------------
+    # Aggiunti il 27/08/2026. Il caso che restava scoperto: un'esecuzione che parte e muore
+    # prima del primo giro non scriveva niente, ed era identica a un'esecuzione mai partita.
+
+    def test_un_run_morto_prima_del_primo_giro_lascia_comunque_traccia(self):
+        import battito
+        s = battito.segna_avvio({}, "2026-08-27T03:00:00Z", esecuzione="111", evento="schedule")
+        # Non ha fatto nemmeno un giro: nel resto del battito non esiste.
+        self.assertEqual(s.get("giri_recenti"), None)
+        # Ma l'avvio c'e'.
+        self.assertEqual([a["run"] for a in s["avvii"]], ["111"])
+
+    def test_un_avvio_senza_giri_viene_riconosciuto_solo_dopo_il_successivo(self):
+        """L'avvio in corso non e' un guasto: il suo primo giro deve ancora arrivare.
+
+        Contarlo subito produrrebbe un allarme ad ogni singola esecuzione, cioe' rumore
+        continuo — che e' il modo piu' sicuro di far ignorare un allarme vero.
+        """
+        import battito
+        s = battito.segna_avvio({}, "2026-08-27T03:00:00Z", esecuzione="111", evento="schedule")
+        self.assertEqual(s["morti_sul_nascere"], [], "l'avvio in corso non e' ancora un guasto")
+        # 111 muore senza fare giri. Parte 222 e fa il suo giro.
+        s = battito.segna_avvio(s, "2026-08-27T04:00:00Z", esecuzione="222", evento="schedule")
+        s = battito.nuovo_stato(s, "ok", 88, None, "2026-08-27T04:01:00Z",
+                                esecuzione="222", evento="schedule")
+        self.assertEqual([a["run"] for a in s["morti_sul_nascere"]], ["111"],
+                         "il run morto sul nascere non e' stato riconosciuto")
+
+    def test_un_run_che_gira_non_finisce_fra_i_morti(self):
+        import battito
+        s = battito.segna_avvio({}, "2026-08-27T03:00:00Z", esecuzione="111", evento="schedule")
+        s = battito.nuovo_stato(s, "ok", 88, None, "2026-08-27T03:01:00Z",
+                                esecuzione="111", evento="schedule")
+        s = battito.segna_avvio(s, "2026-08-27T04:00:00Z", esecuzione="222", evento="schedule")
+        s = battito.nuovo_stato(s, "ok", 88, None, "2026-08-27T04:01:00Z",
+                                esecuzione="222", evento="schedule")
+        self.assertEqual(s["morti_sul_nascere"], [], "un run che ha girato non e' morto")
+        self.assertEqual([a["run"] for a in s["avvii"]], ["111", "222"])
+
+    def test_nessun_avvio_e_avvio_senza_giri_sono_distinguibili(self):
+        """E' l'intero motivo per cui questa parte esiste.
+
+        GitHub che non lancia il workflow e il nostro codice che esplode subito sono due
+        guasti opposti: senza distinguerli si cerca dalla parte sbagliata.
+        """
+        import battito
+        # Caso A: GitHub non ha lanciato niente. Nessun avvio, nessun giro.
+        a = battito.nuovo_stato({}, "ok", 88, None, "2026-08-27T03:00:00Z",
+                                esecuzione="111", evento="schedule")
+        a = battito.segna_avvio(a, "2026-08-27T09:00:00Z", esecuzione="333", evento="schedule")
+        a = battito.nuovo_stato(a, "ok", 88, None, "2026-08-27T09:01:00Z",
+                                esecuzione="333", evento="schedule")
+        # Caso B: e' partito un run in mezzo, ed e' morto subito.
+        b = battito.nuovo_stato({}, "ok", 88, None, "2026-08-27T03:00:00Z",
+                                esecuzione="111", evento="schedule")
+        b = battito.segna_avvio(b, "2026-08-27T05:00:00Z", esecuzione="222", evento="schedule")
+        b = battito.segna_avvio(b, "2026-08-27T09:00:00Z", esecuzione="333", evento="schedule")
+        b = battito.nuovo_stato(b, "ok", 88, None, "2026-08-27T09:01:00Z",
+                                esecuzione="333", evento="schedule")
+        # Il buco fra i giri e' identico nei due casi: e' proprio quello che non bastava.
+        self.assertEqual(len(a["interruzioni"]), len(b["interruzioni"]))
+        # La differenza si vede solo qui.
+        self.assertEqual(a["morti_sul_nascere"], [])
+        self.assertEqual([x["run"] for x in b["morti_sul_nascere"]], ["222"])
+
+    def test_gli_avvii_sopravvivono_ai_giri_successivi(self):
+        # nuovo_stato() riscrive il file da capo: se non riportasse `avvii`, il primo giro
+        # cancellerebbe il segno appena scritto e tutto questo non servirebbe a niente.
+        import battito
+        s = battito.segna_avvio({}, "2026-08-27T03:00:00Z", esecuzione="111", evento="schedule")
+        s = battito.nuovo_stato(s, "ok", 88, None, "2026-08-27T03:01:00Z",
+                                esecuzione="111", evento="schedule")
+        self.assertEqual([a["run"] for a in s["avvii"]], ["111"],
+                         "il primo giro ha cancellato il segno di avvio")
+
+    def test_gli_avvii_non_crescono_senza_limite(self):
+        import battito
+        s = {}
+        for i in range(battito.AVVII * 3):
+            s = battito.segna_avvio(s, "2026-08-27T03:00:00Z", esecuzione=str(i), evento="schedule")
+        self.assertLessEqual(len(s["avvii"]), battito.AVVII)
+        self.assertLess(len(json.dumps(s)), 40_000)
+
+    def test_il_workflow_segna_l_avvio_prima_del_ciclo(self):
+        """Il segno deve stare PRIMA, altrimenti non copre il caso per cui esiste."""
+        testo = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        self.assertIn("--solo-avvio", testo, "il workflow non segna l'avvio")
+        self.assertLess(testo.index("--solo-avvio"), testo.index("for i in $(seq"),
+                        "il segno di avvio viene dopo il ciclo: cosi' non serve a niente")
+        # E non deve poter bloccare l'aggiornamento: e' diagnostica, non produzione.
+        avvio = testo[testo.index("- name: Segna l'avvio"):testo.index("--solo-avvio")]
+        self.assertIn("continue-on-error: true", avvio)
+
+    def test_giro_sh_esce_subito_in_modo_solo_avvio(self):
+        # Se proseguisse, ogni avvio scaricherebbe e pubblicherebbe: un giro in piu' non
+        # richiesto, e il passo diagnostico diventerebbe capace di rompere la dashboard.
+        testo = Path("giro.sh").read_text(encoding="utf-8")
+        blocco = testo[testo.index('"--solo-avvio"'):]
+        self.assertIn("exit 0", blocco[:400])
+        self.assertLess(testo.index('"--solo-avvio"'), testo.index("curl -sS"),
+                        "il modo solo-avvio deve uscire prima di toccare la fonte")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

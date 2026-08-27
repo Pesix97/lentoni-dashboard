@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 25/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 27/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -473,3 +473,18 @@ lasciato al suo posto, in `modello/pagina.js`.
   significando nulla.
 - EA elenca solo i giocatori **umani** di ogni partita, di solito 5 o 6. Il resto sono CPU.
 - Le partite **abbandonate o interrotte** non vengono conteggiate da EA.
+- **Il connettore GitHub non serve a guardare le Actions**: sincronizza i *file* di un
+  ramo, non la cronologia né i metadati (verificato sulla documentazione il 27/08/2026).
+  Chiedere "quanti run sono partiti stanotte" a un connettore è la strada che sembra ovvia
+  e non funziona. Al suo posto è il workflow stesso a lasciare la propria traccia dove già
+  scriviamo: `avvii` (scritto appena parte, prima del ciclo) ed `esecuzioni` (dedotto dai
+  giri). Un accesso in meno da gestire, e la risposta si legge invece di dedurla.
+- **Un run morto subito e un run mai partito lasciano la stessa traccia: nessuna.** È il
+  motivo per cui esiste `avvii`. Sono guasti opposti — il nostro codice che esplode contro
+  la pianificazione che salta — e senza distinguerli si cerca dalla parte sbagliata. Vale
+  in generale: quando due cause diverse producono lo stesso silenzio, il silenzio va rotto
+  dalla parte che sappiamo controllare, non interrogando quella che non controlliamo.
+- **L'avvio in corso non va contato fra i guasti.** `morti_sul_nascere` esclude sempre
+  l'ultimo avvio, perché il suo primo giro deve ancora arrivare: contarlo darebbe un
+  allarme ad ogni esecuzione, cioè rumore continuo — il modo più sicuro di far ignorare
+  un allarme vero.

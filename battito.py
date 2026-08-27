@@ -41,8 +41,17 @@ GitHub sincronizza i FILE di un ramo, non la cronologia ne' i metadati - quindi 
 esecuzioni (verificato sulla documentazione il 27/08/2026). Invece di aggiungere un accesso
 esterno, e' il workflow stesso a lasciare la propria traccia dove gia' scriviamo.
 
+E CHI E' PARTITO SENZA ARRIVARE.
+
+Restava scoperto un caso: un run che parte e muore prima del primo giro non scrive niente,
+quindi e' indistinguibile da un run che GitHub non ha mai lanciato. Sono due guasti
+opposti - il nostro codice contro la pianificazione di GitHub - e cercarli dalla parte
+sbagliata costa tempo. Dal 27/08/2026 il workflow scrive `avvii` appena parte, prima di
+entrare nel ciclo: `morti_sul_nascere` sono gli avvii senza nemmeno un giro.
+
 Uso da riga di comando (e' cosi' che lo chiama giro.sh):
     battito.py <ok|irraggiungibile> <partite> [problema]     # stato precedente su stdin
+    battito.py --avvio                                       # idem, segna solo l'avvio
 """
 
 import json
@@ -66,6 +75,9 @@ MEMORIA = 100
 # 150 istanti a venti minuti l'uno coprono circa due giorni, e pesano un paio di KB.
 ORARI = 150
 
+# Quanti avvii di workflow ricordare. Uno per esecuzione, quindi 60 coprono giorni.
+AVVII = 60
+
 # Oltre questo, due giri consecutivi non sono un ritardo ma un'interruzione. Il ciclo ne
 # fa uno ogni venti minuti: quaranta e' un giro saltato, un'ora e mezza e' un guasto.
 BUCO_MINUTI = 90
@@ -74,6 +86,45 @@ BUCO_MINUTI = 90
 def _confrontabile(voce):
     """Le tre cose che, se restano uguali, non meritano una voce nuova."""
     return (voce.get("fonte"), voce.get("partite"), voce.get("problema") or None)
+
+
+def segna_avvio(precedente, adesso=None, esecuzione=None, evento=None):
+    """Il workflow e' partito. Scritto PRIMA del primo giro, di proposito.
+
+    Copriva un buco preciso: un run che parte e muore prima di riuscire a fare un giro non
+    lasciava traccia da nessuna parte, e diventava indistinguibile da un run mai partito.
+    Sono due guasti diversi - GitHub che non lancia, contro il nostro codice che esplode -
+    e senza distinguerli si guarda nel posto sbagliato.
+
+    Confrontando `avvii` con `esecuzioni` il quadro si chiude senza leggere i log delle
+    Actions, che richiederebbero un accesso esterno:
+
+        nessun avvio            GitHub non ha lanciato il workflow
+        avvio senza giri        il run e' partito ed e' morto subito
+        avvio con pochi giri    e' stato ucciso a meta'
+        avvio con tutti i giri  tutto regolare
+    """
+    adesso = adesso or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if esecuzione is None:
+        esecuzione = os.environ.get("GITHUB_RUN_ID")
+    if evento is None:
+        evento = os.environ.get("GITHUB_EVENT_NAME")
+    stato = dict(precedente) if isinstance(precedente, dict) else {}
+    avvii = [a for a in (stato.get("avvii") or []) if isinstance(a, dict)]
+    avvii.append({"run": esecuzione or "?", "evento": evento or "?", "quando": adesso})
+    stato["avvii"] = avvii[-AVVII:]
+    stato["morti_sul_nascere"] = _morti_sul_nascere(stato["avvii"], stato.get("giri_recenti"))
+    return stato
+
+
+def _morti_sul_nascere(avvii, giri):
+    """Gli avvii che non hanno prodotto nemmeno un giro.
+
+    L'avvio piu' recente non conta: e' quello in corso, e il suo primo giro deve ancora
+    arrivare. Contarlo produrrebbe un allarme ad ogni esecuzione.
+    """
+    fatti = {g.get("r") for g in (giri or []) if isinstance(g, dict)}
+    return [a for a in avvii[:-1] if a.get("run") not in fatti and a.get("run") != "?"]
 
 
 def nuovo_stato(precedente, esito, partite, problema=None, adesso=None,
@@ -123,6 +174,7 @@ def nuovo_stato(precedente, esito, partite, problema=None, adesso=None,
     giri.append({"q": adesso, "r": esecuzione or "?", "e": evento or "?"})
     giri = giri[-ORARI:]
     buchi = _buchi([g["q"] for g in giri])
+    avvii = [a for a in (prec.get("avvii") or []) if isinstance(a, dict)][-AVVII:]
 
     return {
         "ultimo_giro": adesso,
@@ -149,6 +201,10 @@ def nuovo_stato(precedente, esito, partite, problema=None, adesso=None,
         # Quante esecuzioni del workflow ci sono state, e quanti giri ha fatto ciascuna.
         # E' la risposta diretta a "quanti run sono partiti oggi", senza leggere le Actions.
         "esecuzioni": _esecuzioni(giri),
+        # Gli avvii del workflow, scritti prima del primo giro: un run morto subito si
+        # distingue da un run mai partito solo grazie a questi.
+        "avvii": avvii,
+        "morti_sul_nascere": _morti_sul_nascere(avvii, giri),
         "storia": storia,
         "giri_recenti": giri,
     }
@@ -193,13 +249,20 @@ def _buchi(orari):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print("uso: battito.py <ok|irraggiungibile> <partite> [problema]", file=sys.stderr)
+    if len(sys.argv) < 2:
+        print("uso: battito.py <ok|irraggiungibile> <partite> [problema]\n"
+              "     battito.py --avvio", file=sys.stderr)
         return 2
     try:
         precedente = json.loads(sys.stdin.read() or "{}")
     except Exception:
         precedente = {}
+    if sys.argv[1] == "--avvio":
+        print(json.dumps(segna_avvio(precedente)))
+        return 0
+    if len(sys.argv) < 3:
+        print("uso: battito.py <ok|irraggiungibile> <partite> [problema]", file=sys.stderr)
+        return 2
     esito = sys.argv[1]
     try:
         partite = int(sys.argv[2])
