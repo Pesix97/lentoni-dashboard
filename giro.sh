@@ -74,6 +74,12 @@ scrivi_battito() {
 # questo segno i due casi sono identici, e si finisce per cercare il guasto dalla parte
 # sbagliata. E' l'unica alternativa a leggere i log delle Actions, che richiederebbero un
 # accesso esterno al repository.
+#
+# Ha risposto la notte stessa in cui e' stato scritto. Fra il 27 e il 28/08/2026 il battito
+# mostrava tre esecuzioni in sedici ore, TUTTE da push e NESSUNA programmata, e nessun
+# avvio senza giri: quindi non e' il nostro codice che muore, e' GitHub che non lancia.
+# Senza questo segno le due ipotesi sarebbero rimaste indistinguibili e si sarebbe cercato
+# il guasto in casa nostra. Vedi il README, "Quando il cron non parte".
 if [ "${1:-}" = "--solo-avvio" ]; then
   scrivi_battito --avvio
   echo "  avvio registrato (run ${GITHUB_RUN_ID:-locale})"

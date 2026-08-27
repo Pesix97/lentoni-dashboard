@@ -125,6 +125,36 @@ alle **09:45 e alle 23:45** e segnala quale dei cinque guasti è in corso. Quell
 arriva prima che si cominci a giocare, così un'automazione ferma si scopre in tempo per
 lanciare il workflow a mano.
 
+### Quando il cron non parte
+
+La notte fra il **27 e il 28/08/2026** l'automazione è rimasta ferma **sedici ore** e la
+serata non è finita in archivio. Il battito ha detto subito da che parte guardare: tre
+esecuzioni in tutto il giorno, **tutte da `push` e nessuna programmata**, e
+`morti_sul_nascere` vuoto.
+
+Le due righe insieme escludono il nostro codice. Se il workflow fosse partito e fosse
+morto, ci sarebbe un avvio senza giri; se fosse partito e avesse funzionato, ci sarebbero
+giri con evento `schedule`. Non c'è né l'uno né l'altro: **GitHub non ha lanciato**. È il
+primo caso in cui il segno di avvio ha fatto il lavoro per cui era stato scritto, la notte
+stessa in cui è stato scritto.
+
+Cosa fare, in ordine:
+
+1. **Chiudere il buco subito.** Actions → *Aggiorna dashboard Lentoni* → *Run workflow*,
+   anche dal telefono. In alternativa basta un commit che tocchi uno dei file elencati fra
+   i `paths` del workflow: innesca un'esecuzione da push, che fa un giro solo. Un giro
+   basta a salvare le partite ancora dentro la finestra delle dieci.
+2. **Poi capire.** La pianificazione di GitHub è nota per saltare i turni, ma un giorno
+   intero a zero non è un ritardo. Da verificare, in quest'ordine: il workflow non è stato
+   disabilitato (Actions lo segnala in cima alla pagina); la coda dei run programmati non è
+   in ritardo su tutta la piattaforma (githubstatus.com); non c'è un'esecuzione bloccata
+   che il gruppo di concorrenza continua a sostituire.
+
+**Da qui non si rimedia via codice.** Questa macchina prende **403 dalla fonte** —
+proclubstracker risponde ai runner GitHub, non a questo data center — e `api.github.com`
+non è raggiungibile, quindi né i log delle Actions né `workflow_dispatch`. L'unico canale
+aperto è `github.com` in git: da lì passa il push, che è appunto il rimedio numero 1.
+
 ### Perché proclubstracker e non EA direttamente
 
 Le API di EA rispondono **403 Access Denied** alle richieste che arrivano da un data
