@@ -54,7 +54,7 @@ Resta vero il principio che ha fatto nascere tutto: segnarsi i fuori ruolo sul m
 funziona, a distanza di giorni no. Per questo la domanda arriva la mattina dopo.
 
 **Le notifiche del controllo battito: rinunciato.** Il task `lentoni-controllo-battito`
-gira ogni giorno alle 13:00 ma non manda notifiche. Non è stato possibile attivarle dalla
+gira due volte al giorno, alle 09:45 e alle 23:45, ma non manda notifiche. Non è stato possibile attivarle dalla
 sessione che lo ha creato (nata a sua volta da un task pianificato), e da una chat nuova
 il task non risultava nemmeno visibile — anche aprendola dall'app desktop. Il motivo non
 è chiaro e non vale la pena inseguirlo.

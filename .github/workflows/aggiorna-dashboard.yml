@@ -12,7 +12,11 @@ name: Aggiorna dashboard Lentoni
 
 on:
   schedule:
+    # Due orari invece di uno: la pianificazione di GitHub salta i turni, e due occasioni
+    # per ora raddoppiano le probabilita' che almeno una scatti. Costano zero, perche' se
+    # il ciclo precedente e' ancora vivo il gruppo di concorrenza lo sostituisce e basta.
     - cron: '0 * * * *'
+    - cron: '30 * * * *'
   workflow_dispatch:
   push:
     paths:
@@ -42,7 +46,17 @@ concurrency:
 jobs:
   aggiorna:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    # Cinque ore e mezza, sotto il limite di sei di GitHub. Serve a coprire con UN SOLO
+    # trigger riuscito l'intera fascia in cui il club gioca: misurato il 27/08/2026, una
+    # partita ogni 19 minuti e sessioni fra le 22 e le 3. EA espone solo le ultime dieci
+    # partite, quindi un buco di tre ore in quella fascia costa partite per sempre - e non
+    # esiste modo di recuperarle: proclubstracker restituisce le stesse dieci, non un
+    # archivio. L'unica protezione e' non lasciare mai il buco arrivare a tre ore.
+    # Misurato il 27/08/2026: un giro dura 6-12 secondi, gli intervalli fra giri
+    # consecutivi sono 20,1 minuti contro una pausa di 20. Sedici giri costano quindi ~305
+    # minuti; 350 lascia margine per i giri lenti restando sotto il limite di 360 di
+    # GitHub. Se il tempo scadesse comunque, i giri gia' fatti hanno gia' pubblicato.
+    timeout-minutes: 350
     permissions:
       contents: write
     steps:
@@ -57,7 +71,13 @@ jobs:
           # salta dei turni. Dopo un push serve invece solo verificare che la modifica
           # produca una pagina valida: un giro solo, cosi' l'esecuzione dura un minuto
           # e non tiene occupato nulla.
-          if [ "${{ github.event_name }}" = "schedule" ]; then GIRI=7; else GIRI=1; fi
+          #
+          # Sedici giri da venti minuti coprono 5h20. Erano sette (2h20) fino al
+          # 27/08/2026: quel giorno sono mancati 27 giri su 78 attesi in ventisei ore, e
+          # con la finestra corta bastava che GitHub saltasse tre trigger di fila per
+          # lasciare scoperta una serata intera. Ora per scoprirne una devono saltarne
+          # sedici consecutivi.
+          if [ "${{ github.event_name }}" = "schedule" ]; then GIRI=16; else GIRI=1; fi
           echo "evento: ${{ github.event_name }} -> $GIRI giri"
           for i in $(seq 1 $GIRI); do
             ./giro.sh

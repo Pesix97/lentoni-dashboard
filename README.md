@@ -5,15 +5,15 @@ raccolte dalle API pubbliche non ufficiali di EA e pubblicate come pagina web.
 
 **Dashboard online:** https://pesix97.github.io/lentoni-dashboard/
 
-Tutto si aggiorna da solo, **ogni ora, sui server di GitHub**. Non serve tenere acceso
-nessun computer.
+Tutto si aggiorna da solo, **due volte l'ora, sui server di GitHub**. Non serve tenere
+acceso nessun computer.
 
 ---
 
 ## Come funziona
 
-Il workflow `.github/workflows/aggiorna-dashboard.yml` esegue `giro.sh` **sette volte a
-distanza di venti minuti** quando parte dalla pianificazione, coprendo circa due ore per
+Il workflow `.github/workflows/aggiorna-dashboard.yml` esegue `giro.sh` **sedici volte a
+distanza di venti minuti** quando parte dalla pianificazione, coprendo **5 ore e 20** per
 ogni avvio. Dopo un push al codice ne esegue invece **uno solo**, perché lì serve solo
 verificare che la modifica produca una pagina valida. Ogni giro:
 
@@ -82,13 +82,14 @@ toccare il workflow: `GITHUB_RUN_ID` è già nell'ambiente di ogni esecuzione.
 Resta scoperto un caso solo: un run che muore **prima** del primo giro non lascia traccia.
 Per quello servirebbero davvero i log.
 
-**Il battito distingue tre guasti diversi**, che prima erano lo stesso silenzio:
+**Il battito distingue quattro guasti diversi**, che prima erano lo stesso silenzio:
 
 | Sintomo | Significato |
 | --- | --- |
 | `ultimo_giro` vecchio di ore | l'automazione non gira più |
 | `fonte: irraggiungibile` | l'automazione è viva, ma la fonte dei dati non risponde |
 | `problema` valorizzato | la fonte risponde, ma la nostra pipeline si è rotta a valle |
+| `interruzioni` non vuoto | l'automazione ha smesso di girare per un periodo, poi è tornata |
 
 Il secondo caso è quello che mancava, e conta perché **è indistinguibile da "non abbiamo
 giocato"**: il ciclo continuerebbe a girare regolarmente scrivendo "fonte non
@@ -101,7 +102,9 @@ giù per una notte di gioco e nessuno se ne accorge, quelle partite escono dalla
 sono perse per sempre.
 
 Un task pianificato di Cowork (`lentoni-controllo-battito`) legge il battito ogni giorno
-alle 13:00 e segnala quale dei tre guasti è in corso.
+alle **09:45 e alle 23:45** e segnala quale dei quattro guasti è in corso. Quello serale
+arriva prima che si cominci a giocare, così un'automazione ferma si scopre in tempo per
+lanciare il workflow a mano.
 
 ### Perché proclubstracker e non EA direttamente
 
@@ -122,6 +125,35 @@ Due fatti misurati il 21/08/2026 rendono la cadenza oraria necessaria:
 - **La pianificazione di GitHub non è puntuale.** Due esecuzioni sono partite con ~60
   minuti di ritardo e una è stata saltata del tutto: comportamento noto per i repository
   pubblici.
+
+### Quanto può durare un buco prima di costare una partita
+
+Misurato il 27/08/2026: il club gioca **una partita ogni 19 minuti** (mediana; 15 nelle
+serate veloci), quasi sempre fra le **22:00 e le 03:00**. EA ne espone dieci, quindi
+
+```
+10 partite × 19 minuti ≈ 3 ore
+```
+
+Un'interruzione costa partite **solo se supera le tre ore mentre si sta giocando**. Di
+giorno non ha alcun costo.
+
+**E non si recuperano.** Verificato lo stesso giorno: la risposta di proclubstracker
+contiene esattamente le stesse dieci partite di lega che dà EA — non è un archivio, è un
+passaggio. Playoff e amichevoli sono vuote, quindi non c'è nemmeno il trucco di sommare
+finestre diverse per tipo di partita. Una partita uscita dalla finestra è persa.
+
+Da qui le tre difese, tutte introdotte il 27/08/2026 dopo che erano mancati **27 giri su 78
+attesi** in ventisei ore:
+
+| Difesa | Cosa cambia |
+| --- | --- |
+| **Ciclo da 16 giri** invece di 7 | un solo trigger riuscito copre 5h20 invece di 2h20: per scoprire una serata GitHub deve saltare sedici trigger di fila |
+| **Due orari di partenza** (`:00` e `:30`) | raddoppiano le occasioni che almeno uno scatti |
+| **Controllo del battito due volte al giorno**, alle 09:45 e alle 23:45 | quello serale arriva prima che si cominci a giocare: se l'automazione è ferma, il workflow si lancia a mano da GitHub — anche dal telefono — e il buco si chiude in un minuto |
+
+Non è una garanzia, e vale la pena dirlo: una garanzia richiederebbe una fonte che conserva
+lo storico, e non esiste. È il massimo ottenibile con quello che EA espone.
 
 ### Perché due gruppi di concorrenza
 
