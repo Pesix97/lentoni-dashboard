@@ -955,6 +955,60 @@
       "quando": "26/08 00:53 DrÄ±FTT",
       "giocatore": "ilmille",
       "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1008056570840426",
+      "quando": "26/08 23:24 Allegrentus",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1008104764290082",
+      "quando": "26/08 23:57 I Grandiosi",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1008364160170065",
+      "quando": "27/08 00:12 the quintuplet",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1008282531440357",
+      "quando": "27/08 00:30 FC Rosetten",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1008214879740341",
+      "quando": "27/08 00:50 Grizzli CFP 2",
+      "giocatore": "Bagherese_95",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1008214879740341",
+      "quando": "27/08 00:50 Grizzli CFP 2",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1008362707800089",
+      "quando": "27/08 01:04 HARAMBALAM FC",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1008300948880024",
+      "quando": "27/08 01:22 HENDEKLÄ°LER",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1008610120520201",
+      "quando": "27/08 01:44 LumniaFC",
+      "giocatore": "Bagherese_95",
+      "gruppo": "ESTERNI"
     }
   ],
   "_esclusioni_partita": [
@@ -1047,6 +1101,10 @@
     {
       "serata": "2026-08-25T19:50Z",
       "partite": 10
+    },
+    {
+      "serata": "2026-08-26T21:24Z",
+      "partite": 9
     }
   ],
   "_serate_chiuse": [

@@ -68,6 +68,15 @@ dicono se l'automazione è viva.
 Al 24/08 l'automazione ha quattro giorni di funzionamento verificato alle spalle: la rete
 di sicurezza ha esaurito il suo scopo e il task si può eliminare quando capita.
 
+**L'id EA 212808697 (domenicocasaburi/domenicocasaburi_nuovo): verificato, è lo stesso
+giocatore.** `generate_dashboard.py` lo segnala ogni volta che gira, perché quell'id
+compare sotto due nomi diversi — comportamento corretto del controllo, testato apposta in
+README (simula un cambio di nome e verifica che venga segnalato). Peppe ha già confermato
+in passato che è un cambio di nome su EA/PSN dello stesso Domenico, non due persone. Non è
+un difetto da correggere: solo un avviso ricorrente che finché resta un solo id non spezza
+lo storico. Se un giorno EA gli assegnasse un id diverso, allora sì che servirebbe unirlo a
+mano.
+
 ---
 
 ## Programmato per settembre
