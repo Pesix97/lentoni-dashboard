@@ -29,6 +29,8 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+from potatura import pota
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS club_info (
     club_id         INTEGER PRIMARY KEY,
@@ -648,6 +650,14 @@ def main():
         total_new_matches += ingest_matches(cur, matches, club_id, match_type)
 
     con.commit()
+
+    # La potatura del grezzo, subito dopo la scrittura. Sta qui e non in giro.sh perche'
+    # deve valere per QUALSIASI modo di alimentare il database, anche a mano: se dipendesse
+    # dallo script del ciclo, un ingest lanciato a parte rigonfierebbe il file in silenzio.
+    # Vedi potatura.py: era il 77% del database, e nessuno lo leggeva.
+    liberati = pota(con)
+    if liberati:
+        print(f"Grezzo potato: {sum(liberati.values()) / 1024:.0f} KB liberati")
 
     n_club_snap = cur.execute("SELECT COUNT(*) FROM club_stats_history WHERE club_id=?", (club_id,)).fetchone()[0]
     n_member_snap = cur.execute("SELECT COUNT(*) FROM member_stats_history WHERE club_id=?", (club_id,)).fetchone()[0]

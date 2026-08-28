@@ -382,6 +382,25 @@ proiezione sul peso del repository ha inventato una crisi inesistente perché pa
 scambiato per una pagina in JavaScript. Due volte lo stesso vizio: interpretare un sintomo
 invece di misurarne la causa.
 
+**Non toccare l'automazione vicino alle partite, e scrivere come test le relazioni fra
+parametri.** Sono due regole nate lo stesso giorno dallo stesso danno. Il 27/08/2026 alle
+10:22 sono stati pubblicati insieme un ciclo più lungo (2h20 → 5h20) e un cron in più (uno
+→ due l'ora): entrambe difese *contro* i buchi, entrambe sensate prese una per una, test
+verdi. Nessuno copriva l'interazione — con `cancel-in-progress` attivo, un ciclo più lungo
+dell'intervallo fra due partenze non finisce mai. Quella notte l'automazione è rimasta ferma
+**sedici ore**, e la serata si è salvata per un soffio: dieci partite giocate, dieci
+archiviate, esattamente la capienza della finestra di EA.
+
+Quindi: le modifiche al ciclo si pubblicano lontano dalla fascia 22:00–03:00, e quando due
+parametri si condizionano a vicenda la disuguaglianza che li lega va scritta come test
+**prima**, non dopo il guasto.
+
+**Prima di dare la colpa a un sistema esterno, guardare l'ultima modifica.** Corollario
+della regola qui sopra, e costa caro. Quella stessa notte la diagnosi è stata *"GitHub non
+lancia"*, scritta anche nel README — mentre le Actions erano piene di run cancellati dalle
+nostre impostazioni. È saltato fuori solo perché Peppe ha chiesto **quale run devo
+controllare**. Il sospettato più probabile è sempre ciò che si è cambiato nelle ultime ore.
+
 **Efficienza prima di tutto.** Poche parole, niente preamboli, niente riepiloghi di quello
 che si sta per fare. I risultati con i numeri accanto.
 
@@ -482,6 +501,24 @@ lasciato al suo posto, in `modello/pagina.js`.
   significando nulla.
 - EA elenca solo i giocatori **umani** di ogni partita, di solito 5 o 6. Il resto sono CPU.
 - Le partite **abbandonate o interrotte** non vengono conteggiate da EA.
+- **Il 77% del database era testo grezzo che nessuno leggeva.** `raw_json` nasceva da un
+  principio giusto — non perdere nessun campo di EA, perché al momento dell'ingest non si
+  sa quale servirà domani — ma il database intero viene committato ad ogni giro con novità,
+  e a FC 27 sarebbero stati ~70 MB alla settimana. Il principio resta rispettato: si sono
+  tolte le **copie**, non i dati, e ogni versione passata del database è un commit di git,
+  quindi il grezzo di ieri è recuperabile da lì. Misurato il 28/08/2026: da 3576 a 752 KB,
+  **79% in meno**, con la pagina generata **identica byte per byte**. Vedi `potatura.py`.
+- **Una difesa che gira in automatico va resa idempotente, non solo corretta.** La potatura
+  parte ad ogni ingest: se riscrivesse `NULL` sopra righe già pulite, il database
+  risulterebbe "cambiato" ad ogni giro e produrrebbe un commit ogni venti minuti anche
+  senza aver giocato — cioè l'opposto esatto del suo scopo. Il test non guarda il risultato
+  ma **conta le scritture** (`con.total_changes`): controllare l'esito non basta, perché
+  riscrivere un valore identico lascia l'esito identico.
+- **Il grezzo dell'ULTIMO scatto non va mai potato.** `ingest.py` decide se salvare un nuovo
+  scatto confrontando il payload con il grezzo del precedente: toglierlo proprio a quello fa
+  fallire il confronto per sempre e riempie il database di scatti identici. Il codice regge
+  (tratta il `NULL` come "diverso" e salva) ma il danno sarebbe **silenzioso**, cioè del tipo
+  peggiore: nessun errore, solo un file che ricomincia a gonfiarsi.
 - **Se il ciclo dura più dell'intervallo fra due partenze, `cancel-in-progress` significa
   non finire mai.** Il 27/08/2026 il ciclo è passato a 5h20 e i cron a due l'ora, entrambe
   modifiche fatte *per ridurre i buchi*: quella notte hanno prodotto il buco più lungo mai

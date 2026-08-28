@@ -20,8 +20,10 @@ verificare che la modifica produca una pagina valida. Ogni giro:
 1. legge da `club.json` quale club interrogare;
 2. scarica i dati da proclubstracker.com;
 3. li scompone nei file che la pipeline si aspetta (`raw/`, non versionati);
-4. `ingest.py` li scrive nel database `lentoni.db`;
-5. `avversari.py` raccoglie il livello dei club affrontati (dieci al massimo per giro);
+4. `ingest.py` li scrive nel database `lentoni.db`, e `potatura.py` toglie subito il testo
+   grezzo che nessuno legge più — era il **77%** del peso del file;
+5. `avversari.py` raccoglie il livello dei club affrontati (dieci al massimo per giro,
+   sotto un tetto duro di un minuto: è un arricchimento, non deve dettare i tempi);
 6. `generate_dashboard.py` rigenera `index.html`;
 7. se qualcosa è cambiato compatta il database e committa, altrimenti non tocca nulla;
 8. aggiorna il **battito** sul ramo `stato`.
@@ -128,10 +130,22 @@ Perché è urgente e non cosmetico: EA espone solo le ultime 10 partite. Se la f
 giù per una notte di gioco e nessuno se ne accorge, quelle partite escono dalla finestra e
 sono perse per sempre.
 
-Un task pianificato di Cowork (`lentoni-controllo-battito`) legge il battito ogni giorno
-alle **09:45 e alle 23:45** e segnala quale dei cinque guasti è in corso. Quello serale
-arriva prima che si cominci a giocare, così un'automazione ferma si scopre in tempo per
-lanciare il workflow a mano.
+**Chi legge il battito, e quando.** Tre task pianificati di Cowork, con tre scopi diversi:
+
+| Task | Orario | A cosa serve |
+| --- | --- | --- |
+| `lentoni-controllo-battito` | 23:45 | arriva **prima** che si cominci a giocare: se l'automazione è ferma, si lancia il workflow a mano e la serata è salva |
+| `lentoni-guardia-partite` | 01:10 | **in piena fascia di gioco**, ed è l'unico che può ancora salvare qualcosa mentre si è in tempo |
+| `lentoni-controllo-battito` | 09:45 | il resoconto della notte, quando non c'è più niente da salvare ma c'è da capire |
+
+Il controllo dell'01:10 è nato il 28/08/2026 da un vuoto misurato: fra le 23:45 e le 09:45
+c'erano **nove ore scoperte**, tutte dentro la fascia in cui si gioca. Un guasto a metà
+serata restava invisibile fino al mattino — e a 19 minuti a partita, tre ore di guasto
+costano partite per sempre.
+
+**Parla solo se qualcosa è rotto.** All'una di notte un controllo che riferisce anche
+quando va tutto bene diventa rumore, e un allarme che suona sempre si impara a ignorarlo.
+Se il ciclo gira, la risposta è una riga sola.
 
 ### Quando il ciclo non gira
 
@@ -221,7 +235,7 @@ contiene esattamente le stesse dieci partite di lega che dà EA — non è un ar
 passaggio. Playoff e amichevoli sono vuote, quindi non c'è nemmeno il trucco di sommare
 finestre diverse per tipo di partita. Una partita uscita dalla finestra è persa.
 
-Da qui le tre difese, tutte introdotte il 27/08/2026 dopo che erano mancati **27 giri su 78
+Da qui le difese contro i buchi, nate fra il 27 e il 28/08/2026 dopo che erano mancati **27 giri su 78
 attesi** in ventisei ore:
 
 | Difesa | Cosa cambia |
@@ -229,7 +243,8 @@ attesi** in ventisei ore:
 | **Ciclo da 16 giri** invece di 7 | un solo trigger riuscito copre 5h20 invece di 2h20: per scoprire una serata GitHub deve saltare sedici trigger di fila |
 | **Due orari di partenza** (`:00` e `:30`) | raddoppiano le occasioni che almeno uno scatti |
 | **Esecuzioni programmate in coda, non cancellate** | senza questa, le prime due si annullano a vicenda — vedi sotto |
-| **Controllo del battito due volte al giorno**, alle 09:45 e alle 23:45 | quello serale arriva prima che si cominci a giocare: se l'automazione è ferma, il workflow si lancia a mano da GitHub — anche dal telefono — e il buco si chiude in un minuto |
+| **Tetto duro a ogni attesa di rete** (`ATTESA_FONTE`, `ATTESA_AVVERSARI`) | senza, il caso peggiore sforava il limite di sei ore di GitHub e il ciclo veniva ucciso verso il quattordicesimo giro |
+| **Controllo del battito tre volte al giorno**: 23:45, 01:10, 09:45 | i primi due arrivano prima e durante le partite, quando c'è ancora qualcosa da salvare: il workflow si lancia a mano da GitHub — anche dal telefono — e il buco si chiude in un minuto |
 
 **La terza difesa è nata da un danno fatto dalle prime due.** Allungare il ciclo e
 raddoppiare i cron, senza toccare `cancel-in-progress`, ha prodotto la notte stessa un buco
@@ -315,13 +330,14 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `modello/stile.css` | Tutto il CSS. |
 | `modello/pagina.js` | Tutta la logica che gira nel browser. **File .js vero**: `node --check` lo verifica. |
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. Con `--solo-avvio` segna solo «sono partito» ed esce, senza toccare la fonte. |
+| `potatura.py` | Toglie dal database il grezzo di EA che nessuno legge più. Era il **77%** del peso, e il database intero viene committato ad ogni giro con novità. |
 | `battito.py` | Lo stato dell'automazione, con la memoria dei guasti. Il ramo `stato` ha un commit solo per scelta, quindi il registro vive dentro il file: una voce per ogni **cambiamento**, non per ogni giro. |
 | `ruoli.py` | La regola dei ruoli in un posto solo: chi conta, in che reparto, in che serata. Condivisa fra gli script. |
 | `serata.py` | La griglia di una serata da confermare, con le osservazioni su cosa non torna. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 72 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 81 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, potatura del grezzo, numeri dichiarati nei testi. |
 | `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 

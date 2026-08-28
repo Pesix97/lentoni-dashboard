@@ -25,6 +25,19 @@ except Exception:
 read -r CLUB_ID PIATTAFORMA <<< "$(leggi_club)"
 echo "  club attivo: $CLUB_ID ($PIATTAFORMA)"
 
+# I due tetti di attesa sulla rete, dichiarati qui perche' il ciclo del workflow ci
+# costruisce sopra la propria aritmetica - e un test la ricalcola da questi numeri.
+#
+# Servono perche' il caso peggiore non stava dentro il limite di GitHub. Misurato il
+# 28/08/2026: 16 giri con pause da 20 minuti fanno 300 minuti di sola attesa, e il timeout
+# dichiarato e' 350, quindi ai giri restano 50 minuti in tutto. Ma `avversari.py` poteva
+# prendersene fino a 5 a giro da solo (10 richieste con timeout di 30 secondi l'una),
+# cioe' 80 minuti: il ciclo sarebbe stato ucciso da GitHub verso il quattordicesimo giro.
+# Non si perdono partite - subentra l'esecuzione in coda - ma la copertura si accorcia
+# proprio nelle ore che contano, senza che nulla lo segnali.
+ATTESA_FONTE=60        # secondi: oltre questo la fonte e' da considerarsi caduta
+ATTESA_AVVERSARI=60    # secondi: tetto DURO, e' un di piu' e non deve dettare i tempi
+
 # Battito. Serve a distinguere "l'automazione e' viva e non c'era nulla da fare" da
 # "l'automazione e' morta": sul ramo principale le due cose lasciano la stessa traccia,
 # cioe' nessuna. Viene quindi scritto SEMPRE, anche quando non c'e' niente da pubblicare
@@ -91,7 +104,7 @@ fi
 
 echo "--- giro delle $(date -u '+%H:%M:%S') UTC ---"
 
-if ! curl -sS --fail --max-time 60 -H 'User-Agent: Mozilla/5.0' \
+if ! curl -sS --fail --max-time "$ATTESA_FONTE" -H 'User-Agent: Mozilla/5.0' \
      "https://proclubstracker.com/api/clubs/${CLUB_ID}?platform=${PIATTAFORMA}" \
      -o /tmp/club.json; then
   # La fonte e' un progetto amatoriale di una persona: il 23/08/2026 il principale sito
@@ -118,7 +131,11 @@ print(f"  skillRating {j['overallStats']['skillRating']} | partite nel feed {len
 PY
 
 python3 ingest.py --raw-dir raw --db lentoni.db || { echo "  ingest fallito, salto"; scrivi_battito ok "ingest fallito"; exit 0; }
-python3 avversari.py --db lentoni.db --max-richieste 10 || echo "  avversari non aggiornati (non bloccante)"
+# Sotto `timeout` perche' e' l'unico passo che puo' dilatarsi senza limite: dieci
+# richieste a club esterni, ognuna con la sua attesa. E' un arricchimento, non il
+# lavoro: se non sta nel tetto, si rinuncia e si riprova al giro dopo.
+timeout "$ATTESA_AVVERSARI" python3 avversari.py --db lentoni.db --max-richieste 10 \
+  || echo "  avversari non aggiornati (non bloccante)"
 
 python3 generate_dashboard.py --db lentoni.db --out index.html || { echo "  generazione fallita, salto"; scrivi_battito ok "generazione fallita"; exit 0; }
 

@@ -115,6 +115,31 @@ python3 "../Claude - skill/genera-documenti.py"
 Produce `Downloads\Documenti.html`. È una **copia**: se non si rigenera, lui legge la
 versione vecchia senza accorgersene.
 
+## Toccare l'automazione: due cautele, e sono nate da un danno
+
+Le modifiche a `giro.sh`, al workflow e a tutto ciò che regola il ciclo **non si pubblicano
+nelle ore vicine alle partite** (si gioca fra le 22:00 e le 03:00). Se una modifica al ciclo
+è pronta la sera, aspetta la mattina dopo: un difetto lì non si vede subito, si vede quando
+mancano le partite, e allora è tardi.
+
+**Se una modifica tocca due parametri che interagiscono, la relazione fra i due va scritta
+come test PRIMA di pubblicare.** Non dopo il guasto, non "ci stiamo attenti".
+
+Perché sono regole e non consigli. Il 27/08/2026, alle 10:22, sono stati pubblicati insieme
+un ciclo più lungo (da 2h20 a 5h20) e un cron in più (da uno a due l'ora). Erano entrambe
+difese *contro* i buchi, entrambe sensate prese una per una, e i test erano verdi. Nessuno
+copriva l'interazione: con `cancel-in-progress` attivo, un ciclo più lungo dell'intervallo
+fra due partenze non finisce mai. Quella notte l'automazione è rimasta ferma **sedici ore**
+e la serata si è salvata per un soffio — dieci partite giocate, dieci archiviate, esattamente
+la capienza della finestra di EA.
+
+E c'è un secondo insegnamento, più scomodo del primo: la diagnosi iniziale è stata
+**sbagliata**. Dal battito si è concluso "GitHub non lancia" e scritto così nel README,
+mentre le Actions erano piene di run cancellati dalle nostre stesse impostazioni. È saltato
+fuori solo perché Peppe ha chiesto *quale run devo controllare*. Quindi: **prima di dare la
+colpa a un sistema esterno, guardare cosa si è cambiato nelle ultime ore.** Il sospettato
+più probabile è sempre l'ultima modifica.
+
 ## Pubblicazione
 
 Il token GitHub **non è memorizzato da nessuna parte**, per scelta. Va chiesto, usato

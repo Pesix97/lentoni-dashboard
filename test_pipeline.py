@@ -1049,6 +1049,118 @@ class TestPassaggioDiTitolo(BaseConArchivio):
                              "le serate del titolo vecchio sono finite in quello nuovo")
 
 
+class TestPotatura(unittest.TestCase):
+    """La potatura del grezzo, aggiunta il 28/08/2026.
+
+    Il 77% del database era `raw_json` che nessuno leggeva, e il database intero viene
+    committato ad ogni giro con novita': a FC 27 sarebbero ~70 MB alla settimana. Vedi
+    potatura.py per il conto completo.
+    """
+
+    def _database(self, partite=30):
+        import sqlite3
+        con = sqlite3.connect(":memory:")
+        con.executescript("""
+            CREATE TABLE matches (match_id TEXT PRIMARY KEY, played_at TEXT, raw_json TEXT);
+            CREATE TABLE match_player_stats (match_id TEXT, ea_player_id TEXT, raw_json TEXT);
+            CREATE TABLE club_stats_history (id INTEGER PRIMARY KEY, raw_json TEXT);
+            CREATE TABLE member_stats_history (id INTEGER PRIMARY KEY, fetched_at TEXT, raw_json TEXT);
+        """)
+        grosso = "x" * 500
+        for i in range(partite):
+            con.execute("INSERT INTO matches VALUES (?,?,?)",
+                        (f"m{i:03d}", f"2026-08-{1 + i % 27:02d}T20:00:00+00:00", grosso))
+            con.execute("INSERT INTO match_player_stats VALUES (?,?,?)",
+                        (f"m{i:03d}", "p1", grosso))
+        for i in range(5):
+            con.execute("INSERT INTO club_stats_history (raw_json) VALUES (?)", (grosso,))
+            con.execute("INSERT INTO member_stats_history (fetched_at, raw_json) VALUES (?,?)",
+                        (f"2026-08-2{i}T00:00:00", grosso))
+        con.commit()
+        return con
+
+    def test_l_ultimo_scatto_non_viene_mai_potato(self):
+        """La parte delicata, e il danno sarebbe silenzioso.
+
+        `ingest.py` decide se salvare un nuovo scatto confrontando il payload con il grezzo
+        del precedente. Se gli si toglie proprio quello, il confronto fallisce sempre e il
+        database si riempie di scatti identici — cioè l'opposto esatto dello scopo della
+        potatura, e senza che nessun errore lo segnali.
+        """
+        import potatura
+        con = self._database()
+        potatura.pota(con)
+        ultimo_club = con.execute(
+            "SELECT raw_json FROM club_stats_history ORDER BY id DESC LIMIT 1").fetchone()[0]
+        self.assertIsNotNone(ultimo_club, "potato il grezzo dell'ultimo scatto del club")
+        ultimo_membri = con.execute(
+            "SELECT raw_json FROM member_stats_history "
+            "WHERE fetched_at = (SELECT MAX(fetched_at) FROM member_stats_history)").fetchone()[0]
+        self.assertIsNotNone(ultimo_membri, "potato il grezzo dell'ultimo scatto dei membri")
+        # E gli altri invece devono essere spariti, altrimenti non serve a niente.
+        vecchi = con.execute(
+            "SELECT COUNT(*) FROM club_stats_history WHERE raw_json IS NOT NULL").fetchone()[0]
+        self.assertEqual(vecchi, 1, "gli scatti vecchi conservano ancora il grezzo")
+
+    def test_si_tiene_il_grezzo_delle_partite_ancora_vive_alla_fonte(self):
+        # EA espone le ultime dieci: sotto quel numero si perderebbe il grezzo di partite
+        # che si potrebbero ancora riscaricare, che e' l'unico caso in cui servirebbe.
+        import potatura
+        self.assertGreaterEqual(potatura.TIENI_PARTITE, 10,
+                                "si terrebbero meno partite della finestra di EA")
+        con = self._database(partite=30)
+        potatura.pota(con)
+        tenute = con.execute(
+            "SELECT COUNT(*) FROM matches WHERE raw_json IS NOT NULL").fetchone()[0]
+        self.assertEqual(tenute, potatura.TIENI_PARTITE)
+        # e sono proprio le piu' recenti, non quindici a caso
+        piu_vecchia_tenuta = con.execute(
+            "SELECT MIN(played_at) FROM matches WHERE raw_json IS NOT NULL").fetchone()[0]
+        piu_recente_potata = con.execute(
+            "SELECT MAX(played_at) FROM matches WHERE raw_json IS NULL").fetchone()[0]
+        self.assertGreater(piu_vecchia_tenuta, piu_recente_potata)
+
+    def test_una_soglia_sotto_la_finestra_di_ea_viene_rifiutata(self):
+        import potatura
+        con = self._database()
+        with self.assertRaises(ValueError):
+            potatura.pota(con, tieni_partite=5)
+
+    def test_potare_due_volte_non_cambia_niente(self):
+        # Gira ad ogni ingest: se non fosse idempotente, ogni giro riscriverebbe righe
+        # identiche e il database risulterebbe "cambiato" anche senza aver giocato,
+        # producendo un commit ogni venti minuti.
+        import potatura
+        con = self._database()
+        potatura.pota(con)
+        # Non basta guardare il risultato: riscrivere NULL sopra un NULL lascia il conto
+        # identico ma sporca comunque le pagine del file, e allora il database risulta
+        # "cambiato" ad ogni giro anche senza aver giocato. Si contano le scritture vere.
+        scritture = con.total_changes
+        liberati = potatura.pota(con)
+        self.assertEqual(con.total_changes, scritture,
+                         "la seconda potatura ha riscritto righe gia' pulite")
+        self.assertEqual(liberati, {}, f"la seconda potatura ha liberato qualcosa: {liberati}")
+
+    def test_le_colonne_vere_non_vengono_toccate(self):
+        # Il principio del progetto e' "non perdere nessun campo di EA": si tolgono le
+        # COPIE, non i dati. Se sparisse una colonna vera, la dashboard mentirebbe.
+        import potatura
+        con = self._database()
+        prima = con.execute("SELECT match_id, played_at FROM matches ORDER BY match_id").fetchall()
+        potatura.pota(con)
+        dopo = con.execute("SELECT match_id, played_at FROM matches ORDER BY match_id").fetchall()
+        self.assertEqual(prima, dopo)
+        self.assertEqual(len(dopo), 30, "sono sparite delle righe")
+
+    def test_ingest_pota_da_solo(self):
+        # Se la potatura dipendesse da giro.sh, un ingest lanciato a mano rigonfierebbe il
+        # database in silenzio.
+        testo = Path("ingest.py").read_text(encoding="utf-8")
+        self.assertIn("from potatura import pota", testo)
+        self.assertIn("pota(con)", testo)
+
+
 class TestBattito(unittest.TestCase):
     """La memoria del battito.
 
@@ -1341,6 +1453,53 @@ class TestBattito(unittest.TestCase):
         self.assertGreaterEqual((giri - 1) * pausa, intervallo,
                                 "fra la fine di un ciclo e la partenza successiva resta "
                                 "una finestra scoperta")
+
+    # Il caso peggiore del ciclo deve stare dentro il limite di GitHub. Non e' un dettaglio
+    # di prestazioni: se il lavoro viene ucciso a meta', la copertura si accorcia proprio
+    # nelle ore in cui si gioca, e nessuno se ne accorge perche' i giri gia' fatti sono
+    # andati a buon fine.
+    LAVORO_LOCALE = 30  # secondi concessi a ingest, generazione, git e battito
+
+    def _numeri_del_ciclo(self):
+        import re
+        w = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        return {
+            "giri": int(re.search(r"then GIRI=(\d+)", w).group(1)),
+            "pausa": int(re.search(r"sleep (\d+)", w).group(1)),
+            "timeout": int(re.search(r"timeout-minutes: (\d+)", w).group(1)) * 60,
+            "fonte": int(re.search(r"ATTESA_FONTE=(\d+)", g).group(1)),
+            "avversari": int(re.search(r"ATTESA_AVVERSARI=(\d+)", g).group(1)),
+        }
+
+    def test_il_caso_peggiore_del_ciclo_sta_dentro_il_timeout(self):
+        n = self._numeri_del_ciclo()
+        peggiore = n["giri"] * (n["fonte"] + n["avversari"] + self.LAVORO_LOCALE) \
+            + (n["giri"] - 1) * n["pausa"]
+        self.assertLessEqual(
+            peggiore, n["timeout"],
+            f"nel caso peggiore il ciclo dura {peggiore // 60} minuti ma il timeout e' "
+            f"{n['timeout'] // 60}: verrebbe ucciso prima dell'ultimo giro")
+
+    def test_il_timeout_dichiarato_sta_sotto_il_limite_di_github(self):
+        # GitHub uccide qualsiasi lavoro a 360 minuti, e lo fa senza preavviso: il nostro
+        # timeout deve scattare prima, cosi' la fine e' ordinata e prevedibile.
+        n = self._numeri_del_ciclo()
+        self.assertLessEqual(n["timeout"] // 60, 355,
+                             "il timeout deve lasciare margine sotto i 360 minuti di GitHub")
+
+    def test_ogni_attesa_di_rete_ha_un_tetto(self):
+        """Senza tetto, un passo che non risponde blocca il giro a tempo indefinito.
+
+        `avversari.py` interroga club esterni: e' un arricchimento, non il lavoro, e non
+        deve poter dettare i tempi del ciclo. Prima del 28/08/2026 poteva prendersi cinque
+        minuti a giro, ottanta in tutto, contro cinquanta di margine.
+        """
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        self.assertRegex(g, r'curl[^\n]*--max-time "\$ATTESA_FONTE"',
+                         "lo scaricamento dalla fonte non ha un tetto dichiarato")
+        self.assertRegex(g, r'timeout "\$ATTESA_AVVERSARI" python3 avversari\.py',
+                         "avversari.py puo' dilatarsi senza limite")
 
     def test_il_workflow_segna_l_avvio_prima_del_ciclo(self):
         """Il segno deve stare PRIMA, altrimenti non copre il caso per cui esiste."""
