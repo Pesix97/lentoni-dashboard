@@ -1472,6 +1472,37 @@ class TestBattito(unittest.TestCase):
             "avversari": int(re.search(r"ATTESA_AVVERSARI=(\d+)", g).group(1)),
         }
 
+    def test_nessun_cron_ai_minuti_affollati(self):
+        """I minuti tondi sono i piu' probabili da farsi scartare.
+
+        Non e' un'opinione: la documentazione di GitHub dice che i lavori programmati
+        vengono ritardati sotto carico, che l'inizio di ogni ora e' uno di quei momenti, e
+        che se il carico e' alto abbastanza alcuni lavori in coda vengono *scartati*.
+
+        Misurato il 28/08/2026 con i cron a :00 e :30 — sulla lista delle Actions, 7
+        partenze programmate il 26 agosto, zero il 27, una il 28, su 48 previste al giorno.
+        Nessuna cancellata: mai create.
+        """
+        import re
+        w = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        minuti = [int(m) for m in re.findall(r"cron: '(\d+) \* \* \* \*'", w)]
+        self.assertTrue(minuti, "nessun cron orario trovato")
+        affollati = [m for m in minuti if m % 15 == 0]
+        self.assertEqual(affollati, [],
+                         f"cron ai minuti affollati {affollati}: GitHub scarta i lavori "
+                         "programmati nei momenti di carico, e i minuti tondi sono quelli")
+
+    def test_abbastanza_occasioni_di_partenza_per_coprire_una_serata(self):
+        # La fascia di gioco e' 22:00-03:00, cinque ore. Con la coda al posto della
+        # cancellazione una sola partenza riuscita copre tutta la serata, ma le partenze
+        # vanno comunque offerte spesso: e' l'unica difesa contro uno scarto.
+        import re
+        w = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        minuti = re.findall(r"cron: '(\d+) \* \* \* \*'", w)
+        self.assertGreaterEqual(len(minuti), 3,
+                                "meno di tre occasioni per ora: se GitHub ne scarta due "
+                                "consecutive resta scoperta una fascia intera")
+
     def test_il_caso_peggiore_del_ciclo_sta_dentro_il_timeout(self):
         n = self._numeri_del_ciclo()
         peggiore = n["giri"] * (n["fonte"] + n["avversari"] + self.LAVORO_LOCALE) \

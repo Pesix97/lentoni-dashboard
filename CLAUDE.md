@@ -129,16 +129,34 @@ Perché sono regole e non consigli. Il 27/08/2026, alle 10:22, sono stati pubbli
 un ciclo più lungo (da 2h20 a 5h20) e un cron in più (da uno a due l'ora). Erano entrambe
 difese *contro* i buchi, entrambe sensate prese una per una, e i test erano verdi. Nessuno
 copriva l'interazione: con `cancel-in-progress` attivo, un ciclo più lungo dell'intervallo
-fra due partenze non finisce mai. Quella notte l'automazione è rimasta ferma **sedici ore**
-e la serata si è salvata per un soffio — dieci partite giocate, dieci archiviate, esattamente
-la capienza della finestra di EA.
+fra due partenze non finisce mai. Una mina innescata, pubblicata dodici ore prima di una
+serata di gioco.
 
-E c'è un secondo insegnamento, più scomodo del primo: la diagnosi iniziale è stata
-**sbagliata**. Dal battito si è concluso "GitHub non lancia" e scritto così nel README,
-mentre le Actions erano piene di run cancellati dalle nostre stesse impostazioni. È saltato
-fuori solo perché Peppe ha chiesto *quale run devo controllare*. Quindi: **prima di dare la
-colpa a un sistema esterno, guardare cosa si è cambiato nelle ultime ore.** Il sospettato
-più probabile è sempre l'ultima modifica.
+## La diagnosi: guardare l'esito, non l'esistenza
+
+La notte del 27/08 l'automazione è rimasta ferma **sedici ore**, e la diagnosi ha sbagliato
+**due volte, in direzioni opposte**:
+
+1. dal battito si è concluso *«GitHub non lancia»* — corretto, ma dedotto da un'assenza;
+2. davanti a *«ci sono un sacco di run»* si è ribaltato tutto e data la colpa alle nostre
+   impostazioni, scrivendolo nel README. Erano run da `push` e di giorni prima.
+
+La verità è emersa solo guardando la lista filtrata per `event: schedule`: **zero righe** il
+27 agosto, né riuscite né cancellate. La firma dello scarto per carico, che GitHub documenta
+apertamente — i lavori programmati vengono ritardati sotto carico, l'inizio di ogni ora è il
+picco, e alcuni vengono *scartati*. I cron erano a `:00` e `:30`.
+
+La lezione non è «guarda le Actions» né «guarda l'ultima modifica», ma:
+
+> **Guarda l'esito, non l'esistenza.** Una lista piena di run non dice niente finché non
+> sai di che tipo sono e come sono finiti. E un'assenza è un dato, non un vuoto da riempire
+> con l'ipotesi più comoda.
+
+Il filtro giusto, da usare sempre prima di concludere qualcosa sull'automazione:
+
+```
+.../actions/workflows/aggiorna-dashboard.yml?query=event%3Aschedule
+```
 
 ## Pubblicazione
 

@@ -12,11 +12,25 @@ name: Aggiorna dashboard Lentoni
 
 on:
   schedule:
-    # Due orari invece di uno: la pianificazione di GitHub salta i turni, e due occasioni
-    # per ora raddoppiano le probabilita' che almeno una scatti. Costano zero, perche' se
-    # il ciclo precedente e' ancora vivo il gruppo di concorrenza lo sostituisce e basta.
-    - cron: '0 * * * *'
-    - cron: '30 * * * *'
+    # MINUTI DISPARI, DI PROPOSITO. Non e' un dettaglio estetico: la documentazione di
+    # GitHub dice che i lavori programmati vengono ritardati quando la piattaforma e'
+    # sotto carico, che "l'inizio di ogni ora" e' proprio uno di quei momenti, e che se il
+    # carico e' abbastanza alto "alcuni lavori in coda possono essere SCARTATI". Il
+    # consiglio esplicito e' di programmare a un minuto diverso dell'ora.
+    #
+    # Fino al 28/08/2026 i due orari erano :00 e :30, cioe' i due minuti piu' affollati
+    # del mondo. Misurato quel giorno sulla lista delle Actions: 7 partenze programmate il
+    # 26 agosto, ZERO il 27, UNA il 28 - su 48 previste al giorno. Nessuna cancellata:
+    # proprio mai create, che e' la firma dello scarto per carico.
+    #
+    # Quattro occasioni invece di due perche' ora non costano niente: le partenze
+    # programmate si accodano (vedi il blocco `concurrency`), quindi quelle in piu' non
+    # uccidono il ciclo in corso, aspettano il loro turno. Ne basta UNA riuscita ogni
+    # cinque ore per non avere buchi.
+    - cron: '7 * * * *'
+    - cron: '22 * * * *'
+    - cron: '37 * * * *'
+    - cron: '52 * * * *'
   workflow_dispatch:
   push:
     paths:

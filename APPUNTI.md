@@ -395,11 +395,25 @@ Quindi: le modifiche al ciclo si pubblicano lontano dalla fascia 22:00–03:00, 
 parametri si condizionano a vicenda la disuguaglianza che li lega va scritta come test
 **prima**, non dopo il guasto.
 
-**Prima di dare la colpa a un sistema esterno, guardare l'ultima modifica.** Corollario
-della regola qui sopra, e costa caro. Quella stessa notte la diagnosi è stata *"GitHub non
-lancia"*, scritta anche nel README — mentre le Actions erano piene di run cancellati dalle
-nostre impostazioni. È saltato fuori solo perché Peppe ha chiesto **quale run devo
-controllare**. Il sospettato più probabile è sempre ciò che si è cambiato nelle ultime ore.
+**Guardare l'esito, non l'esistenza.** La diagnosi di quel guasto ha sbagliato **due volte,
+in direzioni opposte**: prima *"GitHub non lancia"* dedotto da un'assenza nel battito, poi —
+davanti a «ci sono un sacco di run» — il ribaltamento completo, con la colpa data alle
+nostre impostazioni e la versione sbagliata scritta nel README. Erano run da `push` e di
+giorni prima.
+
+La verità è emersa solo filtrando le Actions per `event: schedule`: **zero righe** il 27
+agosto, né riuscite né cancellate. Quindi: una lista piena di run non dice niente finché non
+si sa di che tipo sono e come sono finiti, e **un'assenza è un dato**, non un vuoto da
+riempire con l'ipotesi più comoda. Il filtro giusto è
+`.../actions/workflows/aggiorna-dashboard.yml?query=event%3Aschedule`.
+
+**GitHub scarta i lavori programmati nei minuti affollati, e lo dice lui stesso.** La
+documentazione: i lavori programmati vengono ritardati quando la piattaforma è sotto carico,
+l'inizio di ogni ora è uno di quei momenti, e se il carico è alto abbastanza alcuni lavori in
+coda **vengono scartati**. Noi avevamo i cron a `:00` e `:30`. Partenze riuscite misurate il
+28/08: **7 il 26 agosto, 0 il 27, 1 il 28**, su 24-48 attese al giorno. Ora sono a `:07`,
+`:22`, `:37`, `:52`. Prima di inventare spiegazioni sofisticate su un servizio esterno,
+vale la pena leggere cosa dice la sua documentazione delle proprie stranezze.
 
 **Efficienza prima di tutto.** Poche parole, niente preamboli, niente riepiloghi di quello
 che si sta per fare. I risultati con i numeri accanto.
