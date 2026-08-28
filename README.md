@@ -13,9 +13,10 @@ acceso nessun computer.
 ## Come funziona
 
 Il workflow `.github/workflows/aggiorna-dashboard.yml` esegue `giro.sh` **sedici volte a
-distanza di venti minuti** quando parte dalla pianificazione, coprendo **5 ore e 20** per
-ogni avvio. Dopo un push al codice ne esegue invece **uno solo**, perché lì serve solo
-verificare che la modifica produca una pagina valida. Ogni giro:
+distanza di venti minuti**, coprendo **5 ore e 20** per ogni avvio. Vale sia quando parte
+dalla pianificazione sia quando lo si lancia a mano con *Run workflow*: il ciclo completo è
+il comportamento normale. L'unica eccezione è il push al codice, che ne esegue **uno solo**,
+perché lì serve solo verificare che la modifica produca una pagina valida. Ogni giro:
 
 1. legge da `club.json` quale club interrogare;
 2. scarica i dati da proclubstracker.com;
@@ -196,9 +197,18 @@ non dice niente finché non sai di che tipo sono e come sono finiti.
 Se dovesse ricapitare, in ordine:
 
 1. **Chiudere il buco subito.** Actions → *Aggiorna dashboard Lentoni* → *Run workflow*,
-   anche dal telefono. In alternativa basta un commit che tocchi uno dei file elencati fra
-   i `paths` del workflow: innesca un'esecuzione da push, che fa un giro solo. Un giro
-   basta a salvare le partite ancora dentro la finestra delle dieci.
+   anche dal telefono. Fa il **ciclo completo**, sedici giri, 5h20 di copertura.
+
+   Fino al 28/08/2026 non era vero: la condizione sui giri guardava solo `schedule`, quindi
+   il pulsante cadeva nell'`altrimenti` e faceva **un giro solo**. Il rimedio d'emergenza
+   descritto ovunque come «un tap e la serata è coperta» durava un minuto. Era
+   un'affermazione data per ovvia e mai provata — trovata solo verificandola, e ora
+   protetta da un test.
+
+   **Un giro e un ciclo servono a due cose diverse:** un giro chiude un buco *già aperto*,
+   prendendo le dieci partite che EA espone in quel momento; un ciclo *copre* le ore che
+   verranno. In alternativa, un commit che tocchi uno dei file elencati fra i `paths`
+   innesca una verifica da push, che fa un giro solo — utile a recuperare, non a coprire.
 2. **Guardare l'esito delle esecuzioni programmate, non solo se esistono.** Il filtro
    giusto è questo — `Event: schedule` sul nostro workflow — e va guardata la colonna delle
    icone:
@@ -270,7 +280,7 @@ attesi** in ventisei ore:
 | **Quattro partenze l'ora, ai minuti `:07 :22 :37 :52`** | mai su un minuto tondo: GitHub *scarta* i lavori programmati nei momenti di carico, e l'inizio dell'ora è il picco. Con `:00` e `:30` le partenze riuscite sono state 7, 0 e 1 in tre giorni |
 | **Esecuzioni programmate in coda, non cancellate** | durante un ciclo di cinque ore le partenze successive aspettano invece di sprecarsi: quando il ciclo finisce ne parte subito un'altra, e la pianificazione inaffidabile diventa una catena |
 | **Tetto duro a ogni attesa di rete** (`ATTESA_FONTE`, `ATTESA_AVVERSARI`) | senza, il caso peggiore sforava il limite di sei ore di GitHub e il ciclo veniva ucciso verso il quattordicesimo giro |
-| **Controllo del battito tre volte al giorno**: 23:45, 01:10, 09:45 | i primi due arrivano prima e durante le partite, quando c'è ancora qualcosa da salvare: il workflow si lancia a mano da GitHub — anche dal telefono — e il buco si chiude in un minuto |
+| **Controllo del battito tre volte al giorno**: 23:45, 01:10, 09:45 | i primi due arrivano prima e durante le partite, quando c'è ancora qualcosa da salvare: il workflow si lancia a mano da GitHub, anche dal telefono, e fa il **ciclo completo** |
 
 **Le prime due difese erano incompatibili fra loro, e nessuno se n'era accorto.** Allungare
 il ciclo a 5h20 e raddoppiare i cron, senza togliere `cancel-in-progress` dal gruppo del
@@ -364,7 +374,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 83 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 84 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
 | `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 

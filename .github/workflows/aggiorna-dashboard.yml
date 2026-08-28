@@ -125,7 +125,15 @@ jobs:
           # con la finestra corta bastava che GitHub saltasse tre trigger di fila per
           # lasciare scoperta una serata intera. Ora per scoprirne una devono saltarne
           # sedici consecutivi.
-          if [ "${{ github.event_name }}" = "schedule" ]; then GIRI=16; else GIRI=1; fi
+          # La condizione e' scritta al NEGATIVO di proposito: il ciclo completo e' il
+          # comportamento normale, e il giro singolo l'eccezione riservata alle verifiche
+          # dopo un push. Prima era il contrario - "se e' schedule allora 16, altrimenti
+          # 1" - e ci finiva dentro anche `workflow_dispatch`, cioe' il pulsante "Run
+          # workflow". Il rimedio d'emergenza documentato ovunque ("un tap e la serata e'
+          # coperta") dava quindi UN GIRO SOLO: un minuto, poi finiva. Difetto trovato il
+          # 28/08/2026 verificando un'affermazione che era stata data per ovvia e mai
+          # provata.
+          if [ "${{ github.event_name }}" != "push" ]; then GIRI=16; else GIRI=1; fi
           echo "evento: ${{ github.event_name }} -> $GIRI giri"
           for i in $(seq 1 $GIRI); do
             ./giro.sh

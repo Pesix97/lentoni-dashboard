@@ -1472,6 +1472,30 @@ class TestBattito(unittest.TestCase):
             "avversari": int(re.search(r"ATTESA_AVVERSARI=(\d+)", g).group(1)),
         }
 
+    def test_il_pulsante_run_workflow_fa_il_ciclo_completo(self):
+        """Il rimedio d'emergenza deve fare quello che la documentazione promette.
+
+        Fino al 28/08/2026 la condizione era «se e' schedule allora 16 giri, altrimenti 1»,
+        e `workflow_dispatch` — cioe' il pulsante "Run workflow" — cadeva nell'altrimenti.
+        Il rimedio descritto in README, negli APPUNTI e in due attivita' programmate come
+        «un tap e la serata e' coperta» dava in realta' UN GIRO SOLO.
+
+        Un giro chiude un buco gia' aperto, prendendo le dieci partite che EA espone in
+        quel momento. Non copre una serata. Sono due cose diverse, e la differenza si paga
+        in partite perse.
+        """
+        import re
+        w = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        riga = re.search(r"if \[ \"\$\{\{ github\.event_name \}\}\".*GIRI=.*fi", w)
+        self.assertIsNotNone(riga, "non trovo la riga che decide quanti giri fare")
+        riga = riga.group(0)
+        # Il giro singolo deve essere riservato a 'push' e a nient'altro: qualsiasi altra
+        # forma della condizione lascerebbe fuori workflow_dispatch un'altra volta.
+        self.assertRegex(
+            riga, r'!=\s*"push"',
+            "il giro singolo deve valere SOLO per le verifiche da push: con la condizione "
+            "scritta al positivo, 'Run workflow' torna a fare un giro solo")
+
     def test_nessun_cron_ai_minuti_affollati(self):
         """I minuti tondi sono i piu' probabili da farsi scartare.
 
