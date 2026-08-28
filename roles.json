@@ -1009,6 +1009,30 @@
       "quando": "27/08 01:44 LumniaFC",
       "giocatore": "Bagherese_95",
       "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1011140514780118",
+      "quando": "27/08 23:07 sucamilla",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1011410595280234",
+      "quando": "28/08 00:46 Chinino Club",
+      "giocatore": "Ocirne_1197",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1011400800160473",
+      "quando": "28/08 01:06 Baie Du Tombeau",
+      "giocatore": "Ocirne_1197",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1011446915630293",
+      "quando": "28/08 01:24 FETÃ¸",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -1042,6 +1066,24 @@
       "quando": "06/08 00:29 royal skuirt fc",
       "giocatore": "Pesix_97",
       "motivo": "controllato dalla CPU"
+    },
+    {
+      "match_id": "1011106365520063",
+      "quando": "27/08 22:47 FC VIENNA 97",
+      "giocatore": "Pesix_97",
+      "motivo": "prima partita della serata (27/08 22:47, FC VIENNA 97) buggata: secondo Peppe quasi nessuno ha giocato davvero, nonostante minutaggio pieno e rating registrati per questi tre"
+    },
+    {
+      "match_id": "1011106365520063",
+      "quando": "27/08 22:47 FC VIENNA 97",
+      "giocatore": "domenicocasaburi",
+      "motivo": "prima partita della serata (27/08 22:47, FC VIENNA 97) buggata: secondo Peppe quasi nessuno ha giocato davvero, nonostante minutaggio pieno e rating registrati per questi tre"
+    },
+    {
+      "match_id": "1011106365520063",
+      "quando": "27/08 22:47 FC VIENNA 97",
+      "giocatore": "Ocirne_1197",
+      "motivo": "prima partita della serata (27/08 22:47, FC VIENNA 97) buggata: secondo Peppe quasi nessuno ha giocato davvero, nonostante minutaggio pieno e rating registrati per questi tre"
     }
   ],
   "_voto_sentinella": [
@@ -1105,6 +1147,10 @@
     {
       "serata": "2026-08-26T21:24Z",
       "partite": 9
+    },
+    {
+      "serata": "2026-08-27T20:47Z",
+      "partite": 10
     }
   ],
   "_serate_chiuse": [
