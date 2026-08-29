@@ -1033,6 +1033,90 @@
       "quando": "28/08 01:24 FETÃ¸",
       "giocatore": "Smilzo_87",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014308549890426",
+      "quando": "28/08 22:45 GARGA FC",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014308549890426",
+      "quando": "28/08 22:45 GARGA FC",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1014276766200288",
+      "quando": "28/08 23:02 Fc TentaCulä",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014276766200288",
+      "quando": "28/08 23:02 Fc TentaCulä",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014276766200288",
+      "quando": "28/08 23:02 Fc TentaCulä",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1014520014710389",
+      "quando": "28/08 23:21 AlAhly22",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1014520014710389",
+      "quando": "28/08 23:21 AlAhly22",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014534299880330",
+      "quando": "28/08 23:46 Gang 187",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1014534299880330",
+      "quando": "28/08 23:46 Gang 187",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014776213100206",
+      "quando": "29/08 00:59 Nex strasbatto",
+      "giocatore": "Bagherese_95",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1014786635620236",
+      "quando": "29/08 01:38 Al Guys",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014786635620236",
+      "quando": "29/08 01:38 Al Guys",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014874708090340",
+      "quando": "29/08 01:59 circoloco",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1014874708090340",
+      "quando": "29/08 01:59 circoloco",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -1150,6 +1234,10 @@
     },
     {
       "serata": "2026-08-27T20:47Z",
+      "partite": 10
+    },
+    {
+      "serata": "2026-08-28T20:45Z",
       "partite": 10
     }
   ],
