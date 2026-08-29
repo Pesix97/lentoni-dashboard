@@ -529,6 +529,23 @@ lasciato al suo posto, in `modello/pagina.js`.
   significando nulla.
 - EA elenca solo i giocatori **umani** di ogni partita, di solito 5 o 6. Il resto sono CPU.
 - Le partite **abbandonate o interrotte** non vengono conteggiate da EA.
+- **Verificare che i pezzi siano giusti non è verificare che la cosa si accenda.** Il
+  29/08/2026 è finita online una dashboard inutilizzabile — niente menu, diciassette sezioni
+  impilate — per una variabile scritta male dentro un template letterale. Sintassi giusta,
+  tutte le ancore presenti, **102 controlli JavaScript e 90 Python tutti verdi**. Nessuno
+  montava i pezzi: `node --check` guarda la sintassi, `test_ruoli.js` chiama le funzioni una
+  per una, `test_pipeline.py` cerca stringhe nel file. Da qui `test_apertura.js`, che apre
+  davvero la pagina in un motore HTML e chiede: parte? il menu ha voci? le tabelle hanno
+  righe? È la domanda più semplice di tutte, ed era l'unica che nessuno faceva.
+- **Fra due danni possibili, proteggere quello irreversibile.** Le guardie prima della
+  pubblicazione saltavano l'intero commit quando la pagina usciva male — database compreso.
+  Ma una pagina rotta si rigenera al giro dopo, mentre una partita uscita dalla finestra di
+  dieci di EA è persa per sempre. Il controllo nuovo pubblica quindi **il database e non la
+  pagina**. Le guardie più vecchie fanno ancora l'opposto, ed è una cosa da rivedere.
+- **Una rete di sicurezza non deve poter fare più danni del difetto che intercetta.** Se
+  `jsdom` manca, il controllo si salta invece di bloccare l'archiviazione; se `npm install`
+  fallisce sul runner, il passo è `continue-on-error`. Un test che ferma la raccolta dati
+  perché gli manca una dipendenza costa più di quanto valga.
 - **"Tutti gli altri" non e' un reparto.** Fino al 29/08/2026 i pesi della tecnica erano
   due: difensori e resto del mondo. Ma quel secondo gruppo metteva insieme un centrocampista
   e un attaccante, che con la palla fanno mestieri opposti. Ora sono quattro tarature, con i

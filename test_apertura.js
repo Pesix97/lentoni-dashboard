@@ -1,0 +1,138 @@
+// La pagina si apre davvero?
+//
+// NATO DA UN GUASTO IN PRODUZIONE, il 29/08/2026. Una variabile scritta male dentro un
+// template letterale - `gruppo` invece di `group` - ha prodotto un ReferenceError a runtime:
+// il JavaScript moriva alla prima riga della classifica per reparto, quindi niente menu
+// laterale, niente sezioni nascoste, tutte e diciassette una sotto l'altra. La dashboard era
+// inutilizzabile, ed e' finita online.
+//
+// Il punto non e' l'errore di battitura: e' che TRE reti di sicurezza l'hanno lasciato
+// passare, perche' nessuna faceva la domanda piu' semplice.
+//
+//   node --check          controlla la SINTASSI, e la sintassi era giusta
+//   test_ruoli.js         chiama le funzioni una per una, ma quella riga viveva dentro
+//                         un template letterale che nessun test eseguiva
+//   test_pipeline.py      controlla che le sezioni esistano nel FILE, non che si aprano
+//
+// Centodue controlli JavaScript e novanta Python, e nessuno montava i pezzi per vedere se
+// la cosa si accendeva. Questo file fa solo quello.
+//
+// Uso:  node test_apertura.js [percorso/index.html]
+
+const fs = require("fs");
+
+let JSDOM;
+try {
+  ({ JSDOM } = require("jsdom"));
+} catch (e) {
+  console.error("jsdom non installato: `npm install jsdom`. Senza, questo controllo non gira.");
+  process.exit(2);
+}
+
+const file = process.argv[2] || "index.html";
+if (!fs.existsSync(file)) {
+  console.error(`File non trovato: ${file}`);
+  process.exit(1);
+}
+
+let falliti = 0;
+function verifica(descrizione, condizione, dettaglio) {
+  if (condizione) {
+    console.log(`  ok    ${descrizione}`);
+  } else {
+    console.log(`  FAIL  ${descrizione}${dettaglio ? "  ->  " + dettaglio : ""}`);
+    falliti++;
+  }
+}
+
+const errori = [];
+const dom = new JSDOM(fs.readFileSync(file, "utf-8"), {
+  runScripts: "dangerously",
+  pretendToBeVisual: true,
+  // Un URL vero e non about:blank: la pagina usa history.replaceState per ricordare quale
+  // sezione e' aperta, e su about:blank quella chiamata esplode per conto suo. Un finto
+  // fallimento del banco di prova e' peggio di nessun banco di prova.
+  url: "https://pesix97.github.io/lentoni-dashboard/",
+  beforeParse(w) {
+    // Chart.js arriva da un CDN che qui non si raggiunge: si sostituisce con un guscio.
+    // Non e' un compromesso: i grafici non sono cio' che questo controllo verifica.
+    w.Chart = function () { return { destroy() {}, update() {} }; };
+    w.Chart.register = () => {};
+
+    // Un finto contesto 2D. Senza, la pagina muore su createLinearGradient mentre disegna
+    // l'immagine da condividere, e non si distingue piu' un difetto vero da una mancanza
+    // dell'ambiente di prova.
+    const nulla = () => {};
+    const ctx = new Proxy({}, {
+      get: (_, k) => {
+        if (k === "createLinearGradient" || k === "createRadialGradient" || k === "createPattern")
+          return () => ({ addColorStop: nulla });
+        if (k === "measureText") return () => ({ width: 10 });
+        if (k === "canvas") return { width: 1000, height: 1000 };
+        return nulla;
+      },
+    });
+    w.HTMLCanvasElement.prototype.getContext = () => ctx;
+    w.HTMLCanvasElement.prototype.toDataURL = () => "data:,";
+
+    w.addEventListener("error", (e) => errori.push(e.message || String(e.error)));
+  },
+});
+
+const d = dom.window.document;
+
+setTimeout(() => {
+  console.log("\nLa pagina si apre");
+
+  // 1. Nessun errore. E' il controllo per cui questo file esiste.
+  verifica("il JavaScript gira senza errori", errori.length === 0, errori.slice(0, 3).join(" | "));
+
+  // 2. Il menu laterale. E' la prima cosa che sparisce quando il JavaScript muore presto,
+  //    ed e' anche come il guasto del 29/08 si e' manifestato a schermo.
+  const voci = d.querySelectorAll("#navLinks *").length;
+  verifica("il menu laterale ha delle voci", voci >= 5, `ne ha ${voci}`);
+
+  // 3. Le tabelle che il JavaScript riempie. Se restano vuote, la pagina "c'e'" ma non
+  //    dice niente - ed e' il modo in cui un guasto puo' passare inosservato.
+  const riempite = [
+    ["classifica generale", "#powerTable tbody tr"],
+    ["rosa", "#rosterTable tbody tr"],
+    ["classifiche complete", "#lbTable tbody tr"],
+  ];
+  riempite.forEach(([nome, sel]) => {
+    const n = d.querySelectorAll(sel).length;
+    verifica(`la ${nome} ha delle righe`, n > 0, `ne ha ${n}`);
+  });
+
+  // 4. I contenitori che le altre reti gia' controllano nel file, qui verificati DOPO che
+  //    il JavaScript li ha riempiti: esistere ed essere pieni sono due cose diverse.
+  const pieni = ["forza", "serateFiltri", "diagnosiTabella", "wrappedGrid"];
+  pieni.forEach((id) => {
+    const el = d.getElementById(id);
+    verifica(`#${id} esiste ed e' stato riempito`,
+      !!el && el.innerHTML.trim().length > 0, el ? "vuoto" : "non esiste");
+  });
+
+  // 5. Il dettaglio dell'efficienza tecnica, che e' cio' che ha rotto la pagina.
+  const aperture = d.querySelectorAll(".tec-apri").length;
+  const dettagli = d.querySelectorAll("tr.tecnica-detail").length;
+  verifica("i numeri della colonna Tecnica sono cliccabili", aperture > 0, `ne ha ${aperture}`);
+  verifica("ogni numero cliccabile ha la sua riga di dettaglio",
+    dettagli === aperture, `${aperture} cliccabili contro ${dettagli} dettagli`);
+
+  // E i dettagli devono partire CHIUSI: aperti tutti insieme la tabella e' illeggibile.
+  const apertiSubito = d.querySelectorAll("tr.tecnica-detail.open").length;
+  verifica("i dettagli partono chiusi", apertiSubito === 0, `${apertiSubito} gia' aperti`);
+
+  // 6. Una sezione alla volta. La dashboard e' una pagina sola che ne mostra una per volta:
+  //    se il JavaScript muore prima di nasconderle, si vedono tutte impilate - ed e'
+  //    esattamente cosi' che il guasto e' apparso a chi guardava.
+  const sezioni = [...d.querySelectorAll("section")];
+  const visibili = sezioni.filter(s => dom.window.getComputedStyle(s).display !== "none");
+  verifica("le sezioni non sono tutte visibili insieme",
+    visibili.length < sezioni.length,
+    `${visibili.length} visibili su ${sezioni.length}: il JavaScript non le ha nascoste`);
+
+  console.log(falliti ? `\n${falliti} controlli falliti.\n` : "\nLa pagina si apre e si riempie.\n");
+  process.exit(falliti ? 1 : 0);
+}, 1200);

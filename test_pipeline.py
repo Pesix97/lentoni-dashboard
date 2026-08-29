@@ -1304,6 +1304,54 @@ class TestBattito(unittest.TestCase):
         self.assertEqual(s["giri_recenti"][0]["r"], "?")
         self.assertEqual([e["run"] for e in s["esecuzioni"]], ["?", "999"])
 
+    # ---- Il controllo di apertura della pagina -------------------------------------
+    # Aggiunti il 29/08/2026, dopo che una dashboard inutilizzabile e' finita online: una
+    # variabile scritta male dentro un template letterale, ReferenceError a runtime, niente
+    # menu e diciassette sezioni impilate. Sintassi giusta, tutte le ancore presenti, 102
+    # controlli JavaScript verdi. Nessuno montava i pezzi per vedere se si accendeva.
+
+    def test_il_ciclo_controlla_che_la_pagina_si_apra(self):
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        self.assertIn("test_apertura.js", g,
+                      "il ciclo non verifica piu' che la pagina si apra")
+        # E deve farlo PRIMA di pubblicare, altrimenti non serve a niente.
+        self.assertLess(g.index("test_apertura.js"), g.index("git commit -q -m"),
+                        "il controllo di apertura viene dopo la pubblicazione")
+
+    def test_una_pagina_rotta_non_ferma_l_archiviazione_delle_partite(self):
+        """La differenza che conta fra i due danni possibili.
+
+        Una pagina rotta si rigenera al giro dopo. Una partita uscita dalla finestra di
+        dieci di EA e' persa per sempre. Quindi se la pagina non si apre si pubblica il
+        database e non la pagina, invece di saltare tutto il commit.
+        """
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        blocco = g[g.index("SOLO_DATABASE=\"si\""):g.index("git commit -q -m")]
+        self.assertIn("git add lentoni.db", blocco,
+                      "con la pagina rotta il database non viene piu' pubblicato")
+        self.assertNotIn("exit 0", blocco,
+                         "il giro esce prima di archiviare le partite")
+
+    def test_il_controllo_di_apertura_non_puo_bloccare_il_ciclo_se_manca_jsdom(self):
+        # Una rete di sicurezza che ferma l'archiviazione quando le manca una dipendenza
+        # fa piu' danni del difetto che dovrebbe intercettare.
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        self.assertRegex(g, r"require\('jsdom'\)|node_modules/jsdom",
+                         "il ciclo non verifica che jsdom ci sia prima di usarlo")
+        self.assertIn("jsdom assente", g,
+                      "manca il ramo che salta il controllo quando jsdom non c'e'")
+        w = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        self.assertIn("npm install", w, "jsdom non viene installato sul runner")
+        passo = w[w.index("Installa jsdom"):w.index("npm install")]
+        self.assertIn("continue-on-error: true", passo,
+                      "se npm non risponde, il ciclo non deve fermarsi")
+
+    def test_il_battito_dichiara_la_pagina_non_apribile(self):
+        # Senza, il guasto sarebbe silenzioso: la dashboard resta vecchia e nessuno lo sa.
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        self.assertRegex(g, r'scrivi_battito ok "\$\{SOLO_DATABASE:\+',
+                         "il battito non segnala che la pagina non si apriva")
+
     def test_giro_sh_usa_battito_py(self):
         # Se qualcuno reinfilasse il calcolo dentro lo script, tornerebbe non collaudabile.
         testo = Path("giro.sh").read_text(encoding="utf-8")

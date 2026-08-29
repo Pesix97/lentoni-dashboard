@@ -93,7 +93,14 @@ finora sono risultate corrette tutte.
 python3 generate_dashboard.py --db lentoni.db --out index.html
 python3 -m unittest test_pipeline
 node test_ruoli.js index.html
+node test_apertura.js index.html     # apre davvero la pagina: serve `npm install jsdom`
 ```
+
+**L'ultimo non è opzionale, ed è nato da un guasto in produzione.** Il 29/08/2026 una
+dashboard inutilizzabile è finita online con tutti gli altri controlli verdi: una variabile
+scritta male dentro un template letterale, `ReferenceError` a runtime, niente menu e
+diciassette sezioni impilate. Sintassi giusta, ancore tutte presenti, 192 controlli passati.
+Nessuno montava i pezzi per vedere se la cosa si accendeva.
 
 **La documentazione va nello stesso commit, non dopo.** Un passo separato è quello che
 salta quando si va di fretta: il 25/08/2026 quattro modifiche importanti sono finite online

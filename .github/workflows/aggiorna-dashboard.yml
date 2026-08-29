@@ -126,6 +126,15 @@ jobs:
           chmod +x giro.sh
           ./giro.sh --solo-avvio
 
+      # Serve a `test_apertura.js`, che monta la pagina in un motore HTML vero e verifica
+      # che si apra. Installato una volta per esecuzione, non ad ogni giro: sono ~3 secondi.
+      # continue-on-error perche' il controllo e' una rete di sicurezza in piu': se npm non
+      # risponde, il ciclo deve archiviare le partite lo stesso. giro.sh se ne accorge da
+      # solo e salta il controllo invece di fallire.
+      - name: Installa jsdom per il controllo di apertura
+        continue-on-error: true
+        run: npm install --no-save --no-fund --no-audit jsdom
+
       - name: Ciclo di aggiornamento
         run: |
           git config user.name "Lentoni Dashboard Bot"

@@ -11,3 +11,8 @@ raw/*
 # stato recuperabile con  git show <commit>:lentoni.db
 backups/
 __pycache__/
+
+# Dipendenze di test installate al volo (jsdom, per test_apertura.js).
+# Sul runner le installa il workflow, in locale si mettono a mano: non vanno versionate.
+node_modules
+package-lock.json

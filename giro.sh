@@ -158,7 +158,37 @@ for ancora in 'id="forza"' 'Reparto per reparto' 'id="historyRange"' 'id="serate
   grep -q "$ancora" index.html || { echo "  manca $ancora nella pagina, non pubblico"; scrivi_battito ok "pagina incompleta"; exit 0; }
 done
 
-git add index.html lentoni.db
+# ULTIMO CONTROLLO, E IL PIU' SEMPLICE: la pagina si apre?
+#
+# Tutti quelli qui sopra guardano il FILE. Nessuno montava i pezzi per vedere se la cosa si
+# accendeva, e il 29/08/2026 e' finita online una dashboard che moriva alla prima riga per
+# una variabile scritta male: niente menu, diciassette sezioni impilate, inutilizzabile.
+# Sintassi giusta, tutte le ancore al loro posto, 102 controlli verdi.
+#
+# Se il controllo fallisce si pubblica IL DATABASE MA NON LA PAGINA. E' la differenza che
+# conta: una pagina rotta si rigenera al giro dopo, una partita uscita dalla finestra di
+# EA e' persa per sempre. Le altre guardie qui sopra saltano l'intero commit, ed e' una
+# scelta piu' rischiosa che andrebbe rivista.
+#
+# Se jsdom non c'e' il controllo non blocca niente: meglio pubblicare senza questa rete che
+# fermare l'archiviazione perche' manca una dipendenza.
+SOLO_DATABASE=""
+if [ -d node_modules/jsdom ] || node -e "require('jsdom')" 2>/dev/null; then
+  if ! node test_apertura.js index.html; then
+    echo "  la pagina non si apre: pubblico solo il database, non la pagina"
+    SOLO_DATABASE="si"
+  fi
+else
+  echo "  jsdom assente: salto il controllo di apertura (non bloccante)"
+fi
+
+if [ -n "$SOLO_DATABASE" ]; then
+  # La pagina resta com'era online - vecchia ma funzionante - e le partite entrano lo stesso.
+  git checkout -- index.html 2>/dev/null || true
+  git add lentoni.db
+else
+  git add index.html lentoni.db
+fi
 if git diff --staged --quiet; then
   echo "  nessuna modifica"
 else
@@ -168,7 +198,7 @@ else
   # ogni giro significherebbe un commit ogni venti minuti anche senza aver giocato.
   python3 -c "import sqlite3; c=sqlite3.connect('lentoni.db'); c.execute('VACUUM'); c.close()" || true
   git add lentoni.db
-  git commit -q -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC"
+  git commit -q -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC${SOLO_DATABASE:+ (solo database: la pagina non si apriva)}"
   if ! git push -q origin HEAD:main 2>/dev/null; then
     echo "  push respinto, riprovo dopo un rebase"
     git pull -q --rebase origin main && git push -q origin HEAD:main && echo "  pubblicato al secondo tentativo"
@@ -177,6 +207,9 @@ else
   fi
 fi
 
-scrivi_battito ok
+# Se la pagina non si apriva, il battito lo dice: e' un guasto della pipeline a valle,
+# esattamente il caso per cui il campo `problema` esiste. I controlli delle 23:45, 01:10 e
+# 09:45 lo leggono e lo segnalano.
+scrivi_battito ok "${SOLO_DATABASE:+pagina non apribile: pubblicato solo il database}"
 
 exit 0
