@@ -128,7 +128,20 @@ function gruppoBadge(gruppo, daAssegnare){
 //
 // I pesi ora sommano a 100 fra le voci positive; la disciplina resta una PENALITA' a parte,
 // che sottrae fino a 5 punti invece di aggiungerne.
-const PESI_INDICE = { rating: 0.30, contrib: 0.30, motm: 0.05, win: 0.10, tech: 0.25, disc: 0.05 };
+// SECONDA TARATURA DEL 29/08/2026: la % vittorie e' USCITA dall'indice.
+//
+// Misurata la sua affidabilita', risultava NEGATIVA (-0.40) con divisione casuale delle
+// partite e +0.008 con divisione cronologica: zero puro, contro +0.71 del rating e +0.76 di
+// gol+assist. Il motivo e' strutturale e non si aggiusta con un peso diverso: la vittoria e'
+// della SQUADRA, e due giocatori di questo club condividono in media il 66% delle partite.
+// Vincono e perdono insieme. Infatti stavano tutti fra il 41,9% e il 56%: la voce non aveva
+// nessuno da distinguere. Non era rumore, era una costante travestita da variabile che si
+// portava via il 10% del peso distribuendolo a caso.
+//
+// I dieci punti sono andati, per decisione del club, meta' alla media voto e meta'
+// all'efficienza tecnica. La % vittorie resta VISIBILE nelle tabelle: e' un dato che si
+// guarda volentieri, semplicemente non misura il singolo.
+const PESI_INDICE = { rating: 0.35, contrib: 0.30, motm: 0.05, tech: 0.30, disc: 0.05 };
 
 // ---- Le scale su cui si misura ogni voce ----
 //
@@ -154,7 +167,6 @@ const SCALE_INDICE = {
   rating:  [6.0, 9.0],   // osservate 6.92 - 8.23. Sotto il 6 e' insufficiente, 9 e' eccellenza
   contrib: [0, 3],       // osservato max 1.82 in generale, 2.17 fra gli attaccanti
   motm:    [0, 50],      // migliore in campo in meta' delle partite. Osservato max 32%
-  win:     [0, 100],     // naturale
   tech:    [0, 100],     // gia' normalizzata dalle sue sottoscale, vedi qui sotto
   disc:    [0, 0.2],     // cartellini rossi a partita: uno ogni cinque e' il fondo
 };
@@ -319,7 +331,6 @@ function rankGroup(pool){
     { chiave: "rating",  peso: PESI_INDICE.rating,  valori: versoLaMedia(pool.map(a => a.ratingAve), partite) },
     { chiave: "contrib", peso: PESI_INDICE.contrib, valori: versoLaMedia(pool.map(a => a.contrib), partite) },
     { chiave: "motm",    peso: PESI_INDICE.motm,    valori: versoLaMedia(pool.map(a => a.motmRate), partite) },
-    { chiave: "win",     peso: PESI_INDICE.win,     valori: versoLaMedia(pool.map(a => a.winRate), partite) },
     { chiave: "tech",    peso: PESI_INDICE.tech,    valori: versoLaMedia(pool.map(a => a.techEff), partite) },
   ];
   const disc = versoLaMedia(pool.map(a => a.redRate), partite);
@@ -370,7 +381,6 @@ function computePowerScores(roster){
   const nRating  = roster.map(r => suScala(r.rating_ave, "rating"));
   const nContrib = contrib.map(v => suScala(v, "contrib"));
   const nMotm    = motmRate.map(v => suScala(v * 100, "motm"));
-  const nWin     = roster.map(r => suScala(r.win_rate, "win"));
   const nTech    = techEff.map(v => suScala(v, "tech"));
   const nDisc    = redRate.map(v => suScala(v, "disc"));
 
@@ -380,7 +390,6 @@ function computePowerScores(roster){
         PESI_INDICE.rating  * nRating[i] +
         PESI_INDICE.contrib * nContrib[i] +
         PESI_INDICE.motm    * nMotm[i] +
-        PESI_INDICE.win     * nWin[i] +
         PESI_INDICE.tech    * nTech[i] -
         PESI_INDICE.disc    * nDisc[i]
       )
@@ -390,7 +399,7 @@ function computePowerScores(roster){
       score,
       contrib: contrib[i],
       motmRate: motmRate[i] * 100,
-      breakdown: { rating: nRating[i], contrib: nContrib[i], motm: nMotm[i], win: nWin[i], tech: nTech[i], disc: nDisc[i] },
+      breakdown: { rating: nRating[i], contrib: nContrib[i], motm: nMotm[i], tech: nTech[i], disc: nDisc[i] },
     };
   });
 }
@@ -483,7 +492,6 @@ function computeFormScores(windowSize){
       rating:  normWith(p.ratingAve, "rating"),
       contrib: normWith(p.contrib,   "contrib"),
       motm:    normWith(p.motmRate,  "motm"),
-      win:     normWith(p.winRate,   "win"),
       tech:    normWith(p.techEff,   "tech"),
       disc:    normWith(p.redRate,   "disc"),
     },
@@ -491,7 +499,6 @@ function computeFormScores(windowSize){
       PESI_INDICE.rating  * normWith(p.ratingAve, "rating") +
       PESI_INDICE.contrib * normWith(p.contrib,   "contrib") +
       PESI_INDICE.motm    * normWith(p.motmRate,  "motm") +
-      PESI_INDICE.win     * normWith(p.winRate,   "win") +
       PESI_INDICE.tech    * normWith(p.techEff,   "tech") -
       PESI_INDICE.disc    * normWith(p.redRate,   "disc")
     ))),
@@ -526,12 +533,12 @@ function computeBlendedScores(windowSize, weight){
     const g = s.r, gp = g.games_played || 1;
     const carriera = {
       rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
-      win: g.win_rate, tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate),
+      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate),
       disc: g.red_cards / gp,
       passaggi: g.pass_success_rate, contrasti: g.tackle_success_rate, tiro: g.shot_success_rate,
     };
     const daForma = hasForm ? { rating: f.ratingAve, contrib: f.contrib, motm: f.motmRate,
-                                win: f.winRate, tech: f.techEff, disc: f.redRate,
+                                tech: f.techEff, disc: f.redRate,
                                 passaggi: f.passaggi, contrasti: f.contrasti, tiro: f.tiro } : null;
     const grezzi = {};
     Object.keys(carriera).forEach(k => {
@@ -1322,7 +1329,7 @@ let growthChart = null;
   const winLabel = (w) => (w === 0 ? "Tutte" : "Ultime " + w);
 
   function topFactor(s){
-    const labels = { rating: "media voto alta", contrib: "tanti gol+assist a partita", motm: "spesso migliore in campo", win: "grande % vittorie", tech: "solidissimo tecnicamente" };
+    const labels = { rating: "media voto alta", contrib: "tanti gol+assist a partita", motm: "spesso migliore in campo", tech: "solidissimo tecnicamente" };
     const best = Object.entries(s.breakdown).sort((a,b) => b[1]-a[1])[0][0];
     return labels[best];
   }
@@ -1547,7 +1554,7 @@ let growthChart = null;
       </tr>`;
     }).join("");
     const ignorate = (ranked[0] && ranked[0].metricheIgnorate) || [];
-    const ETICHETTE = { rating:"media voto", contrib:"gol+assist", motm:"MOTM", win:"% vittorie", tech:"efficienza tecnica" };
+    const ETICHETTE = { rating:"media voto", contrib:"gol+assist", motm:"MOTM", tech:"efficienza tecnica" };
     const notaIgnorate = ignorate.length
       ? `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">In questo reparto
          ${ignorate.map(k => ETICHETTE[k] || k).join(", ")} ${ignorate.length > 1 ? "non distinguono" : "non distingue"}
@@ -1826,14 +1833,13 @@ function computeRoleScores(){
     const nRating = normalize(pool.map(a => a.ratingAve));
     const nContrib = normalize(pool.map(a => a.contrib));
     const nMotm = normalize(pool.map(a => a.motmRate));
-    const nWin = normalize(pool.map(a => a.winRate));
     const nTech = normalize(pool.map(a => a.techEff));
     const nDisc = normalize(pool.map(a => a.redRate));
     byRole[role] = pool.map((a, i) => ({
       ...a,
       score: Math.max(0, Math.min(100, 100 * (
         PESI_INDICE.rating * nRating[i] + PESI_INDICE.contrib * nContrib[i] + PESI_INDICE.motm * nMotm[i]
-        + PESI_INDICE.win * nWin[i] + PESI_INDICE.tech * nTech[i] - PESI_INDICE.disc * nDisc[i]
+        + PESI_INDICE.tech * nTech[i] - PESI_INDICE.disc * nDisc[i]
       ))),
     })).sort((x, y) => y.score - x.score);
   });
@@ -1965,7 +1971,6 @@ function computeOutfieldLineup(){
     { k:"rating",  eti:"Media voto",           fmt:dec2 },
     { k:"contrib", eti:"Gol+assist a partita", fmt:dec2 },
     { k:"tech",    eti:"Efficienza tecnica",   fmt:v => v.toFixed(1) },
-    { k:"win",     eti:"% vittorie",           fmt:v => v.toFixed(0) + "%" },
     { k:"motm",    eti:"Migliore in campo",    fmt:v => (100*v).toFixed(1) + "%" },
     { k:"disc",    eti:"Cartellini rossi",     fmt:v => v.toFixed(3) + "/partita" },
   ];

@@ -72,8 +72,12 @@ console.log("\nPesi dell'Indice di Forza");
   // Dal 29/08/2026 le voci positive sommano a 1.00 e la disciplina e' una PENALITA' a parte,
   // che sottrae fino a 5 punti invece di occupare una fetta dei cento. Prima sommavano a
   // 0.95 perche' i rossi erano trattati come una sesta voce.
-  const somma = PESI_INDICE.rating + PESI_INDICE.contrib + PESI_INDICE.motm
-              + PESI_INDICE.win + PESI_INDICE.tech;
+  // Sommate leggendo le chiavi vere, non elencandole a mano: cosi' togliere o aggiungere
+  // una voce non richiede di ricordarsi di aggiornare anche il test. La % vittorie e' stata
+  // tolta il 29/08/2026 e con l'elenco scritto a mano il conto diventava NaN in silenzio.
+  const somma = Object.entries(PESI_INDICE)
+    .filter(([k]) => k !== "disc")
+    .reduce((t, [, v]) => t + v, 0);
   verifica("i pesi positivi sommano a 1 (la disciplina e' una penalita' separata)",
     Math.abs(somma - 1) < 1e-9, `sommano ${somma.toFixed(3)}`);
   verifica("la disciplina resta una penalita' piccola: non oltre il 10%",
@@ -82,9 +86,18 @@ console.log("\nPesi dell'Indice di Forza");
     PESI_INDICE.motm <= 0.10, `vale ${PESI_INDICE.motm}`);
   // Nessuna voce deve tornare a dominare come faceva la media voto al 50%: con meta' del
   // peso su una sola metrica l'indice diventava una classifica di quella metrica.
-  verifica("nessuna voce da sola vale piu' di un terzo dell'indice",
-    Math.max(PESI_INDICE.rating, PESI_INDICE.contrib, PESI_INDICE.tech) <= 0.34,
-    `la piu' pesante vale ${Math.max(PESI_INDICE.rating, PESI_INDICE.contrib, PESI_INDICE.tech)}`);
+  // Il pericolo era la media voto al 50%: con meta' del peso su una metrica sola l'indice
+  // diventava una classifica di quella metrica. Il 40% e' il limite oltre il quale si
+  // ricomincia ad andare in quella direzione.
+  const piuPesante = Math.max(...Object.entries(PESI_INDICE)
+    .filter(([k]) => k !== "disc").map(([, v]) => v));
+  verifica("nessuna voce da sola vale piu' del 40% dell'indice",
+    piuPesante <= 0.40, `la piu' pesante vale ${piuPesante}`);
+  // La % vittorie e' uscita: e' un esito di squadra, non una qualita' del singolo. Misurata
+  // il 29/08/2026, affidabilita' +0.008 su divisione cronologica contro +0.71 del rating,
+  // perche' due giocatori condividono in media il 66% delle partite.
+  verifica("la % vittorie non e' piu' una voce dell'indice",
+    !("win" in PESI_INDICE), "e' tornata fra i pesi");
   // Le scale fisse sono il motivo per cui zero significa zero: se qualcuno tornasse a
   // ricavarle dalla rosa, il punteggio smetterebbe di essere confrontabile fra reparti.
   for (const [k, [min, max]] of Object.entries(SCALE_INDICE)) {
@@ -443,9 +456,11 @@ console.log("\nConfronto testa a testa");
     verifica(`le voci ricostruiscono il distacco in tutte le ${coppie} coppie`,
       peggiore < 0.15, `errore massimo ${peggiore.toFixed(3)} punti`);
 
-    verifica("ogni giocatore ha la scomposizione, non solo qualcuno",
-      punteggi.every(s => s.vociMescolate && Object.keys(s.vociMescolate).length === 6),
-      punteggi.filter(s => !s.vociMescolate).map(s => s.r.player_name).join(", "));
+    const quanteAttese = Object.keys(ambienteH2H.PESI_INDICE).length;
+    verifica(`ogni giocatore ha la scomposizione completa (${quanteAttese} voci)`,
+      punteggi.every(s => s.vociMescolate && Object.keys(s.vociMescolate).length === quanteAttese),
+      punteggi.filter(s => !s.vociMescolate || Object.keys(s.vociMescolate).length !== quanteAttese)
+              .map(s => s.r.player_name).join(", "));
 
     // Il verdetto deve nominare qualcuno e dare un numero, non restare una scatola vuota.
     const testo = String(magazzino["h2hVerdetto"].innerHTML);
@@ -563,8 +578,9 @@ console.log("\nConfronto testa a testa");
       verifica("verde quando il giocatore di sinistra e' in vantaggio, rosso quando e' in svantaggio",
         coloreSbagliato === 0, `${coloreSbagliato} righe col colore invertito`);
     }
-    verifica(`le voci mostrate sono sempre sei (${coppieViste} coppie)`,
-      quanteVoci.size === 1 && quanteVoci.has(6), `viste ${[...quanteVoci].join(", ")}`);
+    const attese = Object.keys(PESI_INDICE).length;
+    verifica(`le voci mostrate sono sempre ${attese} (${coppieViste} coppie)`,
+      quanteVoci.size === 1 && quanteVoci.has(attese), `viste ${[...quanteVoci].join(", ")}`);
     verifica("in ogni coppia i punti stampati sommano al distacco annunciato",
       vociSbagliate === 0, `${vociSbagliate} coppie fuori, scarto massimo ${peggiorVoci.toFixed(2)}`);
     verifica("in ogni coppia i tre pezzi sommano all'efficienza tecnica",

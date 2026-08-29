@@ -529,6 +529,22 @@ lasciato al suo posto, in `modello/pagina.js`.
   significando nulla.
 - EA elenca solo i giocatori **umani** di ogni partita, di solito 5 o 6. Il resto sono CPU.
 - Le partite **abbandonate o interrotte** non vengono conteggiate da EA.
+- **Una metrica di squadra non misura il singolo, e nessun peso la aggiusta.** La % vittorie
+  pesava il 10% dell'indice e la sua affidabilità era **+0,008** (divisione cronologica),
+  contro +0,71 della media voto: due giocatori di questo club condividono in media il **66%
+  delle partite**, quindi vincono e perdono insieme e stanno tutti fra il 41,9% e il 56%.
+  Non era rumore, era **una costante travestita da variabile**. Regola generale: prima di
+  dare peso a una voce, chiedersi se può distinguere due compagni di squadra.
+- **Stabile e utile sono due cose diverse.** I contrasti hanno l'affidabilità più alta di
+  tutte le voci (0,948) e pesano il 2,5%: alzarli perché "sono i più affidabili" sarebbe un
+  errore, perché sono stabili in quanto misurano lo **stile** — chi ne tenta pochi e facili
+  ha la percentuale più alta (−0,78 fra tentativi e riuscita). Un indice pesato solo
+  sull'affidabilità premierebbe chi non prova niente.
+- **La correlazione fra due metà sottostima l'affidabilità dell'indice intero.** Va corretta
+  con Spearman-Brown: 0,78 fra le metà significa **0,875** sull'indice completo, cioè ~12%
+  di rumore e non ~20%. Il 29/08/2026 il numero sbagliato è stato detto a voce prima di fare
+  la correzione. Con un archivio doppio si arriverebbe a 0,933, con uno triplo a 0,954: **la
+  leva più forte sul rumore non è la taratura, è il numero di partite.**
 - **Normalizzare fra il minimo e il massimo del gruppo non misura la bravura, misura la
   distanza dal peggiore.** Fra gli attaccanti la scala della media voto era larga 1,15 punti,
   quindi un vantaggio reale del 5,6% diventava un distacco del 41% e valeva 20 punti su 100.

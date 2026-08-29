@@ -735,6 +735,45 @@ punteggi diventano confrontabili **fra reparti** e **fra titoli** — cosa che c
 settimane vale più della taratura stessa. Il distacco fra i due è passato da **35 a 11
 punti**, con l'ordine invariato: Adriano resta primo, perché lo è su quattro voci su cinque.
 
+### La % vittorie è uscita dall'indice
+
+Stesso giorno, dopo aver misurato l'affidabilità **voce per voce**: dividendo a caso le
+partite di ogni giocatore in due metà, quanto si somigliano i due punteggi?
+
+| Voce | Affidabilità | Peso che aveva |
+| --- | ---: | ---: |
+| contrasti | 0,948 | 2,5% |
+| gol + assist | 0,881 | 30% |
+| MOTM | 0,823 | 5% |
+| media voto | 0,811 | 30% |
+| passaggi | 0,717 | 11,2% |
+| tiro | 0,273 | 11,2% |
+| **% vittorie** | **−0,401** | **10%** |
+
+Il valore negativo era in parte un artefatto del metodo, ma la verifica con divisione
+**cronologica** ha confermato il sostanziale: **+0,008**, cioè zero puro, contro +0,71 della
+media voto e +0,76 dei gol+assist.
+
+La causa è strutturale e nessun peso la aggiusta: la vittoria è della **squadra**, e due
+giocatori di questo club condividono in media il **66% delle partite**. Vincono e perdono
+insieme, e infatti stavano tutti fra il 41,9% e il 56%. **Non era rumore: era una costante
+travestita da variabile**, che si portava via il 10% del peso distribuendolo a caso.
+
+I dieci punti sono andati metà alla media voto (35%) e metà all'efficienza tecnica (30%).
+La % vittorie **resta visibile nelle tabelle**: è un dato che si guarda volentieri,
+semplicemente non misura il singolo.
+
+Il guadagno in affidabilità è **piccolo e onesto dirlo**: da 0,777 a 0,784 sulle metà, cioè
+da 0,875 a 0,879 sull'indice intero. Una voce senza varianza fra i giocatori toglie poco
+rumore quando esce, perché ne aggiungeva poco. Resta giusto toglierla perché dava peso a
+caso, non perché cambi molto i numeri.
+
+**Una tentazione da non seguire.** I contrasti hanno l'affidabilità più alta di tutte
+(0,948) e pesano il 2,5%: alzarli sembra ovvio ed è sbagliato. Sono stabili **perché
+misurano lo stile, non la bravura** — chi ne tenta pochi e facili ha una percentuale
+altissima (correlazione −0,78 fra tentativi e riuscita). Stabile e utile sono due cose
+diverse, e un indice pesato solo sull'affidabilità premierebbe chi non prova niente.
+
 ### Le tre percentuali della tecnica non erano confrontabili
 
 Difetto trovato lo stesso giorno, e più grave del precedente. Sull'archivio i **passaggi
