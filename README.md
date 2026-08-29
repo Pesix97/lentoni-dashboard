@@ -393,8 +393,8 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 89 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
-| `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_pipeline.py` | 90 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
+| `test_ruoli.js` | 91 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -703,6 +703,67 @@ tanto e sbaglia tanto va penalizzato lo stesso.
 Nelle **classifiche per reparto**, dove il ruolo si conosce partita per partita, per i
 difensori il rapporto si ribalta: contrasti 50%, passaggi 35%, tiro 15%. È l'unico punto
 della dashboard dove i pesi cambiano col ruolo.
+
+### La ritaratura del 29/08/2026
+
+Nata da una domanda: *«non è possibile che tra me e Adriano ci sia tutto sto margine»*. Il
+distacco era **94 contro 59** fra gli attaccanti. Misurando, non era colpa dei pesi.
+
+| | Prima | Dopo |
+| --- | ---: | ---: |
+| media voto | 50% | **30%** |
+| gol + assist | 20% | **30%** |
+| efficienza tecnica | 10% | **25%** |
+| % vittorie | 10% | 10% |
+| MOTM | 5% | 5% |
+| disciplina | −5% | −5% (penalità separata) |
+
+**Con la media voto a metà peso l'indice era una classifica della media voto**, e le altre
+cinque voci facevano da contorno. Ma i pesi nuovi da soli **peggioravano** il caso: Adriano
+saliva da 94.0 a 97.4, perché era primo sia sul rating sia sui gol+assist. La causa era
+un'altra.
+
+**Ogni voce era riscalata fra il peggiore e il migliore del gruppo.** Fra gli attaccanti la
+scala della media voto era larga **1,15 punti** (da 7,11 a 8,26), quindi mezzo punto di
+differenza reale occupava il 41% della scala e valeva 20 punti di indice: un vantaggio del
+**5,6%** diventava un distacco del **41%**. E chi era ultimo prendeva **zero** anche con
+7,11 di media, che è una prestazione normale.
+
+Dal 29/08 ogni voce ha una **scala fissa**, ricavata dalla distribuzione vera dell'archivio:
+media voto 6–9, gol+assist 0–3, MOTM 0–50%, vittorie 0–100%. Zero significa zero, e i
+punteggi diventano confrontabili **fra reparti** e **fra titoli** — cosa che con FC 27 a tre
+settimane vale più della taratura stessa. Il distacco fra i due è passato da **35 a 11
+punti**, con l'ordine invariato: Adriano resta primo, perché lo è su quattro voci su cinque.
+
+### Le tre percentuali della tecnica non erano confrontabili
+
+Difetto trovato lo stesso giorno, e più grave del precedente. Sull'archivio i **passaggi
+riescono al 79,3%** e i **contrasti al 15,1%**: sommarli come numeri grezzi significa che i
+contrasti valgono strutturalmente meno, qualunque peso si dia loro.
+
+A pagarne il prezzo erano **solo i difensori**, gli unici ad averli al 50%: la loro
+efficienza tecnica usciva fra 37 e 58 contro il 37–86 dei centrocampisti. Con la tecnica
+salita al 25%, perdevano quasi tutta la voce per come è fatta la formula, non per come
+giocano — e l'ordine del reparto si ribaltava.
+
+Ogni pezzo viene ora portato sulla **propria** scala prima di essere pesato: passaggi 60–90,
+contrasti 5–50, tiro 10–50, estremi presi dai dodici giocatori con almeno dieci partite.
+Così un 15% nei contrasti vale un terzo della scala invece di quasi zero.
+
+### La difesa non è valutabile, e la pagina lo dice
+
+Al 29/08/2026 il reparto difensori ha **tre giocatori per diciassette partite** complessive,
+contro le centinaia degli altri — e in `roles.json` **nessuno è marcato difensore in modo
+stabile**: ci sono capitati, partita per partita. Un indice calcolato lì è aritmeticamente
+corretto e non significa niente, quindi il pannello lo dichiara invece di far finta.
+
+Peggio: manca proprio la metrica che conterebbe. **EA restituisce i clean sheet sempre a
+zero** — 1 prestazione su 671, verificato sul grezzo, non è un difetto del nostro ingest.
+
+Esiste però `goalsconceded`, i gol subiti mentre il giocatore era in campo, ed è valorizzato
+davvero (valori da 0 a 8). Lo stavamo buttando. **Dal 29/08 lo archiviamo**, e le 102
+prestazioni che avevano ancora il grezzo sono state recuperate. Non serve oggi: serve il 18
+settembre, quando i ruoli saranno stabili dal primo giorno.
 
 ## Novità dall'ultima serata
 

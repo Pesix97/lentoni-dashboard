@@ -144,6 +144,12 @@ CREATE TABLE IF NOT EXISTS match_player_stats (
     saves           INTEGER,
     cleansheetsgk   INTEGER,
     cleansheetsdef  INTEGER,
+    -- Gol subiti dalla squadra mentre il giocatore era in campo. E' la sola metrica
+    -- difensiva che EA valorizzi davvero: i tre campi cleansheets* arrivano SEMPRE a zero
+    -- (verificato il 29/08/2026 sul grezzo, 1 prestazione su 671), mentre questo ha valori
+    -- veri da 0 a 8. Aggiunto per avere lo storico pronto al passaggio a FC 27, quando i
+    -- ruoli saranno stabili dal primo giorno e la difesa si potra' finalmente valutare.
+    goals_conceded  INTEGER,
     red_cards       INTEGER,
     mom             INTEGER,
     seconds_played  INTEGER,
@@ -380,6 +386,26 @@ def ingest_overall_stats(cur, overall_stats, club_id, fetched_at):
     if ultimo and ultimo[0] == payload:
         return False
 
+    # Il contatore di carriera di EA puo' solo salire: le partite giocate non si scordano.
+    # Uno scatto con un valore piu' basso del precedente non e' un dato, e' un dato vecchio -
+    # e accettarlo rovina la misura della salute archivio, che confronta il primo e l'ultimo
+    # scatto per sapere quante partite sono state giocate.
+    #
+    # Successo davvero il 29/08/2026: un ingest lanciato a mano con i file in raw/ ormai
+    # vecchi ha inserito uno scatto con 646 partite quando l'archivio era gia' a 728, e la
+    # salute e' passata da "98 su 133" a "98 su 51". Nessun errore, nessun avviso: solo un
+    # numero diventato falso. Sul runner puo' capitare lo stesso se la fonte restituisce una
+    # risposta arretrata dalla sua cache.
+    giocate = as_int(s.get("gamesPlayed"), None)
+    if giocate is not None:
+        precedente = cur.execute(
+            "SELECT MAX(games_played) FROM club_stats_history WHERE club_id = ?", (club_id,)
+        ).fetchone()[0]
+        if precedente is not None and giocate < precedente:
+            print(f"Scatto ignorato: EA dice {giocate} partite ma ne avevamo gia' viste "
+                  f"{precedente}. Risposta arretrata, non un dato nuovo.")
+            return False
+
     cur.execute(
         """INSERT INTO club_stats_history
            (club_id, fetched_at, wins, losses, ties, games_played,
@@ -581,9 +607,9 @@ def ingest_matches(cur, matches, club_id, match_type):
                    (match_id, club_id, ea_player_id, player_name, pos,
                     archetype_id, goals, assists, rating, shots, passes_made,
                     pass_attempts, tackles_made, tackle_attempts, saves,
-                    cleansheetsgk, cleansheetsdef, red_cards, mom,
+                    cleansheetsgk, cleansheetsdef, goals_conceded, red_cards, mom,
                     seconds_played, raw_json)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
                     match_id,
                     club_id,
@@ -602,6 +628,7 @@ def ingest_matches(cur, matches, club_id, match_type):
                     as_int(p.get("saves")),
                     as_int(p.get("cleansheetsgk")),
                     as_int(p.get("cleansheetsdef")),
+                    as_int(p.get("goalsconceded")),
                     as_int(p.get("redcards")),
                     as_int(p.get("mom")),
                     as_int(p.get("secondsPlayed")),
@@ -609,6 +636,63 @@ def ingest_matches(cur, matches, club_id, match_type):
                 ),
             )
     return inserted
+
+
+# Colonne aggiunte dopo che il database esisteva gia'. Lo SCHEMA qui sopra usa
+# CREATE TABLE IF NOT EXISTS, quindi su un archivio gia' creato non verrebbe applicato: una
+# colonna nuova resterebbe assente per sempre e l'INSERT fallirebbe ad ogni giro.
+#
+# Ogni voce e' (tabella, colonna, tipo). Aggiungerne una qui e' tutto quello che serve.
+MIGRAZIONI = [
+    ("match_player_stats", "goals_conceded", "INTEGER"),
+]
+
+
+def migra(cur):
+    """Aggiunge le colonne mancanti a un database gia' esistente."""
+    aggiunte = []
+    for tabella, colonna, tipo in MIGRAZIONI:
+        esistenti = {r[1] for r in cur.execute(f"PRAGMA table_info({tabella})")}
+        if not esistenti:
+            continue  # tabella non ancora creata: ci pensa lo SCHEMA
+        if colonna not in esistenti:
+            cur.execute(f"ALTER TABLE {tabella} ADD COLUMN {colonna} {tipo}")
+            aggiunte.append(f"{tabella}.{colonna}")
+    if aggiunte:
+        print(f"Colonne aggiunte al database esistente: {', '.join(aggiunte)}")
+    return aggiunte
+
+
+def recupera_dal_grezzo(cur, colonna, chiave_ea):
+    """Riempie una colonna nuova usando il grezzo delle prestazioni che ce l'hanno ancora.
+
+    Le righe gia' in archivio non vengono riscritte dall'ingest (INSERT OR IGNORE), quindi
+    una colonna aggiunta oggi resterebbe vuota su tutto lo storico. Il grezzo pero' e'
+    ancora li' per le partite recenti - `potatura.py` lo conserva per le ultime quindici -
+    e da li' il dato si recupera senza chiamare EA.
+
+    Non e' un rimedio completo per definizione: piu' vecchia e' la partita, meno probabile
+    e' che il suo grezzo esista ancora. Serve a non partire da zero.
+    """
+    righe = cur.execute(
+        f"SELECT match_id, club_id, ea_player_id, raw_json FROM match_player_stats "
+        f"WHERE {colonna} IS NULL AND raw_json IS NOT NULL"
+    ).fetchall()
+    recuperate = 0
+    for match_id, club_id, ea_id, grezzo in righe:
+        try:
+            valore = as_int(json.loads(grezzo).get(chiave_ea))
+        except Exception:
+            continue
+        cur.execute(
+            f"UPDATE match_player_stats SET {colonna} = ? "
+            f"WHERE match_id = ? AND club_id = ? AND ea_player_id = ?",
+            (valore, match_id, club_id, ea_id),
+        )
+        recuperate += 1
+    if recuperate:
+        print(f"Recuperate dal grezzo: {recuperate} prestazioni con {colonna}")
+    return recuperate
 
 
 def main():
@@ -623,6 +707,8 @@ def main():
     con = sqlite3.connect(args.db)
     cur = con.cursor()
     cur.executescript(SCHEMA)
+    if "match_player_stats.goals_conceded" in migra(cur):
+        recupera_dal_grezzo(cur, "goals_conceded", "goalsconceded")
 
     club_search = load_json(raw_dir / "club_search.json")
     club_info_resp = load_json(raw_dir / "club_info.json")

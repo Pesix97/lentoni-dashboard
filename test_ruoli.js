@@ -42,7 +42,8 @@ try {
     return { DATA, GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, MACRO_TO_GROUP,
              groupForMatch, etichettaAttesa, mainPosOf, computeGroupScores, rankGroup,
              GROUP_ORDER, ROLE_EXCEPTIONS, computeBlendedScores, credibilita,
-             PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica };`)();
+             PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica,
+             SCALE_INDICE, SCALE_TECNICA, suScala };`)();
 } catch (e) {
   console.error("Impossibile eseguire il codice estratto:", e.message);
   process.exit(1);
@@ -60,19 +61,40 @@ function verifica(descrizione, condizione, dettaglio) {
 
 const { GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, groupForMatch, etichettaAttesa,
         computeGroupScores, rankGroup, GROUP_ORDER, computeBlendedScores,
-        PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica } = ambiente;
+        PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica,
+        SCALE_INDICE, SCALE_TECNICA, suScala } = ambiente;
 
 // I pesi erano scritti a mano in quattro punti diversi. Ora c'e' una costante sola, e
 // questi controlli servono a impedire che le copie tornino: se qualcuno riscrive un peso
 // direttamente dentro una formula, la somma smette di tornare e il test se ne accorge.
 console.log("\nPesi dell'Indice di Forza");
 {
+  // Dal 29/08/2026 le voci positive sommano a 1.00 e la disciplina e' una PENALITA' a parte,
+  // che sottrae fino a 5 punti invece di occupare una fetta dei cento. Prima sommavano a
+  // 0.95 perche' i rossi erano trattati come una sesta voce.
   const somma = PESI_INDICE.rating + PESI_INDICE.contrib + PESI_INDICE.motm
               + PESI_INDICE.win + PESI_INDICE.tech;
-  verifica("i pesi positivi sommano a 0.95 (il 5% restante e' la penalita' sui rossi)",
-    Math.abs(somma - 0.95) < 1e-9, `sommano ${somma.toFixed(3)}`);
+  verifica("i pesi positivi sommano a 1 (la disciplina e' una penalita' separata)",
+    Math.abs(somma - 1) < 1e-9, `sommano ${somma.toFixed(3)}`);
+  verifica("la disciplina resta una penalita' piccola: non oltre il 10%",
+    PESI_INDICE.disc > 0 && PESI_INDICE.disc <= 0.10, `vale ${PESI_INDICE.disc}`);
   verifica("il MOTM resta una voce minore: non piu' del 10%",
     PESI_INDICE.motm <= 0.10, `vale ${PESI_INDICE.motm}`);
+  // Nessuna voce deve tornare a dominare come faceva la media voto al 50%: con meta' del
+  // peso su una sola metrica l'indice diventava una classifica di quella metrica.
+  verifica("nessuna voce da sola vale piu' di un terzo dell'indice",
+    Math.max(PESI_INDICE.rating, PESI_INDICE.contrib, PESI_INDICE.tech) <= 0.34,
+    `la piu' pesante vale ${Math.max(PESI_INDICE.rating, PESI_INDICE.contrib, PESI_INDICE.tech)}`);
+  // Le scale fisse sono il motivo per cui zero significa zero: se qualcuno tornasse a
+  // ricavarle dalla rosa, il punteggio smetterebbe di essere confrontabile fra reparti.
+  for (const [k, [min, max]] of Object.entries(SCALE_INDICE)) {
+    verifica(`la scala di ${k} e' fissa e crescente (${min} - ${max})`,
+      typeof min === "number" && typeof max === "number" && max > min, `${min} - ${max}`);
+  }
+  for (const [k, [min, max]] of Object.entries(SCALE_TECNICA)) {
+    verifica(`la sottoscala di ${k} e' fissa e crescente (${min} - ${max})`,
+      typeof min === "number" && typeof max === "number" && max > min, `${min} - ${max}`);
+  }
   for (const [nome, p] of [["normale", PESI_TECNICA], ["difensori", PESI_TECNICA_DIFESA]]) {
     const s = p.passaggi + p.contrasti + p.tiro;
     verifica(`efficienza tecnica (${nome}): i tre pezzi sommano a 1`,

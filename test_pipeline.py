@@ -1488,6 +1488,35 @@ class TestBattito(unittest.TestCase):
             fuori[evento] = nome or (finale.group(1) if finale else None)
         return fuori, canc
 
+    def test_uno_scatto_arretrato_non_entra_in_archivio(self):
+        """Il contatore di carriera di EA puo' solo salire.
+
+        Successo il 29/08/2026: un ingest lanciato con i file in raw/ ormai vecchi ha
+        inserito uno scatto con 646 partite quando l'archivio era gia' a 728, e la salute
+        archivio e' passata da «98 su 133» a «98 su 51». Nessun errore, nessun avviso: solo
+        un numero diventato falso. La misura confronta il primo e l'ultimo scatto, quindi un
+        valore arretrato in fondo la distrugge.
+        """
+        import sqlite3, ingest
+        con = sqlite3.connect(":memory:")
+        cur = con.cursor()
+        cur.executescript(ingest.SCHEMA)
+
+        def scatto(giocate, quando):
+            return ingest.ingest_overall_stats(
+                cur, [{"clubId": 1, "gamesPlayed": str(giocate), "wins": "1"}], 1, quando)
+
+        self.assertNotEqual(scatto(700, "2026-08-01T00:00:00"), False)
+        self.assertNotEqual(scatto(728, "2026-08-02T00:00:00"), False)
+        # E adesso una risposta arretrata, come quella che ha causato il guasto.
+        self.assertIs(scatto(646, "2026-08-03T00:00:00"), False,
+                      "uno scatto con meno partite del precedente e' stato accettato")
+        massimo = cur.execute("SELECT MAX(games_played) FROM club_stats_history").fetchone()[0]
+        quanti = cur.execute("SELECT COUNT(*) FROM club_stats_history").fetchone()[0]
+        self.assertEqual(massimo, 728)
+        self.assertEqual(quanti, 2, "lo scatto arretrato e' finito comunque in archivio")
+        con.close()
+
     def test_il_totale_in_archivio_e_la_percentuale_contano_cose_diverse(self):
         """I due numeri della salute archivio non coincidono, e non e' un difetto.
 

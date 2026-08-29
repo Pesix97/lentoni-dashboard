@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 28/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 29/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -529,6 +529,32 @@ lasciato al suo posto, in `modello/pagina.js`.
   significando nulla.
 - EA elenca solo i giocatori **umani** di ogni partita, di solito 5 o 6. Il resto sono CPU.
 - Le partite **abbandonate o interrotte** non vengono conteggiate da EA.
+- **Normalizzare fra il minimo e il massimo del gruppo non misura la bravura, misura la
+  distanza dal peggiore.** Fra gli attaccanti la scala della media voto era larga 1,15 punti,
+  quindi un vantaggio reale del 5,6% diventava un distacco del 41% e valeva 20 punti su 100.
+  Chi era ultimo prendeva zero anche con 7,11 di media. Dal 29/08/2026 le scale sono fisse e
+  ricavate dalla distribuzione dell'archivio. Il segnale che qualcosa non andava non è
+  arrivato da un test ma da Peppe, che ha detto «non è possibile che ci sia tutto sto
+  margine» guardando la tabella.
+- **Cambiare i pesi non basta se la scala è sbagliata, e può peggiorare.** Portare la media
+  voto dal 50% al 30% da sola faceva *salire* il primo in classifica da 94.0 a 97.4, perché
+  era primo anche sulla voce che cresceva. Le due modifiche funzionano solo insieme: prima si
+  aggiusta come si misura, poi quanto pesa.
+- **Le percentuali di EA non stanno sulla stessa scala fra loro.** Passaggi riusciti 79,3%,
+  contrasti riusciti 15,1%, misurato su tutto l'archivio. Sommarle pesandole come numeri
+  grezzi penalizza strutturalmente chi vive di contrasti — cioè i difensori, gli unici ad
+  averli al 50%. È lo stesso vizio di sempre in una forma nuova: **confrontare cose non
+  confrontabili**, stavolta dentro una singola voce invece che fra due giocatori.
+- **EA non valorizza i clean sheet: sono sempre zero** (1 prestazione su 671, verificato sul
+  grezzo il 29/08/2026). Non è un difetto dell'ingest. Al loro posto c'è `goalsconceded`, i
+  gol subiti mentre il giocatore era in campo, che ha valori veri da 0 a 8: archiviato dal
+  29/08 e recuperato per le 102 prestazioni che avevano ancora il grezzo.
+- **Un contatore cumulativo che scende è un dato vecchio, non un dato.** Un ingest lanciato
+  a mano con i file in `raw/` ormai stantii ha inserito uno scatto con 646 partite quando
+  l'archivio era già a 728, e la salute archivio è passata da «98 su 133» a «98 su 51».
+  Nessun errore, nessun avviso: solo un numero diventato falso. Ora `ingest.py` rifiuta gli
+  scatti arretrati. Vale in generale: **le misure che confrontano due estremi si rompono in
+  silenzio se un estremo è sbagliato.**
 - **Il 77% del database era testo grezzo che nessuno leggeva.** `raw_json` nasceva da un
   principio giusto — non perdere nessun campo di EA, perché al momento dell'ingest non si
   sa quale servirà domani — ma il database intero viene committato ad ogni giro con novità,

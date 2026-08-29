@@ -120,7 +120,50 @@ function gruppoBadge(gruppo, daAssegnare){
 // migliore in campo e' quasi tautologico - quando si vince lo prende quasi sempre uno dei
 // nostri - e nella misura di affidabilita' si conferma +0.08, cioe' rumore. Restava pero'
 // il terzo peso piu' alto della formula.
-const PESI_INDICE = { rating: 0.50, contrib: 0.20, motm: 0.05, win: 0.10, tech: 0.10, disc: 0.05 };
+//
+// TARATURA DEL 29/08/2026. La media voto e' scesa dal 50% al 30%, gol+assist e' salita dal
+// 20% al 30%, l'efficienza tecnica dal 10% al 25%. Motivo: con il rating a meta' peso
+// l'indice era di fatto una classifica della media voto di EA, e le altre cinque voci
+// facevano da contorno. Chi era primo sul rating era primo e basta.
+//
+// I pesi ora sommano a 100 fra le voci positive; la disciplina resta una PENALITA' a parte,
+// che sottrae fino a 5 punti invece di aggiungerne.
+const PESI_INDICE = { rating: 0.30, contrib: 0.30, motm: 0.05, win: 0.10, tech: 0.25, disc: 0.05 };
+
+// ---- Le scale su cui si misura ogni voce ----
+//
+// Prima ogni voce veniva normalizzata sul MINIMO E MASSIMO del gruppo: il peggiore prendeva
+// zero, il migliore cento, tutti gli altri in mezzo. Sembra ragionevole e non lo e', per due
+// motivi misurati il 29/08/2026 sul reparto attaccanti:
+//
+//   - la scala della media voto era larga 1.15 punti (da 7.11 a 8.26), quindi mezzo punto di
+//     differenza reale occupava il 41% della scala e valeva 20 punti di indice. Un vantaggio
+//     del 5,6% diventava un distacco del 41%;
+//   - lo zero non significava "male" ma "ultimo del gruppo". Due giocatori con 7.11 di media,
+//     che e' una prestazione normale, prendevano zero su meta' dell'indice.
+//
+// Con scale fisse lo zero significa zero e il cento significa cento. In piu' i punteggi
+// diventano confrontabili fra reparti diversi - un 53 in attacco e un 53 in difesa vogliono
+// dire la stessa cosa - e soprattutto fra TITOLI diversi: al passaggio a FC 27 la scala non
+// cambia, quindi i numeri delle due stagioni si possono mettere accanto.
+//
+// Gli estremi non sono a occhio: vengono dalla distribuzione vera dell'archivio (medie di
+// carriera dei giocatori con almeno 10 partite), allargata quanto basta perche' nessuno
+// finisca schiacciato contro un bordo.
+const SCALE_INDICE = {
+  rating:  [6.0, 9.0],   // osservate 6.92 - 8.23. Sotto il 6 e' insufficiente, 9 e' eccellenza
+  contrib: [0, 3],       // osservato max 1.82 in generale, 2.17 fra gli attaccanti
+  motm:    [0, 50],      // migliore in campo in meta' delle partite. Osservato max 32%
+  win:     [0, 100],     // naturale
+  tech:    [0, 100],     // gia' normalizzata dalle sue sottoscale, vedi qui sotto
+  disc:    [0, 0.2],     // cartellini rossi a partita: uno ogni cinque e' il fondo
+};
+
+function suScala(valore, chiave){
+  const [min, max] = SCALE_INDICE[chiave];
+  if(max === min) return 0.5;
+  return Math.max(0, Math.min(1, (valore - min) / (max - min)));
+}
 
 // ---- Efficienza tecnica: quanto contano i suoi tre pezzi ----
 // Era la media semplice di passaggi, contrasti e tiro: un terzo a testa.
@@ -148,9 +191,43 @@ const PESI_INDICE = { rating: 0.50, contrib: 0.20, motm: 0.05, win: 0.10, tech: 
 const PESI_TECNICA        = { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 };
 const PESI_TECNICA_DIFESA = { passaggi: 0.35, contrasti: 0.50, tiro: 0.15 };
 
+// ---- E su quali scale vivono i tre pezzi ----
+//
+// Difetto trovato il 29/08/2026, ed era il solito: confrontare cose non confrontabili.
+// Le tre percentuali NON stanno sulla stessa scala, misurato su tutto l'archivio:
+//
+//     passaggi riusciti   79.3%
+//     contrasti riusciti  15.1%
+//
+// Sommarle come numeri grezzi significa che i contrasti valgono strutturalmente meno,
+// qualunque peso gli si dia. E la conseguenza cadeva tutta sui difensori, che sono gli
+// unici ad avere i contrasti al 50%: la loro efficienza tecnica usciva fra 37 e 58 contro
+// il 37-86 dei centrocampisti. Con la tecnica salita al 25% dell'indice, perdevano quasi
+// tutta la voce per come e' fatta la formula, non per come giocano.
+//
+// Ogni pezzo viene quindi portato sulla PROPRIA scala prima di essere pesato, e gli estremi
+// vengono dai dodici giocatori con almeno dieci partite:
+//
+//     passaggi    osservati 72.6 - 83.7   scala 60 - 90
+//     contrasti   osservati  5.0 - 74.5   scala  5 - 50   (mediana 23.9)
+//     tiro        osservati 20.7 - 50.0   scala 10 - 50   (mediana 30.5)
+//
+// Cosi' "contrasti al 15%" diventa "un terzo della scala" invece di "quasi zero", e il
+// risultato esce gia' fra 0 e 100 per tutti i ruoli.
+const SCALE_TECNICA = { passaggi: [60, 90], contrasti: [5, 50], tiro: [10, 50] };
+
+function suScalaTecnica(valore, chiave){
+  const [min, max] = SCALE_TECNICA[chiave];
+  return Math.max(0, Math.min(1, ((valore || 0) - min) / (max - min)));
+}
+
 function efficienzaTecnica(passaggi, contrasti, tiro, gruppo){
   const p = gruppo === "DIFENSORI" ? PESI_TECNICA_DIFESA : PESI_TECNICA;
-  return p.passaggi * passaggi + p.contrasti * contrasti + p.tiro * tiro;
+  return 100 * (
+    p.passaggi  * suScalaTecnica(passaggi,  "passaggi") +
+    p.contrasti * suScalaTecnica(contrasti, "contrasti") +
+    p.tiro      * suScalaTecnica(tiro,      "tiro")
+  );
 }
 
 function computeGroupScores(){
@@ -246,23 +323,16 @@ function rankGroup(pool){
     { chiave: "tech",    peso: PESI_INDICE.tech,    valori: versoLaMedia(pool.map(a => a.techEff), partite) },
   ];
   const disc = versoLaMedia(pool.map(a => a.redRate), partite);
-  const haSpread = (v) => Math.max(...v) !== Math.min(...v);
-  const attive = METRICHE.filter(m => haSpread(m.valori));
-  const ignorate = METRICHE.filter(m => !haSpread(m.valori)).map(m => m.chiave);
-
-  if(attive.length === 0){
-    // Nessuna differenza tra i giocatori del reparto: qualsiasi punteggio sarebbe inventato.
-    return pool.map(a => ({ ...a, score: 0, metricheIgnorate: ignorate, nonDistinguibili: true }))
-               .sort((x, y) => y.games - x.games);
-  }
-
-  const pesoTotale = attive.reduce((t, m) => t + m.peso, 0);
-  const norm = (v) => {
-    const min = Math.min(...v), max = Math.max(...v);
-    return v.map(x => (x - min) / (max - min));
-  };
-  const normalizzate = attive.map(m => ({ peso: m.peso / pesoTotale * 0.95, valori: norm(m.valori) }));
-  const nDisc = haSpread(disc) ? norm(disc) : disc.map(() => 0);
+  // Con le scale fisse non serve piu' escludere le metriche su cui sono tutti uguali. Prima
+  // era necessario: col minimo-massimo una voce piatta dava 0.5 a testa, cioe' meta' del suo
+  // peso regalato a tutti, e i punteggi di reparti diversi non erano piu' confrontabili. Ora
+  // una voce su cui sono tutti a zero vale zero per tutti, che e' semplicemente la verita'.
+  const ignorate = [];
+  const normalizzate = METRICHE.map(m => ({
+    peso: m.peso,
+    valori: m.valori.map(x => suScala(x, m.chiave)),
+  }));
+  const nDisc = disc.map(x => suScala(x, "disc"));
 
   return pool.map((a, i) => ({ ...a,
     metricheIgnorate: ignorate,
@@ -289,22 +359,20 @@ function roleBadge(pos){
 // ---- Indice di Forza: calcolo condiviso (usato dalla sezione dedicata E dalla card giocatore) ----
 function computePowerScores(roster){
   if(!roster || roster.length === 0) return [];
-  function normalize(values){
-    const min = Math.min(...values), max = Math.max(...values);
-    if(max === min) return values.map(() => 0.5);
-    return values.map(v => (v - min) / (max - min));
-  }
   const contrib = roster.map(r => r.games_played ? (r.goals + r.assists) / r.games_played : 0);
   const motmRate = roster.map(r => r.games_played ? r.man_of_the_match / r.games_played : 0);
   const techEff = roster.map(r => efficienzaTecnica(r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate));
   const redRate = roster.map(r => r.games_played ? r.red_cards / r.games_played : 0);
 
-  const nRating = normalize(roster.map(r => r.rating_ave));
-  const nContrib = normalize(contrib);
-  const nMotm = normalize(motmRate);
-  const nWin = normalize(roster.map(r => r.win_rate));
-  const nTech = normalize(techEff);
-  const nDisc = normalize(redRate);
+  // Scale fisse, non piu' il minimo e massimo della rosa: cosi' il punteggio dice quanto
+  // vale un giocatore in assoluto, non quanto vale rispetto ai compagni di quest'anno.
+  // I MOTM arrivano come frazione e la scala e' in percentuale, da qui il per cento.
+  const nRating  = roster.map(r => suScala(r.rating_ave, "rating"));
+  const nContrib = contrib.map(v => suScala(v, "contrib"));
+  const nMotm    = motmRate.map(v => suScala(v * 100, "motm"));
+  const nWin     = roster.map(r => suScala(r.win_rate, "win"));
+  const nTech    = techEff.map(v => suScala(v, "tech"));
+  const nDisc    = redRate.map(v => suScala(v, "disc"));
 
   return roster.map((r, i) => {
     const score = Math.max(0, Math.min(100,
@@ -348,21 +416,12 @@ let ridisegnaConfronto = null;
 // carriera). Storico e forma DEVONO essere normalizzati sulla stessa scala:
 // normalizzarli separatamente sui rispettivi gruppi produrrebbe un Δ falso,
 // perche' misurerebbe la differenza tra i due gruppi e non il cambio di rendimento.
-const POWER_RANGES = (function(roster){
-  const mk = (arr) => ({ min: Math.min(...arr), max: Math.max(...arr) });
-  return {
-    rating:  mk(roster.map(r => r.rating_ave)),
-    contrib: mk(roster.map(r => r.games_played ? (r.goals + r.assists) / r.games_played : 0)),
-    motm:    mk(roster.map(r => r.games_played ? r.man_of_the_match / r.games_played : 0)),
-    win:     mk(roster.map(r => r.win_rate)),
-    tech:    mk(roster.map(r => efficienzaTecnica(r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate))),
-    disc:    mk(roster.map(r => r.games_played ? r.red_cards / r.games_played : 0)),
-  };
-})(DATA.roster);
-
-function normWith(v, range){
-  if(range.max === range.min) return 0.5;
-  return Math.max(0, Math.min(1, (v - range.min) / (range.max - range.min)));
+// Storico e forma DEVONO essere misurati sulla stessa scala, altrimenti il Δ fra i due
+// misurerebbe la differenza fra due tarature invece del cambio di rendimento. Prima erano
+// le scale minimo-massimo della rosa, calcolate una volta sola; ora sono le scale fisse,
+// che hanno la stessa proprieta' e in piu' non cambiano se cambia la rosa.
+function normWith(v, chiave){
+  return suScala(v, chiave);
 }
 
 // Punteggio calcolato SOLO sulle ultime N partite, con gli stessi pesi dello storico.
@@ -421,20 +480,20 @@ function computeFormScores(windowSize){
     // Serve al testa a testa: senza i valori normalizzati anche della forma, il distacco
     // si puo' mostrare solo sulle carriere, e non coinciderebbe con la classifica filtrata.
     breakdown: {
-      rating:  normWith(p.ratingAve, POWER_RANGES.rating),
-      contrib: normWith(p.contrib,   POWER_RANGES.contrib),
-      motm:    normWith(p.motmRate,  POWER_RANGES.motm),
-      win:     normWith(p.winRate,   POWER_RANGES.win),
-      tech:    normWith(p.techEff,   POWER_RANGES.tech),
-      disc:    normWith(p.redRate,   POWER_RANGES.disc),
+      rating:  normWith(p.ratingAve, "rating"),
+      contrib: normWith(p.contrib,   "contrib"),
+      motm:    normWith(p.motmRate,  "motm"),
+      win:     normWith(p.winRate,   "win"),
+      tech:    normWith(p.techEff,   "tech"),
+      disc:    normWith(p.redRate,   "disc"),
     },
     score: Math.max(0, Math.min(100, 100 * (
-      PESI_INDICE.rating  * normWith(p.ratingAve, POWER_RANGES.rating) +
-      PESI_INDICE.contrib * normWith(p.contrib,   POWER_RANGES.contrib) +
-      PESI_INDICE.motm    * normWith(p.motmRate,  POWER_RANGES.motm) +
-      PESI_INDICE.win     * normWith(p.winRate,   POWER_RANGES.win) +
-      PESI_INDICE.tech    * normWith(p.techEff,   POWER_RANGES.tech) -
-      PESI_INDICE.disc    * normWith(p.redRate,   POWER_RANGES.disc)
+      PESI_INDICE.rating  * normWith(p.ratingAve, "rating") +
+      PESI_INDICE.contrib * normWith(p.contrib,   "contrib") +
+      PESI_INDICE.motm    * normWith(p.motmRate,  "motm") +
+      PESI_INDICE.win     * normWith(p.winRate,   "win") +
+      PESI_INDICE.tech    * normWith(p.techEff,   "tech") -
+      PESI_INDICE.disc    * normWith(p.redRate,   "disc")
     ))),
   }]));
 }
@@ -1422,6 +1481,11 @@ let growthChart = null;
   // di se stesso, ma la riduzione verso la media impedisce comunque che un episodio
   // finisca in cima, quindi la soglia serve solo a escludere l'aneddoto puro.
   const MIN_PER_CLASSIFICA = 3;
+  
+  // Sotto questo numero di partite complessive, un reparto non ha abbastanza dati perche' il
+  // suo indice significhi qualcosa, e la pagina lo dichiara invece di far finta di niente.
+  // Cento: gli altri reparti stanno fra 200 e 300, la difesa al 29/08/2026 era a 17.
+  const SOGLIA_REPARTO_ATTENDIBILE = 100;
   const MIN_OPTIONS = [1, 3, 5, 10];
   let minMatches = 1;   // default: mostra tutti, anche chi ha una sola presenza nel ruolo
 
@@ -1493,9 +1557,27 @@ let growthChart = null;
       : "";
     const soloNote = rankable ? "" :
       `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Un solo giocatore in questo reparto: l'indice è relativo ai pari ruolo, quindi non è calcolabile. Le statistiche qui sotto restano reali.</div>`;
+
+    // Avviso onesto sui reparti con pochissime partite. Il caso che l'ha fatto nascere e' la
+    // difesa: al 29/08/2026 tre giocatori per diciassette partite complessive, e nessuno
+    // marcato stabilmente difensore in roles.json - ci sono capitati, partita per partita.
+    // Un indice calcolato su quei numeri e' aritmeticamente corretto e non significa niente.
+    //
+    // Peggio ancora, per la difesa manca proprio la metrica che conterebbe: EA restituisce
+    // i clean sheet SEMPRE a zero (1 prestazione su 671). Dal 29/08 archiviamo i gol subiti,
+    // che il dato ce l'hanno davvero, ma servira' tempo perche' diventi utilizzabile.
+    const partiteReparto = ranked.reduce((t, a) => t + a.games, 0);
+    const pochiDati = rankable && partiteReparto < SOGLIA_REPARTO_ATTENDIBILE;
+    const notaPochiDati = pochiDati
+      ? `<div style="font-size:12px; color:var(--accent); margin-bottom:10px;">
+         <strong>Troppe poche partite per un indice attendibile:</strong> ${partiteReparto} in tutto il
+         reparto, contro le centinaia degli altri. I numeri qui sotto sono calcolati come gli altri, ma
+         una differenza di qualche punto qui non vuol dire niente. Le statistiche restano reali.</div>`
+      : "";
+
     return `<div class="panel" style="margin-bottom:16px;">
       <h3 style="margin:0 0 10px; font-size:15px;">${icon} ${label} <span class="h2-sub">— ${ranked.length} ${ranked.length === 1 ? "giocatore" : "giocatori"}</span></h3>
-      ${notaIgnorate}${soloNote}
+      ${notaPochiDati}${notaIgnorate}${soloNote}
       <div class="table-wrap">
         <table class="responsive-table">
           <thead><tr><th>#</th><th>Giocatore</th><th>Indice</th><th>Partite nel ruolo</th><th>Gol</th><th>Assist</th><th>Media</th><th>G+A/partita</th><th>MOTM%</th><th>Win%</th></tr></thead>
@@ -1723,17 +1805,24 @@ function computeRoleAggregates(){
   });
 }
 
+// La formazione tipo continua a usare il minimo-massimo, ed e' voluto. Qui il punteggio non
+// deve dire "quanto vale questo giocatore" ma "chi e' il migliore disponibile per questa
+// casella": e' una scelta relativa per definizione, dove conta l'ordine e non la distanza.
+// Le scale fisse non aggiungerebbero niente e la decisione del club e' che la formazione
+// tipo non si tocca senza chiederlo (una riscrittura era gia' stata annullata).
+function normalizeRelativa(values){
+  const min = Math.min(...values), max = Math.max(...values);
+  if(max === min) return values.map(() => 0.5);
+  return values.map(v => (v - min) / (max - min));
+}
+
 function computeRoleScores(){
   const all = computeRoleAggregates();
-  function normalize(values){
-    const min = Math.min(...values), max = Math.max(...values);
-    if(max === min) return values.map(() => 0.5);
-    return values.map(v => (v - min) / (max - min));
-  }
   const byRole = {};
   OUTFIELD_ROLES.forEach(role => {
     const pool = all.filter(a => a.role === role);
     if(pool.length === 0){ byRole[role] = []; return; }
+    const normalize = normalizeRelativa;
     const nRating = normalize(pool.map(a => a.ratingAve));
     const nContrib = normalize(pool.map(a => a.contrib));
     const nMotm = normalize(pool.map(a => a.motmRate));
