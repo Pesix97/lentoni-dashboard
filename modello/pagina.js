@@ -200,8 +200,35 @@ function suScala(valore, chiave){
 //
 // Il dribbling non c'e': EA non lo espone, ne' per partita ne' in carriera. Verificato il
 // 24/08/2026 su colonne del database, campi per giocatore e campi di carriera.
-const PESI_TECNICA        = { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 };
-const PESI_TECNICA_DIFESA = { passaggi: 0.35, contrasti: 0.50, tiro: 0.15 };
+// ---- I pesi della tecnica cambiano con il reparto, tutti e quattro ----
+//
+// Fino al 29/08/2026 c'erano due sole tarature: i difensori e "tutti gli altri". Ma
+// "tutti gli altri" mette insieme un centrocampista e un attaccante, che con la palla
+// fanno mestieri diversi: il primo la fa girare e recupera, il secondo la mette dentro.
+//
+// La regola del club, decisa il 29/08/2026: **i contrasti hanno un peso minimo solo per gli
+// attaccanti**, e crescono man mano che si scende verso la difesa. I passaggi restano il
+// mestiere comune a tutti, quindi il loro peso e' quasi costante; a variare sono contrasti
+// e tiro, che si scambiano il posto passando dalla difesa all'attacco.
+//
+//                    passaggi  contrasti  tiro
+//   DIFENSORI            40%      50%      10%
+//   CENTROCAMPISTI       40%      30%      30%
+//   ESTERNI              40%      20%      40%
+//   ATTACCANTI           45%      10%      45%
+//
+// Il COC sta fra gli attaccanti, per decisione del club presa a suo tempo e non rifatta qui.
+const PESI_TECNICA_PER_REPARTO = {
+  DIFENSORI:      { passaggi: 0.40, contrasti: 0.50, tiro: 0.10 },
+  CENTROCAMPISTI: { passaggi: 0.40, contrasti: 0.30, tiro: 0.30 },
+  ESTERNI:        { passaggi: 0.40, contrasti: 0.20, tiro: 0.40 },
+  ATTACCANTI:     { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 },
+};
+
+// Quando il reparto non si conosce si usa quello dell'attacco, che e' il piu' comune in
+// questa rosa. Succede solo per chi non ha ancora un ruolo assegnato in roles.json.
+const PESI_TECNICA = PESI_TECNICA_PER_REPARTO.ATTACCANTI;
+const PESI_TECNICA_DIFESA = PESI_TECNICA_PER_REPARTO.DIFENSORI;
 
 // ---- E su quali scale vivono i tre pezzi ----
 //
@@ -234,7 +261,7 @@ function suScalaTecnica(valore, chiave){
 }
 
 function efficienzaTecnica(passaggi, contrasti, tiro, gruppo){
-  const p = gruppo === "DIFENSORI" ? PESI_TECNICA_DIFESA : PESI_TECNICA;
+  const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   return 100 * (
     p.passaggi  * suScalaTecnica(passaggi,  "passaggi") +
     p.contrasti * suScalaTecnica(contrasti, "contrasti") +
@@ -372,7 +399,11 @@ function computePowerScores(roster){
   if(!roster || roster.length === 0) return [];
   const contrib = roster.map(r => r.games_played ? (r.goals + r.assists) / r.games_played : 0);
   const motmRate = roster.map(r => r.games_played ? r.man_of_the_match / r.games_played : 0);
-  const techEff = roster.map(r => efficienzaTecnica(r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate));
+  // Il reparto abituale (roles.json) decide i pesi anche qui, non solo nelle classifiche
+  // per reparto: un centrocampista va giudicato con i pesi del centrocampo pure quando lo
+  // si confronta con tutta la rosa. Chi non ha ancora un ruolo assegnato usa il ripiego.
+  const techEff = roster.map(r => efficienzaTecnica(
+    r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate, r.gruppo));
   const redRate = roster.map(r => r.games_played ? r.red_cards / r.games_played : 0);
 
   // Scale fisse, non piu' il minimo e massimo della rosa: cosi' il punteggio dice quanto
@@ -474,7 +505,7 @@ function computeFormScores(windowSize){
         contrib:   (a.goals + a.assists) / a.games,
         motmRate:  a.mom / a.games,
         winRate:   (a.win / a.games) * 100,
-        techEff:   efficienzaTecnica(pass, tackle, shot),
+        techEff:   efficienzaTecnica(pass, tackle, shot, gruppoGiocatore(name, null)),
         // I tre pezzi si conservano anche separati: il testa a testa apre l'efficienza
         // tecnica per mostrare da quale dei tre nasce il distacco.
         passaggi: pass, contrasti: tackle, tiro: shot,
@@ -533,7 +564,7 @@ function computeBlendedScores(windowSize, weight){
     const g = s.r, gp = g.games_played || 1;
     const carriera = {
       rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
-      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate),
+      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate, g.gruppo),
       disc: g.red_cards / gp,
       passaggi: g.pass_success_rate, contrasti: g.tackle_success_rate, tiro: g.shot_success_rate,
     };

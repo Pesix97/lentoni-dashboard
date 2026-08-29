@@ -394,7 +394,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
 | `test_pipeline.py` | 90 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
-| `test_ruoli.js` | 91 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_ruoli.js` | 98 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -690,19 +690,19 @@ Il 24/08/2026 il club ha deciso due ritocchi, entrambi con la misura davanti:
 - **il MOTM è sceso dal 15% al 5%**, i dieci punti alla media voto. Il premio di migliore in
   campo è quasi automatico quando si vince (correla +0,79 con la vittoria) e messo alla
   prova non si conferma: +0,08 fra prima e seconda metà dell'archivio;
-- **l'efficienza tecnica** era la media semplice di passaggi, contrasti e tiro. Ora pesa
-  passaggi 45%, tiro 45%, **contrasti 10%**. La percentuale di contrasti è la più ambigua
-  delle tre: chi ne tenta di più ha la percentuale più bassa (correlazione **−0,78**),
-  quindi in parte premia chi sceglie i duelli facili. Sulle altre due il vizio non c'è —
-  tiri +0,36 e passaggi +0,44.
+- **l'efficienza tecnica** era la media semplice di passaggi, contrasti e tiro. I contrasti
+  sono scesi, perché sono la voce più ambigua delle tre: chi ne tenta di più ha la
+  percentuale più bassa (correlazione **−0,78**), quindi in parte premia chi sceglie i
+  duelli facili. Sulle altre due il vizio non c'è — tiri +0,36 e passaggi +0,44. Dal
+  29/08/2026 i pesi dei tre pezzi **cambiano con il reparto**, vedi più sotto.
 
 Sostituire la percentuale di contrasti con i **contrasti vinti a partita** è stato proposto
 e **scartato dal club**: la voce si chiama efficienza e deve restare efficienza, chi tenta
 tanto e sbaglia tanto va penalizzato lo stesso.
 
-Nelle **classifiche per reparto**, dove il ruolo si conosce partita per partita, per i
-difensori il rapporto si ribalta: contrasti 50%, passaggi 35%, tiro 15%. È l'unico punto
-della dashboard dove i pesi cambiano col ruolo.
+I pesi dei tre pezzi **cambiano con il reparto** — quattro tarature diverse, vedi
+[I pesi della tecnica sono quattro](#i-pesi-della-tecnica-sono-quattro-uno-per-reparto).
+È l'unico punto della dashboard dove i pesi dipendono dal ruolo.
 
 ### La ritaratura del 29/08/2026
 
@@ -773,6 +773,34 @@ caso, non perché cambi molto i numeri.
 misurano lo stile, non la bravura** — chi ne tenta pochi e facili ha una percentuale
 altissima (correlazione −0,78 fra tentativi e riuscita). Stabile e utile sono due cose
 diverse, e un indice pesato solo sull'affidabilità premierebbe chi non prova niente.
+
+### I pesi della tecnica sono quattro, uno per reparto
+
+Fino al 29/08/2026 le tarature erano **due**: i difensori e "tutti gli altri". Ma quel
+secondo gruppo metteva insieme un centrocampista e un attaccante, che con la palla fanno
+mestieri diversi — il primo la fa girare e recupera, il secondo la mette dentro.
+
+| Reparto | Passaggi | Contrasti | Tiro |
+| --- | ---: | ---: | ---: |
+| Difensori | 40% | **50%** | 10% |
+| Centrocampisti | 40% | 30% | 30% |
+| Esterni | 40% | 20% | 40% |
+| Attaccanti *(COC compreso)* | 45% | **10%** | 45% |
+
+La regola del club: **i contrasti hanno il peso minimo solo per gli attaccanti**, e crescono
+scendendo verso la difesa. I passaggi sono il mestiere comune a tutti, quindi il loro peso
+quasi non cambia; a scambiarsi il posto sono contrasti e tiro.
+
+Il reparto usato è quello **abituale** (`roles.json`) nella classifica generale, e quello
+**della singola partita** nelle classifiche per reparto, dove il ruolo si conosce volta per
+volta. Prima la generale usava sempre i pesi dell'attacco, anche per un centrocampista.
+
+Effetto misurato subito: fra i difensori **Ocirne passa primo** (efficienza tecnica 82,3) e
+gio05596 sale nella generale, perché da centrocampista i suoi contrasti ora valgono il 30%
+invece del 10%.
+
+Sei controlli in `test_ruoli.js` bloccano la monotonia: se un giorno qualcuno riscrive i pesi
+e i contrasti smettono di calare dalla difesa all'attacco, il test diventa rosso.
 
 ### Le tre percentuali della tecnica non erano confrontabili
 

@@ -654,13 +654,33 @@
         5,6% diventava un distacco del 41%. E chi era ultimo prendeva zero anche con 7,11 di media, che è una
         prestazione normale.
         <br><br>
-        <strong style="color:var(--text);">L'efficienza tecnica</strong> combina precisione nei passaggi (45%),
-        precisione al tiro (45%) e percentuale di contrasti vinti (10%). I contrasti pesano poco perché sono
-        la voce più ambigua delle tre: chi ne tenta di più ha la percentuale più bassa (correlazione −0,78),
-        quindi in parte la percentuale premia chi contrasta poco e sceglie i duelli facili. Passaggi e tiri
-        non hanno questo problema — chi ne fa di più ha percentuali migliori, non peggiori. Nelle
-        <strong style="color:var(--text);">classifiche per reparto</strong>, dove il ruolo si conosce partita per
-        partita, per i difensori il rapporto si ribalta — contrasti 50%, passaggi 35%, tiro 15%.
+        <strong style="color:var(--text);">L'efficienza tecnica</strong> combina precisione nei passaggi,
+        percentuale di contrasti vinti e precisione al tiro — ma <strong style="color:var(--text);">con pesi
+        diversi per ogni reparto</strong>, perché con la palla fanno mestieri diversi:
+        <br><br>
+        <span style="display:block; font-family:ui-monospace,monospace; font-size:12px;
+              line-height:1.9; margin:6px 0 2px; color:var(--text);">
+          <span style="color:var(--muted);">reparto&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;passaggi&nbsp;&nbsp;contrasti&nbsp;&nbsp;tiro</span><br>
+          difensori&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>50%</strong>&nbsp;&nbsp;&nbsp;10%<br>
+          centrocampisti&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30%&nbsp;&nbsp;&nbsp;30%<br>
+          esterni&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;20%&nbsp;&nbsp;&nbsp;40%<br>
+          attaccanti&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;45%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>10%</strong>&nbsp;&nbsp;&nbsp;45%
+        </span>
+        <span style="color:var(--muted);">Il COC sta fra gli attaccanti.</span>
+        <br>
+        I passaggi restano il mestiere comune a tutti, quindi il loro peso quasi non cambia. A scambiarsi il
+        posto sono <strong style="color:var(--text);">contrasti e tiro</strong>: i primi calano scendendo verso
+        l'attacco, il secondo cresce. <strong style="color:var(--text);">Solo gli attaccanti</strong> hanno i
+        contrasti al minimo.
+        <br><br>
+        Perché i contrasti non pesano tanto nemmeno a centrocampo: è la voce più ambigua delle tre, perché chi
+        ne tenta di più ha la percentuale più bassa (correlazione −0,78). In parte premia chi contrasta poco e
+        sceglie i duelli facili. Passaggi e tiri non hanno questo problema — chi ne fa di più ha percentuali
+        migliori, non peggiori.
+        <br><br>
+        Il reparto usato è quello <strong style="color:var(--text);">abituale</strong> nella classifica
+        generale, e quello <strong style="color:var(--text);">della singola partita</strong> nelle classifiche
+        per reparto, dove il ruolo si conosce volta per volta.
         <br><br>
         <strong style="color:var(--text);">Anche i tre pezzi hanno la loro scala</strong>, e senza sarebbe un
         confronto truccato: sull'archivio i passaggi riescono al 79% e i contrasti al 15%. Sommandoli grezzi,
@@ -674,11 +694,11 @@
         prendeva spesso nella prima metà dell'archivio non è chi lo prende nella seconda. Misurava il
         risultato della squadra più che il singolo.
         <br><br>
-        <strong style="color:var(--text);">Perché la media voto è scesa dal 50% al 30%.</strong> Con metà del
+        <strong style="color:var(--text);">Perché la media voto è scesa dal 50% al 35%.</strong> Con metà del
         peso su una voce sola, l'indice era di fatto una classifica della media voto di EA: chi era primo lì
-        era primo e basta, e le altre cinque voci facevano da contorno. I venti punti tolti sono andati a
-        gol+assist (dal 20 al 30%) e all'efficienza tecnica (dal 10 al 25%), cioè a quello che un giocatore
-        fa in campo invece che al giudizio sintetico del gioco.
+        era primo e basta, e le altre voci facevano da contorno. I punti tolti sono andati a gol+assist
+        (dal 20 al 30%) e all'efficienza tecnica (dal 10 al 30%), cioè a quello che un giocatore fa in campo
+        invece che al giudizio sintetico del gioco.
         <br><br>
         <strong style="color:var(--text);">Peso della forma recente.</strong> Come per i coefficienti UEFA, il valore storico da
         solo reagisce troppo lentamente. Il punteggio finale è quindi una media pesata tra l'<strong style="color:var(--text);">indice
@@ -1155,8 +1175,35 @@ function suScala(valore, chiave){
 //
 // Il dribbling non c'e': EA non lo espone, ne' per partita ne' in carriera. Verificato il
 // 24/08/2026 su colonne del database, campi per giocatore e campi di carriera.
-const PESI_TECNICA        = { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 };
-const PESI_TECNICA_DIFESA = { passaggi: 0.35, contrasti: 0.50, tiro: 0.15 };
+// ---- I pesi della tecnica cambiano con il reparto, tutti e quattro ----
+//
+// Fino al 29/08/2026 c'erano due sole tarature: i difensori e "tutti gli altri". Ma
+// "tutti gli altri" mette insieme un centrocampista e un attaccante, che con la palla
+// fanno mestieri diversi: il primo la fa girare e recupera, il secondo la mette dentro.
+//
+// La regola del club, decisa il 29/08/2026: **i contrasti hanno un peso minimo solo per gli
+// attaccanti**, e crescono man mano che si scende verso la difesa. I passaggi restano il
+// mestiere comune a tutti, quindi il loro peso e' quasi costante; a variare sono contrasti
+// e tiro, che si scambiano il posto passando dalla difesa all'attacco.
+//
+//                    passaggi  contrasti  tiro
+//   DIFENSORI            40%      50%      10%
+//   CENTROCAMPISTI       40%      30%      30%
+//   ESTERNI              40%      20%      40%
+//   ATTACCANTI           45%      10%      45%
+//
+// Il COC sta fra gli attaccanti, per decisione del club presa a suo tempo e non rifatta qui.
+const PESI_TECNICA_PER_REPARTO = {
+  DIFENSORI:      { passaggi: 0.40, contrasti: 0.50, tiro: 0.10 },
+  CENTROCAMPISTI: { passaggi: 0.40, contrasti: 0.30, tiro: 0.30 },
+  ESTERNI:        { passaggi: 0.40, contrasti: 0.20, tiro: 0.40 },
+  ATTACCANTI:     { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 },
+};
+
+// Quando il reparto non si conosce si usa quello dell'attacco, che e' il piu' comune in
+// questa rosa. Succede solo per chi non ha ancora un ruolo assegnato in roles.json.
+const PESI_TECNICA = PESI_TECNICA_PER_REPARTO.ATTACCANTI;
+const PESI_TECNICA_DIFESA = PESI_TECNICA_PER_REPARTO.DIFENSORI;
 
 // ---- E su quali scale vivono i tre pezzi ----
 //
@@ -1189,7 +1236,7 @@ function suScalaTecnica(valore, chiave){
 }
 
 function efficienzaTecnica(passaggi, contrasti, tiro, gruppo){
-  const p = gruppo === "DIFENSORI" ? PESI_TECNICA_DIFESA : PESI_TECNICA;
+  const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   return 100 * (
     p.passaggi  * suScalaTecnica(passaggi,  "passaggi") +
     p.contrasti * suScalaTecnica(contrasti, "contrasti") +
@@ -1327,7 +1374,11 @@ function computePowerScores(roster){
   if(!roster || roster.length === 0) return [];
   const contrib = roster.map(r => r.games_played ? (r.goals + r.assists) / r.games_played : 0);
   const motmRate = roster.map(r => r.games_played ? r.man_of_the_match / r.games_played : 0);
-  const techEff = roster.map(r => efficienzaTecnica(r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate));
+  // Il reparto abituale (roles.json) decide i pesi anche qui, non solo nelle classifiche
+  // per reparto: un centrocampista va giudicato con i pesi del centrocampo pure quando lo
+  // si confronta con tutta la rosa. Chi non ha ancora un ruolo assegnato usa il ripiego.
+  const techEff = roster.map(r => efficienzaTecnica(
+    r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate, r.gruppo));
   const redRate = roster.map(r => r.games_played ? r.red_cards / r.games_played : 0);
 
   // Scale fisse, non piu' il minimo e massimo della rosa: cosi' il punteggio dice quanto
@@ -1429,7 +1480,7 @@ function computeFormScores(windowSize){
         contrib:   (a.goals + a.assists) / a.games,
         motmRate:  a.mom / a.games,
         winRate:   (a.win / a.games) * 100,
-        techEff:   efficienzaTecnica(pass, tackle, shot),
+        techEff:   efficienzaTecnica(pass, tackle, shot, gruppoGiocatore(name, null)),
         // I tre pezzi si conservano anche separati: il testa a testa apre l'efficienza
         // tecnica per mostrare da quale dei tre nasce il distacco.
         passaggi: pass, contrasti: tackle, tiro: shot,
@@ -1488,7 +1539,7 @@ function computeBlendedScores(windowSize, weight){
     const g = s.r, gp = g.games_played || 1;
     const carriera = {
       rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
-      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate),
+      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate, g.gruppo),
       disc: g.red_cards / gp,
       passaggi: g.pass_success_rate, contrasti: g.tackle_success_rate, tiro: g.shot_success_rate,
     };

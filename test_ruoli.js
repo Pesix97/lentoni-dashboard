@@ -43,7 +43,7 @@ try {
              groupForMatch, etichettaAttesa, mainPosOf, computeGroupScores, rankGroup,
              GROUP_ORDER, ROLE_EXCEPTIONS, computeBlendedScores, credibilita,
              PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica,
-             SCALE_INDICE, SCALE_TECNICA, suScala };`)();
+             SCALE_INDICE, SCALE_TECNICA, suScala, PESI_TECNICA_PER_REPARTO };`)();
 } catch (e) {
   console.error("Impossibile eseguire il codice estratto:", e.message);
   process.exit(1);
@@ -62,7 +62,7 @@ function verifica(descrizione, condizione, dettaglio) {
 const { GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, groupForMatch, etichettaAttesa,
         computeGroupScores, rankGroup, GROUP_ORDER, computeBlendedScores,
         PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica,
-        SCALE_INDICE, SCALE_TECNICA, suScala } = ambiente;
+        SCALE_INDICE, SCALE_TECNICA, suScala, PESI_TECNICA_PER_REPARTO } = ambiente;
 
 // I pesi erano scritti a mano in quattro punti diversi. Ora c'e' una costante sola, e
 // questi controlli servono a impedire che le copie tornino: se qualcuno riscrive un peso
@@ -108,17 +108,41 @@ console.log("\nPesi dell'Indice di Forza");
     verifica(`la sottoscala di ${k} e' fissa e crescente (${min} - ${max})`,
       typeof min === "number" && typeof max === "number" && max > min, `${min} - ${max}`);
   }
-  for (const [nome, p] of [["normale", PESI_TECNICA], ["difensori", PESI_TECNICA_DIFESA]]) {
+  // Dal 29/08/2026 i pesi della tecnica sono QUATTRO, uno per reparto: prima erano due,
+  // "difensori" e "tutti gli altri", e quel secondo gruppo metteva insieme un centrocampista
+  // e un attaccante, che con la palla fanno mestieri diversi.
+  for (const [reparto, p] of Object.entries(PESI_TECNICA_PER_REPARTO)) {
     const s = p.passaggi + p.contrasti + p.tiro;
-    verifica(`efficienza tecnica (${nome}): i tre pezzi sommano a 1`,
+    verifica(`efficienza tecnica (${reparto}): i tre pezzi sommano a 1`,
       Math.abs(s - 1) < 1e-9, `sommano ${s.toFixed(3)}`);
   }
+  // La regola del club: i contrasti calano scendendo verso l'attacco, il tiro cresce.
+  // Se qualcuno un giorno li riscrive a caso, questa monotonia si rompe e il test lo dice.
+  const scala = ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI"];
+  const contr = scala.map(r => PESI_TECNICA_PER_REPARTO[r].contrasti);
+  const tiri  = scala.map(r => PESI_TECNICA_PER_REPARTO[r].tiro);
+  verifica("i contrasti calano dalla difesa all'attacco",
+    contr.every((v, i) => i === 0 || v <= contr[i - 1]), contr.join(" > "));
+  verifica("il tiro cresce dalla difesa all'attacco",
+    tiri.every((v, i) => i === 0 || v >= tiri[i - 1]), tiri.join(" < "));
+  verifica("solo gli attaccanti hanno il peso minimo sui contrasti",
+    PESI_TECNICA_PER_REPARTO.ATTACCANTI.contrasti === Math.min(...contr) &&
+    contr.filter(v => v === Math.min(...contr)).length === 1,
+    `contrasti per reparto: ${contr.join(", ")}`);
   verifica("per i difensori il contrasto pesa piu' del tiro",
-    PESI_TECNICA_DIFESA.contrasti > PESI_TECNICA_DIFESA.tiro,
-    `contrasti ${PESI_TECNICA_DIFESA.contrasti} vs tiro ${PESI_TECNICA_DIFESA.tiro}`);
-  verifica("per tutti gli altri vale il contrario",
-    PESI_TECNICA.contrasti < PESI_TECNICA.tiro,
-    `contrasti ${PESI_TECNICA.contrasti} vs tiro ${PESI_TECNICA.tiro}`);
+    PESI_TECNICA_PER_REPARTO.DIFENSORI.contrasti > PESI_TECNICA_PER_REPARTO.DIFENSORI.tiro);
+  verifica("per gli attaccanti vale il contrario",
+    PESI_TECNICA_PER_REPARTO.ATTACCANTI.contrasti < PESI_TECNICA_PER_REPARTO.ATTACCANTI.tiro);
+  // Stesso giocatore, stessi numeri grezzi, quattro reparti: chi recupera palloni deve
+  // valere di piu' man mano che si scende, chi tira deve valere di piu' salendo.
+  const bravoAContrastare = scala.map(r => efficienzaTecnica(75, 60, 20, r));
+  verifica("chi vince i contrasti vale sempre meno salendo verso l'attacco",
+    bravoAContrastare.every((v, i) => i === 0 || v <= bravoAContrastare[i - 1]),
+    bravoAContrastare.map(v => v.toFixed(1)).join(" > "));
+  const bravoATirare = scala.map(r => efficienzaTecnica(75, 5, 45, r));
+  verifica("chi segna vale sempre di piu' salendo verso l'attacco",
+    bravoATirare.every((v, i) => i === 0 || v >= bravoATirare[i - 1]),
+    bravoATirare.map(v => v.toFixed(1)).join(" < "));
   // Stesso giocatore, stessi numeri grezzi: il reparto deve cambiare il risultato.
   const bravoNeiContrasti = efficienzaTecnica(80, 60, 20, "DIFENSORI");
   const stessoAltrove     = efficienzaTecnica(80, 60, 20, "ATTACCANTI");

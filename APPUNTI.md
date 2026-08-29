@@ -529,6 +529,12 @@ lasciato al suo posto, in `modello/pagina.js`.
   significando nulla.
 - EA elenca solo i giocatori **umani** di ogni partita, di solito 5 o 6. Il resto sono CPU.
 - Le partite **abbandonate o interrotte** non vengono conteggiate da EA.
+- **"Tutti gli altri" non e' un reparto.** Fino al 29/08/2026 i pesi della tecnica erano
+  due: difensori e resto del mondo. Ma quel secondo gruppo metteva insieme un centrocampista
+  e un attaccante, che con la palla fanno mestieri opposti. Ora sono quattro tarature, con i
+  contrasti che calano scendendo verso l'attacco (50 → 30 → 20 → 10) e il tiro che cresce.
+  Regola generale: **quando una categoria si chiama "gli altri", quasi sempre contiene due
+  cose diverse.**
 - **Una metrica di squadra non misura il singolo, e nessun peso la aggiusta.** La % vittorie
   pesava il 10% dell'indice e la sua affidabilità era **+0,008** (divisione cronologica),
   contro +0,71 della media voto: due giocatori di questo club condividono in media il **66%
