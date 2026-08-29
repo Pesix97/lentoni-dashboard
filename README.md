@@ -136,13 +136,21 @@ sono perse per sempre.
 | Task | Orario | A cosa serve |
 | --- | --- | --- |
 | `lentoni-controllo-battito` | 23:45 | arriva **prima** che si cominci a giocare: se l'automazione è ferma, si lancia il workflow a mano e la serata è salva |
-| `lentoni-guardia-partite` | 01:10 | **in piena fascia di gioco**, ed è l'unico che può ancora salvare qualcosa mentre si è in tempo |
+| `lentoni-guardia-partite` | 02:00 | **in piena fascia di gioco**, ed è l'unico che può ancora salvare qualcosa mentre si è in tempo |
 | `lentoni-controllo-battito` | 09:45 | il resoconto della notte, quando non c'è più niente da salvare ma c'è da capire |
 
-Il controllo dell'01:10 è nato il 28/08/2026 da un vuoto misurato: fra le 23:45 e le 09:45
+Il controllo notturno è nato il 28/08/2026 da un vuoto misurato: fra le 23:45 e le 09:45
 c'erano **nove ore scoperte**, tutte dentro la fascia in cui si gioca. Un guasto a metà
 serata restava invisibile fino al mattino — e a 19 minuti a partita, tre ore di guasto
 costano partite per sempre.
+
+**Era all'01:10 e il 29/08 è stato spostato alle 02:00**, perché all'orario vecchio cadeva
+nel punto sbagliato: i cicli programmati di quel giorno finivano attorno all'01:04, quindi
+all'01:10 l'ultimo giro aveva cinque minuti e nessun allarme poteva scattare — anche se la
+catena si era appena spezzata. Con la soglia a 45 minuti, alle 02:00 un'interruzione
+avvenuta al cambio di ciclo si vede. È una lezione generale: **un controllo va messo dove
+cade il rischio, non a un'ora comoda**, e dove cade il rischio dipende da quando i cicli si
+passano il testimone.
 
 **Parla solo se qualcosa è rotto.** All'una di notte un controllo che riferisce anche
 quando va tutto bene diventa rumore, e un allarme che suona sempre si impara a ignorarlo.
@@ -280,7 +288,7 @@ attesi** in ventisei ore:
 | **Quattro partenze l'ora, ai minuti `:07 :22 :37 :52`** | mai su un minuto tondo: GitHub *scarta* i lavori programmati nei momenti di carico, e l'inizio dell'ora è il picco. Con `:00` e `:30` le partenze riuscite sono state 7, 0 e 1 in tre giorni |
 | **Esecuzioni programmate in coda, non cancellate** | durante un ciclo di cinque ore le partenze successive aspettano invece di sprecarsi: quando il ciclo finisce ne parte subito un'altra, e la pianificazione inaffidabile diventa una catena |
 | **Tetto duro a ogni attesa di rete** (`ATTESA_FONTE`, `ATTESA_AVVERSARI`) | senza, il caso peggiore sforava il limite di sei ore di GitHub e il ciclo veniva ucciso verso il quattordicesimo giro |
-| **Controllo del battito tre volte al giorno**: 23:45, 01:10, 09:45 | i primi due arrivano prima e durante le partite, quando c'è ancora qualcosa da salvare: il workflow si lancia a mano da GitHub, anche dal telefono, e fa il **ciclo completo** |
+| **Controllo del battito tre volte al giorno**: 23:45, 02:00, 09:45 | i primi due arrivano prima e durante le partite, quando c'è ancora qualcosa da salvare: il workflow si lancia a mano da GitHub, anche dal telefono, e fa il **ciclo completo** |
 
 **Le prime due difese erano incompatibili fra loro, e nessuno se n'era accorto.** Allungare
 il ciclo a 5h20 e raddoppiare i cron, senza togliere `cancel-in-progress` dal gruppo del
@@ -730,11 +738,44 @@ differenza reale occupava il 41% della scala e valeva 20 punti di indice: un van
 **5,6%** diventava un distacco del **41%**. E chi era ultimo prendeva **zero** anche con
 7,11 di media, che è una prestazione normale.
 
-Dal 29/08 ogni voce ha una **scala fissa**, ricavata dalla distribuzione vera dell'archivio:
-media voto 6–9, gol+assist 0–3, MOTM 0–50%, vittorie 0–100%. Zero significa zero, e i
+Dal 29/08 ogni voce ha una **scala fissa**: media voto **5–10**, gol+assist **0–4**, MOTM
+0–50%. Un 5 è una prestazione pessima e un 10 esiste davvero; quattro gol+assist a partita
+lasciano spazio a un attaccante fortissimo senza sprecare mezza scala — era stato proposto
+0–7, ma sette a partita non è un tetto ambizioso, è irraggiungibile, e un tratto di scala
+che nessuno raggiungerà mai non distingue nessuno: schiaccia solo tutti verso il basso. Zero significa zero, e i
 punteggi diventano confrontabili **fra reparti** e **fra titoli** — cosa che con FC 27 a tre
 settimane vale più della taratura stessa. Il distacco fra i due è passato da **35 a 11
 punti**, con l'ordine invariato: Adriano resta primo, perché lo è su quattro voci su cinque.
+
+### Una percentuale vale quanto il suo denominatore
+
+Segnalato da Peppe il 29/08/2026: un centrocampista risultava a **97** di efficienza
+tecnica. I numeri dietro quel 97, su 14 partite in quel ruolo:
+
+| | riuscite / tentate | a partita | |
+| --- | ---: | ---: | --- |
+| passaggi | 269 / 307 = 87,6% | 21,9 | solido |
+| contrasti | 15 / 26 = 57,7% | 1,9 | fragile |
+| tiro | **6 / 10 = 60,0%** | 0,7 | niente |
+
+Sei gol su dieci tiri: vero come numero, privo di significato come misura — e valeva il 30%
+della voce. Peggio, il 57,7% e il 60% **sfondavano il tetto** delle rispettive scale e
+venivano tagliati a 1,00: due pezzi su tre al massimo assoluto.
+
+L'indice principale smorzava già chi ha poche partite, ma i tre pezzi della tecnica erano
+rapporti grezzi: **6 su 10 contava quanto 60 su 100**.
+
+Ogni percentuale viene ora tirata verso la media del club in proporzione ai **tentativi**,
+non alle partite — perché ciò che rende affidabile una percentuale è il denominatore. Le
+soglie di credibilità sono 150 tentativi per i passaggi, 40 per i contrasti, 25 per i tiri:
+l'ordine di grandezza in cui il dato smette di essere aneddotico.
+
+Il caso segnalato passa da **97 a 72**. E funziona nei due sensi: chi aveva 0% su due tiri
+veniva trattato da incapace, e risale — Maverik fra gli attaccanti va da 13 a 44 di tecnica.
+
+**Effetto collaterale che vale la pena dichiarare:** la classifica dei difensori si è
+appiattita a 33,7 / 33,1 / 32,2. Non è un difetto, è la verità — diciassette partite fra tre
+giocatori non permettono di distinguere nessuno, e il pannello lo dice già.
 
 ### La % vittorie è uscita dall'indice
 

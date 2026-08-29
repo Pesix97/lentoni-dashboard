@@ -529,6 +529,29 @@ lasciato al suo posto, in `modello/pagina.js`.
   significando nulla.
 - EA elenca solo i giocatori **umani** di ogni partita, di solito 5 o 6. Il resto sono CPU.
 - Le partite **abbandonate o interrotte** non vengono conteggiate da EA.
+- **Una percentuale vale quanto il suo denominatore, e va smorzata sui TENTATIVI non sulle
+  partite.** Un centrocampista risultava a 97 di efficienza tecnica con 6 gol su 10 tiri in
+  14 partite: 0,7 tiri a partita. L'indice smorzava già chi aveva poche *partite*, ma i tre
+  pezzi della tecnica erano rapporti grezzi — 6 su 10 contava quanto 60 su 100. Regola
+  generale: **quando si costruisce un indice da rapporti, il denominatore va guardato prima
+  del quoziente.**
+- **Una scala troppo larga cancella le differenze quanto una troppo stretta.** Era stato
+  proposto 0–7 per i gol+assist: sette a partita è irraggiungibile (il massimo mai visto è
+  2,17), quindi metà scala non distinguerebbe nessuno e schiaccerebbe tutti in basso — la
+  classifica si stringeva da 38 a 27 punti. Scelto 0–4. Vale in entrambe le direzioni:
+  **una scala va larga quanto i valori che devono starci dentro, più un margine, non di più.**
+- **Un controllo va messo dove cade il rischio, non a un'ora comoda.** La guardia notturna
+  era all'01:10, ma i cicli programmati del 29/08/2026 finivano attorno all'**01:04**: a
+  quell'ora l'ultimo giro aveva cinque minuti e nessun allarme poteva scattare, anche se la
+  catena si era appena spezzata. Il buco sarebbe stato visibile solo alle 09:45, a partite
+  finite. Spostata alle 02:00. La cosa da ricordare è che **quel punto si sposta**: dipende
+  da quando GitHub lancia i cicli, quindi l'orario del controllo va rivisto se cambia il
+  ritmo delle esecuzioni.
+- **Una guardia che avvisa non è una guardia che ripara.** Il controllo notturno legge il
+  battito e lo scrive nel pannello «Scheduled» — che alle due di notte, mentre si gioca,
+  nessuno sta guardando. Non può nemmeno lanciare il workflow: da Cowork `api.github.com`
+  non è raggiungibile. È una rete per **accorgersi** di un buco, non per evitarlo, e l'unica
+  cosa che dà davvero copertura resta *Run workflow* premuto prima di iniziare a giocare.
 - **Verificare che i pezzi siano giusti non è verificare che la cosa si accenda.** Il
   29/08/2026 è finita online una dashboard inutilizzabile — niente menu, diciassette sezioni
   impilate — per una variabile scritta male dentro un template letterale. Sintassi giusta,

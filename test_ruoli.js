@@ -44,7 +44,8 @@ try {
              GROUP_ORDER, ROLE_EXCEPTIONS, computeBlendedScores, credibilita,
              PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica,
              SCALE_INDICE, SCALE_TECNICA, suScala, PESI_TECNICA_PER_REPARTO,
-             dettaglioTecnica, suScalaTecnica };`)();
+             dettaglioTecnica, suScalaTecnica, versoLaMediaTecnica,
+             TENTATIVI_CREDIBILI, MEDIE_TECNICA };`)();
 } catch (e) {
   console.error("Impossibile eseguire il codice estratto:", e.message);
   process.exit(1);
@@ -64,7 +65,8 @@ const { GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, groupForMatch, etichettaAttesa,
         computeGroupScores, rankGroup, GROUP_ORDER, computeBlendedScores,
         PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica,
         SCALE_INDICE, SCALE_TECNICA, suScala, PESI_TECNICA_PER_REPARTO,
-        dettaglioTecnica, suScalaTecnica } = ambiente;
+        dettaglioTecnica, suScalaTecnica, versoLaMediaTecnica,
+        TENTATIVI_CREDIBILI, MEDIE_TECNICA } = ambiente;
 
 // I pesi erano scritti a mano in quattro punti diversi. Ora c'e' una costante sola, e
 // questi controlli servono a impedire che le copie tornino: se qualcuno riscrive un peso
@@ -165,7 +167,8 @@ console.log("\nDettaglio dell'efficienza tecnica");
   let controllate = 0, sbagliate = 0, peggiore = 0;
   for (const gruppo of GROUP_ORDER) {
     for (const a of ALL.filter(x => x.group === gruppo)) {
-      const html = dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10);
+      const tent = { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots };
+      const html = dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10, tent);
       const punti = [...html.matchAll(/tecq-punti">([\d.]+)</g)].map(m => parseFloat(m[1]));
       if (punti.length !== 4) { sbagliate++; continue; }   // tre pezzi + totale
       const somma = punti[0] + punti[1] + punti[2];
@@ -190,6 +193,35 @@ console.log("\nDettaglio dell'efficienza tecnica");
     new Set(totali).size === 4, `totali ${totali.join(", ")}`);
   verifica("chi contrasta bene e tira male vale di piu' in difesa che in attacco",
     totali[0] > totali[3], `difesa ${totali[0]} contro attacco ${totali[3]}`);
+
+  // ---- La smorzatura: una percentuale vale quanto il suo denominatore ----
+  // Nata da una segnalazione: 97 di efficienza tecnica a un centrocampista con 10 tiri in
+  // 14 partite. Sei gol su dieci e' vero come numero e non significa niente come misura.
+  {
+    const media = MEDIE_TECNICA.tiro;
+    const pochi = versoLaMediaTecnica(100, 4, "tiro");
+    const tanti = versoLaMediaTecnica(100, 2000, "tiro");
+    verifica("con pochi tentativi il valore viene tirato verso la media del club",
+      Math.abs(pochi - media) < Math.abs(100 - media) / 2,
+      `100% su 4 tiri conta come ${pochi.toFixed(1)}%, media del club ${media.toFixed(1)}%`);
+    verifica("con tanti tentativi il valore resta quasi intatto",
+      Math.abs(tanti - 100) < 3, `100% su 2000 tiri conta come ${tanti.toFixed(1)}%`);
+    verifica("la smorzatura non capovolge mai l'ordine: piu' prove, piu' vicino al vero",
+      versoLaMediaTecnica(100, 10, "tiro") < versoLaMediaTecnica(100, 100, "tiro"));
+    // Vale in entrambe le direzioni: chi ha lo 0% su due tiri non e' un incapace.
+    verifica("anche uno zero su pochi tentativi viene alzato verso la media",
+      versoLaMediaTecnica(0, 2, "tiro") > 0.5 * media,
+      `0% su 2 tiri conta come ${versoLaMediaTecnica(0, 2, "tiro").toFixed(1)}%`);
+    verifica("senza il numero di tentativi non si smorza nulla",
+      versoLaMediaTecnica(100, undefined, "tiro") === 100);
+    // E il caso vero che ha fatto nascere tutto.
+    const prima = 100 * (0.40 * suScalaTecnica(87.6, "passaggi") + 0.30 * suScalaTecnica(57.7, "contrasti") + 0.30 * suScalaTecnica(60, "tiro"));
+    const dopo = 100 * (0.40 * suScalaTecnica(versoLaMediaTecnica(87.6, 307, "passaggi"), "passaggi")
+                      + 0.30 * suScalaTecnica(versoLaMediaTecnica(57.7, 26, "contrasti"), "contrasti")
+                      + 0.30 * suScalaTecnica(versoLaMediaTecnica(60, 10, "tiro"), "tiro"));
+    verifica("il caso reale del 97 scende sotto 85",
+      prima > 90 && dopo < 85, `prima ${prima.toFixed(1)}, dopo ${dopo.toFixed(1)}`);
+  }
 
   // Le barre non devono mai uscire dal contenitore: sono percentuali di larghezza.
   const estremo = dettaglioTecnica(200, 200, 200, "ATTACCANTI", 10);
