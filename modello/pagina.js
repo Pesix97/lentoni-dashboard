@@ -1627,10 +1627,10 @@ let growthChart = null;
         <td data-label="Assist">${a.sumAssists}</td>
         <td data-label="Media">${a.ratingAve.toFixed(2)}</td>
         <td data-label="G+A/partita">${a.contrib.toFixed(2)}</td>
-        <td data-label="Tecnica"><span class="tec-apri" data-tec="r-${gruppo}-${a.player_name}">${a.techEff.toFixed(0)}</span></td>
+        <td data-label="Tecnica"><span class="tec-apri" data-tec="r-${group}-${a.player_name}">${a.techEff.toFixed(0)}</span></td>
         <td data-label="MOTM%">${a.motmRate.toFixed(0)}%</td>
       </tr>
-      ${dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-r-${gruppo}-${a.player_name}"`)}`;
+      ${dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, group, 10).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-r-${group}-${a.player_name}"`)}`;
     }).join("");
     const ignorate = (ranked[0] && ranked[0].metricheIgnorate) || [];
     const ETICHETTE = { rating:"media voto", contrib:"gol+assist", motm:"MOTM", tech:"efficienza tecnica" };
