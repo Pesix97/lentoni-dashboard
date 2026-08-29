@@ -1630,6 +1630,14 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
   const perc = sa.attese > 0 ? Math.round((sa.archiviateDaPrimoSnapshot / sa.attese) * 100) : 100;
   const colore = perc >= 90 ? "var(--ok,#4ade80)" : (perc >= 60 ? "#facc15" : "var(--accent)");
   const recente = sa.divarioRecente;
+  // Le partite gia' presenti nella finestra di EA al primo scaricamento: sono in archivio
+  // ma NON entrano nella percentuale, perche' quella confronta cio' che abbiamo salvato con
+  // cio' che e' stato giocato nello stesso periodo. Contarle al numeratore e non al
+  // denominatore gonfierebbe il risultato con partite che nessuno ha dovuto salvare.
+  //
+  // Senza dirlo, pero', i due numeri sembrano contraddirsi - "108 archiviate" sopra e "ne
+  // abbiamo salvate 98" sotto - ed e' la prima cosa che ha chiesto chi legge (29/08/2026).
+  const inRegalo = (sa.archiviate || 0) - (sa.archiviateDaPrimoSnapshot || 0);
   el.innerHTML = `
     <div style="font-size:13px; line-height:1.6;">
       <strong style="color:var(--text);">${sa.archiviate} partite archiviate</strong> in totale,
@@ -1640,6 +1648,10 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
       e ne abbiamo salvate <strong style="color:${colore};">${sa.archiviateDaPrimoSnapshot}</strong> (${perc}%).
       ${sa.divario > 0 ? `Le altre <strong>${sa.divario}</strong> sono andate perse prima che
         l'aggiornamento automatico diventasse abbastanza frequente: EA non le espone più.` : ``}
+      ${inRegalo > 0 ? `<br><span style="color:var(--muted);">Le <strong>${inRegalo}</strong> che
+        mancano all'appello rispetto al totale erano già dentro la finestra di EA al primo
+        scaricamento: sono in archivio, ma non contano nella percentuale perché non è stata
+        l'automazione a salvarle.</span>` : ``}
       <div style="background:var(--panel-2,rgba(255,255,255,.06)); border-radius:4px; height:8px; margin:10px 0;">
         <div style="width:${Math.min(100, perc)}%; height:8px; border-radius:4px; background:${colore};"></div>
       </div>

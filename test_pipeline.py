@@ -1472,6 +1472,100 @@ class TestBattito(unittest.TestCase):
             "avversari": int(re.search(r"ATTESA_AVVERSARI=(\d+)", g).group(1)),
         }
 
+    def _gruppi(self):
+        """Come GitHub valuta `A && x || B && y || z` per ogni tipo di evento."""
+        import re
+        w = Path(".github/workflows/aggiorna-dashboard.yml").read_text(encoding="utf-8")
+        espr = re.search(r"group: aggiorna-dashboard-\$\{\{(.+?)\}\}", w)
+        self.assertIsNotNone(espr, "il gruppo di concorrenza non dipende piu' dall'evento")
+        espr = espr.group(1)
+        canc = re.search(r"cancel-in-progress: (?:\$\{\{)?(.+?)(?:\}\})?$", w, re.M).group(1)
+        rami = re.findall(r"github\.event_name == '(\w+)' && '(\w+)'", espr)
+        finale = re.search(r"\|\|\s*'(\w+)'\s*$", espr.strip())
+        fuori = {}
+        for evento in ("push", "schedule", "workflow_dispatch"):
+            nome = next((g for e, g in rami if e == evento), None)
+            fuori[evento] = nome or (finale.group(1) if finale else None)
+        return fuori, canc
+
+    def test_il_totale_in_archivio_e_la_percentuale_contano_cose_diverse(self):
+        """I due numeri della salute archivio non coincidono, e non e' un difetto.
+
+        Chiesto da Peppe il 29/08/2026: «perche' qui dice 98 se in archivio ce ne stanno 10
+        in piu'?». Il totale comprende le partite gia' presenti nella finestra di EA al primo
+        scaricamento; la percentuale confronta invece cio' che abbiamo salvato con cio' che e'
+        stato giocato NELLO STESSO periodo. Contare quelle al numeratore e non al
+        denominatore darebbe 108 su 133 — un numero gonfiato con partite che nessuno ha
+        dovuto salvare.
+
+        Il test blocca l'invariante: la differenza fra i due deve essere esattamente il
+        numero di partite giocate prima del primo scatto, ne' una di piu' ne' una di meno.
+        """
+        import sqlite3
+        con = sqlite3.connect(f"file:{Path('lentoni.db').resolve()}?mode=ro", uri=True)
+        cur = con.cursor()
+        primo = cur.execute(
+            "SELECT MIN(fetched_at) FROM club_stats_history WHERE games_played IS NOT NULL"
+        ).fetchone()[0]
+        if not primo:
+            self.skipTest("archivio senza scatti: la salute non si calcola")
+        totale = cur.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+        dopo = cur.execute(
+            "SELECT COUNT(*) FROM matches WHERE played_at >= ?", (primo,)).fetchone()[0]
+        prima = cur.execute(
+            "SELECT COUNT(*) FROM matches WHERE played_at < ?", (primo,)).fetchone()[0]
+        con.close()
+        self.assertEqual(totale - dopo, prima,
+                         "la differenza fra totale e conteggio della percentuale non "
+                         "corrisponde alle partite giocate prima del primo scatto")
+        self.assertGreaterEqual(totale, dopo, "il totale non puo' essere minore del parziale")
+
+    def test_la_pagina_spiega_perche_i_due_numeri_non_coincidono(self):
+        # Senza la spiegazione i due numeri sembrano contraddirsi, ed e' la prima cosa che
+        # ha chiesto chi legge. La riga compare solo quando c'e' davvero uno scarto.
+        js = Path("modello/pagina.js").read_text(encoding="utf-8")
+        self.assertIn("inRegalo", js, "manca il calcolo dello scarto fra totale e parziale")
+        self.assertRegex(
+            js, r"inRegalo\s*=\s*\(sa\.archiviate.*?\)\s*-\s*\(sa\.archiviateDaPrimoSnapshot",
+            "lo scarto non e' calcolato dai due numeri che compaiono a schermo")
+        self.assertRegex(js, r"inRegalo > 0 \?",
+                         "la spiegazione va mostrata solo quando lo scarto esiste davvero")
+
+    def test_un_push_non_puo_uccidere_un_lancio_a_mano(self):
+        """Il difetto del 28/08/2026, trovato a ciclo gia' in corso.
+
+        Da quando "Run workflow" fa il ciclo completo, un lancio a mano dura cinque ore. Ma
+        restava nel gruppo delle verifiche brevi, dove si cancellano a vicenda: bastava un
+        push qualsiasi — anche solo di documentazione — per uccidere il ciclo appena lanciato
+        per coprire una serata. Quella sera non si e' potuto pubblicare niente per non
+        rompere la copertura in corso.
+        """
+        gruppi, _ = self._gruppi()
+        self.assertNotEqual(
+            gruppi["push"], gruppi["workflow_dispatch"],
+            "lancio a mano e verifiche da push nello stesso gruppo: un push qualsiasi "
+            "ucciderebbe il ciclo d'emergenza")
+
+    def test_nessun_evento_puo_uccidere_il_ciclo_programmato(self):
+        gruppi, _ = self._gruppi()
+        self.assertNotEqual(gruppi["push"], gruppi["schedule"])
+        self.assertNotEqual(gruppi["workflow_dispatch"], gruppi["schedule"])
+
+    def test_il_lancio_a_mano_parte_subito_invece_di_accodarsi(self):
+        """Lo si preme quando serve copertura ADESSO.
+
+        Se stesse nel gruppo del ciclo, che non cancella, premere il pulsante durante un
+        ciclo in corso lo metterebbe in fila per ore — cioe' esattamente il contrario del
+        motivo per cui esiste. Deve stare da solo e poter sostituire un altro lancio a mano.
+        """
+        gruppi, canc = self._gruppi()
+        self.assertEqual(len(set(gruppi.values())), 3,
+                         f"servono tre gruppi distinti, trovati: {gruppi}")
+        # cancel-in-progress vale per tutto cio' che non e' 'schedule', quindi anche per il
+        # lancio a mano: da solo nel suo gruppo, cancella solo un altro lancio a mano.
+        self.assertIn("!=", canc)
+        self.assertIn("schedule", canc)
+
     def test_il_pulsante_run_workflow_fa_il_ciclo_completo(self):
         """Il rimedio d'emergenza deve fare quello che la documentazione promette.
 

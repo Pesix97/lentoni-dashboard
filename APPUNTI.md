@@ -39,6 +39,20 @@ riga può restare falsa: sette giorni.
 
 ## Da fare quando capita
 
+**La riga della salute archivio: risolto il 29/08/2026.** Diceva «108 partite archiviate in
+totale» e sotto «ne abbiamo salvate 98 (74%)» senza spiegare perché i due numeri non
+coincidessero, e la domanda di Peppe è stata quella che farebbe chiunque legga.
+
+I numeri erano giusti ed era giusto tenerli separati: le 10 in più sono partite del 4-5
+agosto, già dentro la finestra di EA quando è partito il primo scatto delle 16:39, quindi
+entrate in archivio in regalo. Metterle al numeratore darebbe 108 su 133 (81%) contando
+partite che non sono nel denominatore — un numero gonfiato con partite che nessuno ha dovuto
+salvare. Aggiunta quindi **una riga che lo dice**, senza toccare il calcolo.
+
+La lezione, che vale oltre questo caso: **due numeri veri accostati senza spiegare cosa
+misurano si leggono come un errore.** Il difetto non era nei conti, era nel non dire quale
+domanda risponde ciascuno.
+
 **Le eccezioni di ruolo: risolto, e non più un problema aperto.** Al 21/08 la lista
 `eccezioni_partita` era vuota e il rischio era dimenticarsene. Al 24/08 sono **109**, e
 soprattutto esiste un meccanismo che chiede invece di aspettare:

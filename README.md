@@ -293,7 +293,26 @@ non finire mai.**
 Non è una garanzia, e vale la pena dirlo: una garanzia richiederebbe una fonte che conserva
 lo storico, e non esiste. È il massimo ottenibile con quello che EA espone.
 
-### Perché due gruppi di concorrenza
+### Perché tre gruppi di concorrenza
+
+| Evento | Gruppo | Si cancella? |
+| --- | --- | --- |
+| `push` | `verifica` | **sì** — dura un minuto, contano solo le ultime |
+| `schedule` | `ciclo` | no — si accodano, e formano una catena |
+| `workflow_dispatch` | `manuale` | sì, ma è solo con sé stesso |
+
+**Il terzo gruppo è nato da un difetto trovato il 28/08/2026, a ciclo già lanciato.** Da
+quando *Run workflow* fa il ciclo completo, un lancio a mano dura cinque ore — ma era rimasto
+nel gruppo delle verifiche brevi, dove tutto si cancella a vicenda. Bastava un push
+qualsiasi, anche di una riga di documentazione, per uccidere il ciclo appena lanciato per
+coprire una serata. Quella notte non si è potuto pubblicare niente proprio per questo.
+
+Il lancio a mano ha un gruppo tutto suo, e non è un dettaglio: se stesse in `ciclo` con
+l'accodamento, premere il pulsante durante un ciclo in corso lo metterebbe **in fila per
+ore** — inutile, visto che lo si preme quando serve copertura *adesso*. Così invece parte
+subito e gira in parallelo. Provato la notte del 28/08: due cicli contemporanei, sedici giri
+ciascuno, nessun problema — due esecuzioni che scrivono sullo stesso database sono già
+gestite dal rebase in `giro.sh`.
 
 Il ciclo pianificato e la verifica dopo un push vivono in **gruppi separati** e non si
 cancellano a vicenda. Con un gruppo solo succedeva questo, misurato il 23/08/2026: su 28
@@ -374,7 +393,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 84 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 89 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
 | `test_ruoli.js` | 81 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 

@@ -72,8 +72,24 @@ on:
 # le ultime, e accodarle allungherebbe solo la fila. Due esecuzioni contemporanee che
 # scrivono sullo stesso database non sono un problema: giro.sh gestisce gia' il push
 # respinto rifacendo un rebase.
+# TRE gruppi, non due, e il terzo e' nato da un difetto trovato il 28/08/2026 a ciclo gia'
+# lanciato. Da quando "Run workflow" fa il ciclo completo, un lancio a mano dura cinque ore -
+# ma restava nel gruppo delle verifiche brevi, dove si cancella a vicenda. Bastava un push
+# qualsiasi, anche di una riga di documentazione, per uccidere il ciclo appena lanciato per
+# coprire una serata. Quella sera non si e' potuto pubblicare niente proprio per questo.
+#
+#   push               -> verifica   dura un minuto, contano solo le ultime: si cancellano
+#   schedule           -> ciclo      si accodano, vedi sotto
+#   workflow_dispatch  -> manuale    parte SUBITO, e nessun altro puo' toccarlo
+#
+# Il lancio a mano ha un gruppo tutto suo di proposito. Se stesse in 'ciclo' con
+# l'accodamento, premere il pulsante durante un ciclo in corso lo metterebbe in fila per
+# ore: inutile, visto che lo si preme quando serve copertura ADESSO. Cosi' invece parte
+# subito e gira in parallelo - provato la notte del 28/08, due cicli contemporanei, sedici
+# giri ciascuno, nessun problema: due esecuzioni che scrivono sullo stesso database sono
+# gia' gestite dal rebase in giro.sh.
 concurrency:
-  group: aggiorna-dashboard-${{ github.event_name == 'schedule' && 'ciclo' || 'verifica' }}
+  group: aggiorna-dashboard-${{ github.event_name == 'push' && 'verifica' || github.event_name == 'schedule' && 'ciclo' || 'manuale' }}
   cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 jobs:
