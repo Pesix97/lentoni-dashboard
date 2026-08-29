@@ -394,7 +394,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
 | `test_pipeline.py` | 90 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
-| `test_ruoli.js` | 98 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_ruoli.js` | 102 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -773,6 +773,46 @@ caso, non perché cambi molto i numeri.
 misurano lo stile, non la bravura** — chi ne tenta pochi e facili ha una percentuale
 altissima (correlazione −0,78 fra tentativi e riuscita). Stabile e utile sono due cose
 diverse, e un indice pesato solo sull'affidabilità premierebbe chi non prova niente.
+
+### Le colonne stanno in ordine di peso
+
+Nelle tabelle dell'Indice di Forza le voci compaiono **dall'più pesante alla più leggera**,
+con il peso scritto nell'intestazione:
+
+```
+Media 35%  |  G+A/partita 30%  |  Tecnica 30%  |  MOTM% 5%
+```
+
+Prima c'era una colonna **Win%** che non pesa più nulla — è uscita dall'indice il
+29/08/2026 — e **mancava del tutto la tecnica**, che pesa il 30%. Si guardava una tabella in
+cui la voce più importante dopo la media voto era invisibile, e una che non conta occupava
+spazio. Il caso concreto: domenicocasaburi sta sopra ktm-008 pur avendo media, gol+assist e
+MOTM peggiori, e il motivo — **tecnica 63 contro 52** — non si leggeva da nessuna parte.
+
+I pesi dell'indice sono gli stessi per tutti i reparti, quindi l'ordine delle colonne è
+identico ovunque. A cambiare col reparto sono i pesi *dentro* la tecnica.
+
+**E quelli si aprono cliccando sul numero della colonna Tecnica**, in entrambe le tabelle:
+
+```
+Efficienza tecnica — pesi da Attaccanti
+                      valore   dove cade sulla sua scala   scala   peso   punti
+passaggi riusciti      77.3%   ████████████░░░░░░░         60–90   ×45%    25.9
+contrasti riusciti     30.6%   ██████░░░░░░░░░░░░░          5–50   ×10%     5.7
+tiri trasformati       38.2%   ███████████░░░░░░░░         10–50   ×45%    31.7
+                                                                          ─────
+efficienza tecnica                                                           63
+```
+
+La barra dice **dove cade il valore sulla propria scala**, non su una da 0 a 100: un 30,6%
+nei contrasti è a metà strada, non «quasi zero». Ed è il punto in cui la taratura per
+reparto diventa visibile — gli stessi numeri grezzi di ktm-008 danno 52 da attaccante, 46 da
+esterno, 40 da centrocampista e 28 da difensore.
+
+Tre controlli in `test_ruoli.js` verificano che il dettaglio non menta: i tre pezzi devono
+**ricostruire esattamente** il numero scritto in tabella (37 righe controllate), i pesi
+devono essere quelli del reparto, e le barre non devono uscire dal contenitore nemmeno con
+valori fuori scala.
 
 ### I pesi della tecnica sono quattro, uno per reparto
 

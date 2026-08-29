@@ -260,6 +260,49 @@ function suScalaTecnica(valore, chiave){
   return Math.max(0, Math.min(1, ((valore || 0) - min) / (max - min)));
 }
 
+// Il dettaglio che si apre cliccando sulla colonna Tecnica. Mostra i tre pezzi con la loro
+// percentuale vera, il peso che hanno IN QUEL REPARTO e i punti che ne escono - piu' una
+// barra che dice dove cade il valore sulla PROPRIA scala, non su una da 0 a 100.
+//
+// Serve perche' la tecnica pesa il 30% dell'indice ed era l'unica voce che non si poteva
+// guardare: si vedeva il risultato senza sapere da cosa nascesse.
+function dettaglioTecnica(passaggi, contrasti, tiro, gruppo, colonne){
+  const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
+  const pezzi = [
+    { eti: "passaggi riusciti",  val: passaggi  || 0, peso: p.passaggi,  chiave: "passaggi" },
+    { eti: "contrasti riusciti", val: contrasti || 0, peso: p.contrasti, chiave: "contrasti" },
+    { eti: "tiri trasformati",   val: tiro      || 0, peso: p.tiro,      chiave: "tiro" },
+  ];
+  const totale = pezzi.reduce((t, z) => t + 100 * z.peso * suScalaTecnica(z.val, z.chiave), 0);
+  const righe = pezzi.map(z => {
+    const quota = suScalaTecnica(z.val, z.chiave);
+    const punti = 100 * z.peso * quota;
+    const [min, max] = SCALE_TECNICA[z.chiave];
+    return `<div class="tecq-riga">
+      <span class="tecq-eti">${z.eti}</span>
+      <span class="tecq-val">${z.val.toFixed(1)}%</span>
+      <span class="tecq-barra"><i style="width:${(quota * 100).toFixed(1)}%"></i></span>
+      <span class="tecq-scala">${min}–${max}</span>
+      <span class="tecq-peso">×${(z.peso * 100).toFixed(0)}%</span>
+      <span class="tecq-punti">${punti.toFixed(1)}</span>
+    </div>`;
+  }).join("");
+  return `<tr class="match-detail tecnica-detail"><td colspan="${colonne}"><div class="inner">
+      <div class="tecq-titolo">Efficienza tecnica — pesi da ${GROUP_LABELS[gruppo] || "attaccante"}</div>
+      <div class="tecq-testa">
+        <span class="tecq-eti"></span><span class="tecq-val">valore</span>
+        <span class="tecq-barra">dove cade sulla sua scala</span>
+        <span class="tecq-scala">scala</span><span class="tecq-peso">peso</span><span class="tecq-punti">punti</span>
+      </div>
+      ${righe}
+      <div class="tecq-riga tecq-totale">
+        <span class="tecq-eti">efficienza tecnica</span><span class="tecq-val"></span>
+        <span class="tecq-barra"></span><span class="tecq-scala"></span>
+        <span class="tecq-peso"></span><span class="tecq-punti">${totale.toFixed(0)}</span>
+      </div>
+    </div></td></tr>`;
+}
+
 function efficienzaTecnica(passaggi, contrasti, tiro, gruppo){
   const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   return 100 * (
@@ -315,6 +358,8 @@ function computeGroupScores(){
       // L'unico punto in cui i pesi della tecnica cambiano col ruolo: qui il reparto e'
       // quello in cui si e' davvero giocato quella partita, non quello abituale.
       techEff:   efficienzaTecnica(passSuccess, tackleSuccess, shotSuccess, a.group),
+      // I tre pezzi si conservano separati: la colonna Tecnica si apre e li mostra.
+      passaggi: passSuccess, contrasti: tackleSuccess, tiro: shotSuccess,
       redRate:   a.sumRedCards / a.games,
     };
   });
@@ -1449,9 +1494,10 @@ let growthChart = null;
           <td data-label="Forma" class="career-cell">-</td>
           <td data-label="Media">${s.r.rating_ave}</td>
           <td data-label="G+A/partita">${s.contrib.toFixed(2)}</td>
+          <td data-label="Tecnica"><span class="tec-apri" data-tec="g-${s.r.player_name}">${s.grezziMescolati.tech.toFixed(0)}</span></td>
           <td data-label="MOTM%">${s.motmRate.toFixed(0)}%</td>
-          <td data-label="Win%">${s.r.win_rate}%</td>
-        </tr>`;
+        </tr>
+        ${dettaglioTecnica(s.grezziMescolati.passaggi, s.grezziMescolati.contrasti, s.grezziMescolati.tiro, s.r.gruppo, 11).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-g-${s.r.player_name}"`)}`;
       }
       const i = posizione++;
       const rankCls = i===0 ? "g1" : i===1 ? "g2" : i===2 ? "g3" : "";
@@ -1466,9 +1512,10 @@ let growthChart = null;
           <td data-label="Forma" class="career-cell">${s.formAvailable ? `${s.formScore.toFixed(1)} <span class="opp-tag">(${s.formGames} pt)</span>` : "-"}</td>
           <td data-label="Media">${s.r.rating_ave}</td>
           <td data-label="G+A/partita">${s.contrib.toFixed(2)}</td>
+          <td data-label="Tecnica"><span class="tec-apri" data-tec="g-${s.r.player_name}">${s.grezziMescolati.tech.toFixed(0)}</span></td>
           <td data-label="MOTM%">${s.motmRate.toFixed(0)}%</td>
-          <td data-label="Win%">${s.r.win_rate}%</td>
         </tr>
+        ${dettaglioTecnica(s.grezziMescolati.passaggi, s.grezziMescolati.contrasti, s.grezziMescolati.tiro, s.r.gruppo, 11).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-g-${s.r.player_name}"`)}
       `;
     }).join("");
   }
@@ -1580,9 +1627,10 @@ let growthChart = null;
         <td data-label="Assist">${a.sumAssists}</td>
         <td data-label="Media">${a.ratingAve.toFixed(2)}</td>
         <td data-label="G+A/partita">${a.contrib.toFixed(2)}</td>
+        <td data-label="Tecnica"><span class="tec-apri" data-tec="r-${gruppo}-${a.player_name}">${a.techEff.toFixed(0)}</span></td>
         <td data-label="MOTM%">${a.motmRate.toFixed(0)}%</td>
-        <td data-label="Win%">${a.winRate.toFixed(0)}%</td>
-      </tr>`;
+      </tr>
+      ${dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-r-${gruppo}-${a.player_name}"`)}`;
     }).join("");
     const ignorate = (ranked[0] && ranked[0].metricheIgnorate) || [];
     const ETICHETTE = { rating:"media voto", contrib:"gol+assist", motm:"MOTM", tech:"efficienza tecnica" };
@@ -1618,7 +1666,7 @@ let growthChart = null;
       ${notaPochiDati}${notaIgnorate}${soloNote}
       <div class="table-wrap">
         <table class="responsive-table">
-          <thead><tr><th>#</th><th>Giocatore</th><th>Indice</th><th>Partite nel ruolo</th><th>Gol</th><th>Assist</th><th>Media</th><th>G+A/partita</th><th>MOTM%</th><th>Win%</th></tr></thead>
+          <thead><tr><th>#</th><th>Giocatore</th><th>Indice</th><th>Partite nel ruolo</th><th>Gol</th><th>Assist</th><th>Media <span class="h2-sub">35%</span></th><th>G+A/partita <span class="h2-sub">30%</span></th><th>Tecnica <span class="h2-sub">30%</span></th><th>MOTM% <span class="h2-sub">5%</span></th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -3449,6 +3497,19 @@ document.addEventListener("click", (e) => {
   }
   if(e.target.id === "playerModalOverlay"){
     closePlayerCard();
+  }
+  // Apertura del dettaglio della tecnica. Delegato invece di agganciato riga per riga,
+  // perche' le tabelle si ridisegnano ad ogni cambio di filtro e i gestori andrebbero persi.
+  const apri = e.target.closest && e.target.closest(".tec-apri");
+  if(apri){
+    const riga = document.getElementById("tec-" + apri.dataset.tec);
+    if(riga){
+      const eraAperta = riga.classList.contains("open");
+      document.querySelectorAll(".tecnica-detail.open").forEach(d => d.classList.remove("open"));
+      document.querySelectorAll(".tec-apri.aperto").forEach(d => d.classList.remove("aperto"));
+      if(!eraAperta){ riga.classList.add("open"); apri.classList.add("aperto"); }
+    }
+    return;
   }
 });
 document.addEventListener("keydown", (e) => {

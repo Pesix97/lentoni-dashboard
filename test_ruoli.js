@@ -43,7 +43,8 @@ try {
              groupForMatch, etichettaAttesa, mainPosOf, computeGroupScores, rankGroup,
              GROUP_ORDER, ROLE_EXCEPTIONS, computeBlendedScores, credibilita,
              PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica,
-             SCALE_INDICE, SCALE_TECNICA, suScala, PESI_TECNICA_PER_REPARTO };`)();
+             SCALE_INDICE, SCALE_TECNICA, suScala, PESI_TECNICA_PER_REPARTO,
+             dettaglioTecnica, suScalaTecnica };`)();
 } catch (e) {
   console.error("Impossibile eseguire il codice estratto:", e.message);
   process.exit(1);
@@ -62,7 +63,8 @@ function verifica(descrizione, condizione, dettaglio) {
 const { GROUP_OF_PLAYER, EA_LABEL_OF_PLAYER, groupForMatch, etichettaAttesa,
         computeGroupScores, rankGroup, GROUP_ORDER, computeBlendedScores,
         PESI_INDICE, PESI_TECNICA, PESI_TECNICA_DIFESA, efficienzaTecnica,
-        SCALE_INDICE, SCALE_TECNICA, suScala, PESI_TECNICA_PER_REPARTO } = ambiente;
+        SCALE_INDICE, SCALE_TECNICA, suScala, PESI_TECNICA_PER_REPARTO,
+        dettaglioTecnica, suScalaTecnica } = ambiente;
 
 // I pesi erano scritti a mano in quattro punti diversi. Ora c'e' una costante sola, e
 // questi controlli servono a impedire che le copie tornino: se qualcuno riscrive un peso
@@ -151,6 +153,49 @@ console.log("\nPesi dell'Indice di Forza");
     `${bravoNeiContrasti.toFixed(1)} contro ${stessoAltrove.toFixed(1)}`);
   verifica("senza reparto si usano i pesi normali",
     efficienzaTecnica(80, 60, 20) === stessoAltrove);
+}
+
+// Il dettaglio che si apre cliccando la colonna Tecnica promette una cosa precisa: i tre
+// pezzi che mostra devono ricostruire il numero scritto in tabella. Se divergono, il
+// dettaglio spiega un valore che non e' quello mostrato - il difetto peggiore, perche' e'
+// invisibile finche' qualcuno non fa la somma a mano.
+console.log("\nDettaglio dell'efficienza tecnica");
+{
+  const ALL = computeGroupScores();
+  let controllate = 0, sbagliate = 0, peggiore = 0;
+  for (const gruppo of GROUP_ORDER) {
+    for (const a of ALL.filter(x => x.group === gruppo)) {
+      const html = dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10);
+      const punti = [...html.matchAll(/tecq-punti">([\d.]+)</g)].map(m => parseFloat(m[1]));
+      if (punti.length !== 4) { sbagliate++; continue; }   // tre pezzi + totale
+      const somma = punti[0] + punti[1] + punti[2];
+      const scarto = Math.abs(somma - a.techEff);
+      if (scarto > peggiore) peggiore = scarto;
+      if (scarto > 0.15) sbagliate++;
+      // e il totale stampato deve essere quello della tabella, non un terzo numero
+      if (Math.abs(punti[3] - a.techEff) > 0.5) sbagliate++;
+      controllate++;
+    }
+  }
+  verifica(`i tre pezzi ricostruiscono l'efficienza tecnica (${controllate} righe)`,
+    sbagliate === 0 && controllate > 0, `${sbagliate} fuori, scarto massimo ${peggiore.toFixed(3)}`);
+
+  // Il dettaglio deve usare i pesi DEL REPARTO: stessi numeri grezzi, reparti diversi,
+  // risultati diversi. Altrimenti mostrerebbe una spiegazione che non c'entra col punteggio.
+  const totali = ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI"].map(g => {
+    const html = dettaglioTecnica(75, 40, 20, g, 10);
+    return parseFloat([...html.matchAll(/tecq-punti">([\d.]+)</g)].pop()[1]);
+  });
+  verifica("il dettaglio usa i pesi del reparto, non sempre gli stessi",
+    new Set(totali).size === 4, `totali ${totali.join(", ")}`);
+  verifica("chi contrasta bene e tira male vale di piu' in difesa che in attacco",
+    totali[0] > totali[3], `difesa ${totali[0]} contro attacco ${totali[3]}`);
+
+  // Le barre non devono mai uscire dal contenitore: sono percentuali di larghezza.
+  const estremo = dettaglioTecnica(200, 200, 200, "ATTACCANTI", 10);
+  const larghezze = [...estremo.matchAll(/width:([\d.]+)%/g)].map(m => parseFloat(m[1]));
+  verifica("le barre restano fra 0 e 100 anche con valori fuori scala",
+    larghezze.every(w => w >= 0 && w <= 100), larghezze.join(", "));
 }
 
 // La classifica generale non deve piu' avere filtri per reparto: e' calcolata sulle

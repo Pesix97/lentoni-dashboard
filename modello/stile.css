@@ -454,3 +454,40 @@
     .card .value{font-size:18px;}
     #sideDrawer{width:100%; max-width:100%;}
   }
+
+
+/* ---- Dettaglio dell'efficienza tecnica, si apre cliccando la colonna Tecnica ---- */
+/* La tecnica pesa il 30% dell'indice ed era l'unica voce di cui si vedeva solo il
+   risultato. Qui si aprono i suoi tre pezzi con il peso che hanno in quel reparto. */
+.tec-apri{
+  cursor:pointer; border-bottom:1px dashed var(--muted); padding-bottom:1px;
+}
+.tec-apri:hover{ color:var(--accent); border-bottom-color:var(--accent); }
+.tec-apri.aperto{ color:var(--accent); border-bottom-style:solid; border-bottom-color:var(--accent); }
+.tecnica-detail .inner{ padding:12px 16px 14px; }
+.tecq-titolo{
+  font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--muted); margin-bottom:8px;
+}
+.tecq-riga, .tecq-testa{
+  display:grid; grid-template-columns:130px 52px 1fr 58px 44px 44px;
+  align-items:center; gap:10px; padding:4px 0; font-size:12.5px;
+}
+.tecq-testa{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+.tecq-eti{ color:var(--muted); }
+.tecq-val{ text-align:right; font-variant-numeric:tabular-nums; color:var(--text); }
+.tecq-scala{ text-align:right; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.tecq-peso{ text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); }
+.tecq-punti{ text-align:right; font-variant-numeric:tabular-nums; color:var(--text); font-weight:600; }
+.tecq-barra{
+  height:8px; border-radius:5px; background:var(--panel-2,rgba(255,255,255,.07));
+  overflow:hidden; display:block;
+}
+.tecq-barra i{ display:block; height:8px; border-radius:5px; background:var(--accent); }
+.tecq-totale{ border-top:1px solid var(--border); margin-top:6px; padding-top:8px; }
+.tecq-totale .tecq-eti{ color:var(--text); font-weight:600; }
+@media (max-width:820px){
+  .tecq-riga, .tecq-testa{ grid-template-columns:1fr 48px 40px 40px; }
+  .tecq-barra, .tecq-scala{ display:none; }
+  .tecq-testa{ display:none; }
+}
