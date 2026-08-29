@@ -102,6 +102,16 @@ scritta male dentro un template letterale, `ReferenceError` a runtime, niente me
 diciassette sezioni impilate. Sintassi giusta, ancore tutte presenti, 192 controlli passati.
 Nessuno montava i pezzi per vedere se la cosa si accendeva.
 
+**Il "Come funziona" della dashboard spiega COME FUNZIONA, non cosa abbiamo fatto.** È una
+distinzione che si perde da sola: ogni modifica lascia la tentazione di scrivere lì perché è
+stata fatta, e il riquadro diventa un diario. Il 29/08/2026 quello dell'Indice di Forza era
+arrivato a 739 parole di cui la metà erano date, correlazioni misurate e «prima non era
+così». Riscritto in 343, al presente.
+
+La regola: **nel riquadro va solo ciò che serve a leggere il numero che si ha davanti** —
+le voci, i pesi, le scale, cosa significa una colonna. Il *perché* di una scelta, le misure
+che l'hanno motivata e ciò che c'era prima vanno nel README, che esiste per quello.
+
 **La documentazione va nello stesso commit, non dopo.** Un passo separato è quello che
 salta quando si va di fretta: il 25/08/2026 quattro modifiche importanti sono finite online
 documentate a metà, in un pomeriggio solo, e non perché la regola mancasse. Se una modifica

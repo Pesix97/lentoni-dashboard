@@ -173,37 +173,32 @@
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
-      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-        Punteggio 0-100 calcolato combinando (pesi tra parentesi): media voto (35%), gol+assist a partita (30%),
-        efficienza tecnica (30%), frequenza MOTM (5%), con una penalità fino a 5 punti per i cartellini rossi
-        a partita.
+      <div style="font-size:12px; color:var(--muted); line-height:1.6;">
+
+        <strong style="color:var(--text);">Un punteggio da 0 a 100</strong>, costruito da quattro voci più
+        una penalità:
         <br><br>
-        <strong style="color:var(--text);">La % vittorie non c'è più, ed è una scelta misurata.</strong> Pesava
-        il 10%, ma non dice niente sul singolo: la vittoria è della squadra, e due giocatori di questo club
-        condividono in media il <strong style="color:var(--text);">66% delle partite</strong> — vincono e
-        perdono insieme. Messa alla prova, la sua affidabilità è <strong style="color:var(--text);">+0,008</strong>
-        contro +0,71 della media voto e +0,76 dei gol+assist: zero puro. Non era rumore, era una costante
-        travestita da variabile. Resta nelle tabelle come statistica, perché è un dato che si guarda
-        volentieri — semplicemente non misura il giocatore.
+        <span style="display:block; font-family:ui-monospace,monospace; color:var(--text); line-height:1.9;">
+          media voto&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;35%<br>
+          gol + assist a partita&nbsp;&nbsp;30%<br>
+          efficienza tecnica&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30%<br>
+          migliore in campo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;5%<br>
+          cartellini rossi&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fino a −5
+        </span>
+        <br>
+        <strong style="color:var(--text);">Ogni voce si misura su una scala fissa</strong> — media voto 6→9,
+        gol+assist 0→3 a partita, migliore in campo 0→50% — <em>non</em> rispetto ai compagni. Quindi
+        <strong style="color:var(--text);">0 significa zero e 100 significa eccellenza</strong>, non «ultimo»
+        e «primo del gruppo». È il motivo per cui due punteggi di reparti diversi si possono confrontare, e
+        per cui resteranno confrontabili anche con FC 27.
         <br><br>
-        <strong style="color:var(--text);">Ogni voce è misurata su una scala fissa</strong>, non rispetto ai
-        compagni: media voto da 6 a 9, gol+assist da 0 a 3 a partita, MOTM da 0 al 50%.
-        Quindi <em>zero significa zero</em> e il punteggio dice quanto vale un giocatore in assoluto — non
-        quanto vale rispetto a chi c'è in rosa quest'anno. Due conseguenze utili: i punteggi di reparti
-        diversi sono confrontabili fra loro, e lo saranno anche fra FC 26 e FC 27.
+
+        <strong style="color:var(--text);">L'efficienza tecnica</strong> è a sua volta fatta di tre pezzi —
+        passaggi riusciti, contrasti vinti, tiri trasformati — pesati <strong style="color:var(--text);">in
+        base al reparto</strong>, perché con la palla fanno mestieri diversi:
         <br><br>
-        <strong style="color:var(--text);">Prima non era così, ed era un problema.</strong> Ogni voce veniva
-        riscalata fra il peggiore e il migliore del gruppo. Fra gli attaccanti la scala della media voto era
-        larga 1,15 punti, quindi mezzo punto di differenza reale valeva 20 punti di indice: un vantaggio del
-        5,6% diventava un distacco del 41%. E chi era ultimo prendeva zero anche con 7,11 di media, che è una
-        prestazione normale.
-        <br><br>
-        <strong style="color:var(--text);">L'efficienza tecnica</strong> combina precisione nei passaggi,
-        percentuale di contrasti vinti e precisione al tiro — ma <strong style="color:var(--text);">con pesi
-        diversi per ogni reparto</strong>, perché con la palla fanno mestieri diversi:
-        <br><br>
-        <span style="display:block; font-family:ui-monospace,monospace; font-size:12px;
-              line-height:1.9; margin:6px 0 2px; color:var(--text);">
+        <span style="display:block; font-family:ui-monospace,monospace; font-size:12px; line-height:1.9;
+              margin:2px 0; color:var(--text);">
           <span style="color:var(--muted);">reparto&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;passaggi&nbsp;&nbsp;contrasti&nbsp;&nbsp;tiro</span><br>
           difensori&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>50%</strong>&nbsp;&nbsp;&nbsp;10%<br>
           centrocampisti&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30%&nbsp;&nbsp;&nbsp;30%<br>
@@ -211,45 +206,30 @@
           attaccanti&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;45%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>10%</strong>&nbsp;&nbsp;&nbsp;45%
         </span>
         <span style="color:var(--muted);">Il COC sta fra gli attaccanti.</span>
-        <br>
-        I passaggi restano il mestiere comune a tutti, quindi il loro peso quasi non cambia. A scambiarsi il
-        posto sono <strong style="color:var(--text);">contrasti e tiro</strong>: i primi calano scendendo verso
-        l'attacco, il secondo cresce. <strong style="color:var(--text);">Solo gli attaccanti</strong> hanno i
-        contrasti al minimo.
         <br><br>
-        Perché i contrasti non pesano tanto nemmeno a centrocampo: è la voce più ambigua delle tre, perché chi
-        ne tenta di più ha la percentuale più bassa (correlazione −0,78). In parte premia chi contrasta poco e
-        sceglie i duelli facili. Passaggi e tiri non hanno questo problema — chi ne fa di più ha percentuali
-        migliori, non peggiori.
+        Anche i tre pezzi hanno la loro scala (passaggi 60→90, contrasti 5→50, tiri 10→50): le percentuali di
+        EA non sono confrontabili fra loro, un 15% nei contrasti vale quanto un 75% nei passaggi.
+        <strong style="color:var(--text);">Clicca il numero nella colonna Tecnica</strong> per vedere i tre
+        pezzi, il peso che hanno per quel reparto e i punti che ne escono.
         <br><br>
-        Il reparto usato è quello <strong style="color:var(--text);">abituale</strong> nella classifica
-        generale, e quello <strong style="color:var(--text);">della singola partita</strong> nelle classifiche
-        per reparto, dove il ruolo si conosce volta per volta.
+        Il reparto è quello <strong style="color:var(--text);">abituale</strong> in questa classifica, quello
+        <strong style="color:var(--text);">della singola partita</strong> nelle classifiche per reparto.
         <br><br>
-        <strong style="color:var(--text);">Anche i tre pezzi hanno la loro scala</strong>, e senza sarebbe un
-        confronto truccato: sull'archivio i passaggi riescono al 79% e i contrasti al 15%. Sommandoli grezzi,
-        i contrasti valgono strutturalmente meno qualunque peso gli si dia — e a pagarne il prezzo erano
-        proprio i difensori, gli unici ad averli al 50%. Ogni pezzo viene quindi portato sulla propria scala
-        (passaggi 60-90, contrasti 5-50, tiro 10-50) prima di essere pesato, così un 15% nei contrasti vale
-        «un terzo della scala» e non «quasi zero».
+
+        <strong style="color:var(--text);">La forma recente.</strong> Il punteggio che leggi è una media fra
+        due calcoli: l'<strong style="color:var(--text);">indice storico</strong> su tutta la carriera e
+        l'<strong style="color:var(--text);">indice di forma</strong>, che usa le stesse voci ma solo sulle
+        ultime partite archiviate. I due comandi qui sotto scelgono quante partite guardare e quanto farle
+        pesare.
         <br><br>
-        <strong style="color:var(--text);">Perché il MOTM pesa solo il 5%.</strong> Era al 15%. Il premio di
-        migliore in campo è quasi automatico quando si vince, e messo alla prova non si conferma: chi lo
-        prendeva spesso nella prima metà dell'archivio non è chi lo prende nella seconda. Misurava il
-        risultato della squadra più che il singolo.
+        La forma però conta <strong style="color:var(--text);">in proporzione alle presenze</strong>: chi ha
+        giocato quattro partite nella finestra non può spostare il giudizio quanto chi ne ha giocate trenta,
+        anche col cursore al massimo. Sotto le quattro presenze resta al 100% storico, e la tabella lo dice.
         <br><br>
-        <strong style="color:var(--text);">Perché la media voto è scesa dal 50% al 35%.</strong> Con metà del
-        peso su una voce sola, l'indice era di fatto una classifica della media voto di EA: chi era primo lì
-        era primo e basta, e le altre voci facevano da contorno. I punti tolti sono andati a gol+assist
-        (dal 20 al 30%) e all'efficienza tecnica (dal 10 al 30%), cioè a quello che un giocatore fa in campo
-        invece che al giudizio sintetico del gioco.
-        <br><br>
-        <strong style="color:var(--text);">Peso della forma recente.</strong> Come per i coefficienti UEFA, il valore storico da
-        solo reagisce troppo lentamente. Il punteggio finale è quindi una media pesata tra l'<strong style="color:var(--text);">indice
-        storico</strong> (tutta la carriera) e l'<strong style="color:var(--text);">indice di forma</strong>, ricalcolato con gli stessi
-        pesi ma solo sulle ultime partite archiviate. La colonna <strong style="color:var(--text);">Δ</strong> mostra quanto la forma
-        recente sposta il giocatore rispetto al suo storico. Chi ha meno di 4 presenze nella finestra
-        resta al 100% storico ed è segnalato in tabella.
+        La colonna <strong style="color:var(--text);">Δ</strong> è la differenza fra il punteggio finale e
+        quello storico: <em>di quanto la forma recente ti sposta rispetto alla tua carriera.</em> Positivo se
+        stai rendendo sopra il tuo solito, negativo se sotto.
+
       </div>
     </div>
   </details>
@@ -381,10 +361,10 @@
         Il confronto <strong style="color:var(--text);">segue i filtri dell'Indice di Forza</strong>: se lì hai
         scelto una finestra di forma e un peso, qui viene spiegato quel distacco, non un altro.
         <br><br>
-        <strong style="color:var(--text);">Le voci stanno su scale fisse.</strong> Fino al 29/08/2026 ogni
-        voce veniva riscalata fra il peggiore e il migliore del gruppo, e chi stava sul fondo perdeva
-        <em>tutto</em> il peso di quella voce anche con numeri normali. Ora le scale non dipendono da chi c'è
-        in rosa, quindi i distacchi che leggi qui sono quelli veri.
+        <strong style="color:var(--text);">I punti mostrati sono quelli veri.</strong> Le voci si misurano su
+        scale fisse, non rispetto ai compagni: un distacco di dieci punti su una voce significa dieci punti,
+        non «dieci punti relativi a chi c'è in rosa». L'efficienza tecnica si può aprire per vedere da quale
+        dei suoi tre pezzi nasce il divario.
       </div>
     </div>
   </details>
