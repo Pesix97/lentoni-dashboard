@@ -403,7 +403,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
 | `test_pipeline.py` | 94 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
 | `test_apertura.js` | 13 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
-| `test_ruoli.js` | 102 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_ruoli.js` | 108 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -682,7 +682,7 @@ Due sole cose hanno un ritmo diverso, ed è bene saperlo quando si leggono i con
 gli avversari:
 
 - lo **skill rating degli avversari** viene riscaricato solo se più vecchio di 14 giorni, al
-  massimo quindici club per giro (`avversari.py`). Un avversario affrontato oggi porta il
+  massimo dieci club per giro (`avversari.py`). Un avversario affrontato oggi porta il
   livello che aveva quando è stato interrogato, non quello di stasera;
 - **16 partite su 49 non hanno l'id dell'avversario** nei dati EA, quindi restano fuori da
   ogni confronto per forza dell'avversario. Compaiono in tutto il resto.

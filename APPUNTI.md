@@ -136,12 +136,12 @@ il secondo titolo con dati veri invece che copiati.
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un
-difensore è ancora valutato per il 20% su gol e assist, solo rispetto ad altri difensori.
+difensore è ancora valutato per il 30% su gol e assist, solo rispetto ad altri difensori.
 
 Un indice davvero fedele al ruolo peserebbe contrasti e clean sheet per chi sta dietro,
 passaggi e assist per chi costruisce, precisione sotto porta per chi finalizza. Era stato
 proposto e volutamente rimandato: tarare un algoritmo nuovo su poche decine di partite
-non ha senso. Vedi anche il punto 6, che lo dimostra con i numeri.
+non ha senso. Vedi anche il punto 5, che lo dimostra con i numeri.
 Con qualche centinaio si potrà capire se i pesi alternativi producono classifiche sensate
 o solo diverse.
 
@@ -162,14 +162,7 @@ doverlo chiedere. Non dipende dal campione, si può fare in qualsiasi momento.
 
 **Traguardi**: chi sta per tagliare una cifra tonda (presenze, gol, assist).
 
-### 5. Leve tenute da parte
-
-**Spazio**: `matches.raw_json` occupa circa un terzo del database e duplica dati già
-presenti in colonne vere.
-
----
-
-### 6. Ripesare l'Indice di Forza sull'affidabilità misurata
+### 5. Ripesare l'Indice di Forza sull'affidabilità misurata
 
 Misurato il 24/08/2026 su 59 partite. Per ogni metrica ho confrontato la prima metà
 dell'archivio con la seconda: se una misura dice qualcosa di vero, chi era sopra la media
@@ -347,7 +340,7 @@ riga destinata a spegnersi.
 1. i minuti giocati non contano — è già misurato, non serve rifarlo;
 2. se l'obiettivo è una classifica *fra compagni*, le fasce sono la risposta più onesta, ma
    hanno senso solo quando saranno abbastanza strette da separare qualcuno;
-3. prima di toccare i pesi va rifatta la misura di affidabilità (punto 6 qui sopra).
+3. prima di toccare i pesi va rifatta la misura di affidabilità (punto 5 qui sopra).
 
 E la lezione che vale al di là di questo caso: **una misura può essere corretta e lo stesso
 inutile**. Le quattro prove erano giuste, i controlli passavano, il calcolo era esatto — ma
@@ -365,16 +358,6 @@ l'archivio hanno detto lo stesso numero: **zero partite perse**. La prova che ma
 23/08 l'app era chiusa e ha funzionato, il che basta a dire che non dipende da Cowork;
 manca solo la prova formale a macchina spenta, che è una formalità visto che tutto gira
 sui server di GitHub.
-
----
-
-## Leve rimaste, se un giorno servissero
-
-**Spazio.** `matches.raw_json` occupa da solo circa un terzo del database e duplica dati
-già presenti in colonne vere. Nessuno lo legge. Toglierlo — o tenerlo solo per le partite
-recenti — ridurrebbe di un terzo il peso di ogni commit. Va contro il principio "non
-perdere nessun campo di EA" su cui è nato il progetto, quindi è una scelta da fare a
-mente fredda, non una necessità.
 
 ---
 
