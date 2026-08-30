@@ -275,51 +275,52 @@ function dettaglioTecnica(passaggi, contrasti, tiro, gruppo, colonne, tentativi)
   const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   const tent = tentativi || {};
   const pezzi = [
-    { eti: "passaggi riusciti",  val: passaggi  || 0, peso: p.passaggi,  chiave: "passaggi" },
-    { eti: "contrasti riusciti", val: contrasti || 0, peso: p.contrasti, chiave: "contrasti" },
-    { eti: "tiri trasformati",   val: tiro      || 0, peso: p.tiro,      chiave: "tiro" },
+    { eti: "passaggi riusciti",  unita: "passaggi tentati", val: passaggi  || 0, peso: p.passaggi,  chiave: "passaggi" },
+    { eti: "contrasti riusciti", unita: "contrasti tentati", val: contrasti || 0, peso: p.contrasti, chiave: "contrasti" },
+    { eti: "tiri trasformati",   unita: "tiri",             val: tiro      || 0, peso: p.tiro,      chiave: "tiro" },
   ];
   let totale = 0;
+  let qualcunoSmorzato = false;
   const righe = pezzi.map(z => {
     const n = tent[z.chiave];
     const contato = versoLaMediaTecnica(z.val, n, z.chiave);
     const quota = suScalaTecnica(contato, z.chiave);
     const punti = 100 * z.peso * quota;
     totale += punti;
-    const [min, max] = SCALE_TECNICA[z.chiave];
-    // Quando la smorzatura sposta il valore in modo visibile si mostra ANCHE quello vero,
-    // altrimenti la riga sembrerebbe sbagliata: "60% e solo 8 punti?". Il numero fra
-    // parentesi e' il perche', cioe' su quante prove poggia quella percentuale.
-    const spostato = n !== undefined && n !== null && Math.abs(contato - z.val) > 1;
-    const valore = spostato
-      ? `<span class="tecq-grezzo">${z.val.toFixed(1)}%</span> ${contato.toFixed(1)}%`
-      : `${z.val.toFixed(1)}%`;
-    const prove = n === undefined || n === null ? "" :
-      `<span class="tecq-prove">su ${Math.round(n)} ${z.chiave === "tiro" ? "tiri" : "tentativi"}</span>`;
+    // Una percentuale su poche prove non vale come una su tante: quando la differenza si
+    // vede, la riga lo dice a parole invece di mostrare due numeri accostati.
+    const smorzato = n !== undefined && n !== null && Math.abs(contato - z.val) >= 1;
+    if(smorzato) qualcunoSmorzato = true;
+    const prove = (n === undefined || n === null) ? "" :
+      `<span class="tecq-prove">su ${Math.round(n)} ${z.unita}</span>`;
+    const valore = smorzato
+      ? `${z.val.toFixed(0)}% <span class="tecq-freccia">vale</span> <strong>${contato.toFixed(0)}%</strong>`
+      : `<strong>${z.val.toFixed(0)}%</strong>`;
     return `<div class="tecq-riga">
-      <span class="tecq-eti">${z.eti} ${prove}</span>
+      <span class="tecq-eti">${z.eti}<br>${prove}</span>
       <span class="tecq-val">${valore}</span>
       <span class="tecq-barra"><i style="width:${(quota * 100).toFixed(1)}%"></i></span>
-      <span class="tecq-scala">${min}\u2013${max}</span>
       <span class="tecq-peso">\u00d7${(z.peso * 100).toFixed(0)}%</span>
       <span class="tecq-punti">${punti.toFixed(1)}</span>
     </div>`;
   }).join("");
+  const nota = qualcunoSmorzato
+    ? `<div class="tecq-nota">Dove compaiono due percentuali, la seconda \u00e8 quella che conta:
+       poche prove non bastano a provare una percentuale, quindi il valore viene avvicinato
+       alla media del club. Vale nei due sensi \u2014 anche uno 0% su due tiri risale.</div>`
+    : "";
   return `<tr class="match-detail tecnica-detail"><td colspan="${colonne}"><div class="inner">
       <div class="tecq-titolo">Efficienza tecnica \u2014 pesi da ${GROUP_LABELS[gruppo] || "attaccante"}</div>
-      <div class="tecq-testa">
-        <span class="tecq-eti"></span><span class="tecq-val">valore</span>
-        <span class="tecq-barra">dove cade sulla sua scala</span>
-        <span class="tecq-scala">scala</span><span class="tecq-peso">peso</span><span class="tecq-punti">punti</span>
-      </div>
       ${righe}
       <div class="tecq-riga tecq-totale">
         <span class="tecq-eti">efficienza tecnica</span><span class="tecq-val"></span>
-        <span class="tecq-barra"></span><span class="tecq-scala"></span>
-        <span class="tecq-peso"></span><span class="tecq-punti">${totale.toFixed(0)}</span>
+        <span class="tecq-barra"></span><span class="tecq-peso"></span>
+        <span class="tecq-punti">${totale.toFixed(0)}</span>
       </div>
+      ${nota}
     </div></td></tr>`;
 }
+
 // ---- Quante prove servono perche' una percentuale valga per se stessa ----
 //
 // Difetto trovato il 29/08/2026 su una segnalazione: un centrocampista risultava a 97 di

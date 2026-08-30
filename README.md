@@ -770,6 +770,13 @@ non alle partite — perché ciò che rende affidabile una percentuale è il den
 soglie di credibilità sono 150 tentativi per i passaggi, 40 per i contrasti, 25 per i tiri:
 l'ordine di grandezza in cui il dato smette di essere aneddotico.
 
+Nel dettaglio cliccabile la riga lo dice a parole — *«60% **vale** 40% — su 10 tiri»* — e
+dove le prove bastano la seconda percentuale non compare. La prima versione mostrava il
+valore vero **barrato** accanto a quello corretto: illeggibile, e per giunta sfasciava la
+griglia perché la colonna era larga 52 pixel e ci finivano due numeri. Lezione minuta ma
+generale: **una colonna a larghezza fissa va dimensionata sul contenuto più lungo che potrà
+mai contenere**, non su quello che contiene il giorno in cui la si scrive.
+
 Il caso segnalato passa da **97 a 72**. E funziona nei due sensi: chi aveva 0% su due tiri
 veniva trattato da incapace, e risale — Maverik fra gli attaccanti va da 13 a 44 di tecnica.
 
