@@ -265,9 +265,9 @@ function suScalaTecnica(valore, chiave){
   return Math.max(0, Math.min(1, ((valore || 0) - min) / (max - min)));
 }
 
-// Il dettaglio che si apre cliccando sulla colonna Tecnica. Mostra i tre pezzi con la loro
-// percentuale vera, il peso che hanno IN QUEL REPARTO e i punti che ne escono - piu' una
-// barra che dice dove cade il valore sulla PROPRIA scala, non su una da 0 a 100.
+// Il dettaglio che si apre cliccando sulla colonna Tecnica in "Reparto per reparto". Una riga
+// per pezzo: la percentuale che conta, il peso che ha IN QUEL REPARTO, i punti che ne escono.
+// La barra dice dove cade il valore sulla PROPRIA scala, non su una da 0 a 100.
 //
 // Serve perche' la tecnica pesa il 30% dell'indice ed era l'unica voce che non si poteva
 // guardare: si vedeva il risultato senza sapere da cosa nascesse.
@@ -287,27 +287,18 @@ function dettaglioTecnica(passaggi, contrasti, tiro, gruppo, colonne, tentativi)
     const quota = suScalaTecnica(contato, z.chiave);
     const punti = 100 * z.peso * quota;
     totale += punti;
-    // Una percentuale su poche prove non vale come una su tante: quando la differenza si
-    // vede, la riga lo dice a parole invece di mostrare due numeri accostati.
-    const smorzato = n !== undefined && n !== null && Math.abs(contato - z.val) >= 1;
-    if(smorzato) qualcunoSmorzato = true;
-    const prove = (n === undefined || n === null) ? "" :
-      `<span class="tecq-prove">su ${Math.round(n)} ${z.unita}</span>`;
-    const valore = smorzato
-      ? `${z.val.toFixed(0)}% <span class="tecq-freccia">vale</span> <strong>${contato.toFixed(0)}%</strong>`
-      : `<strong>${z.val.toFixed(0)}%</strong>`;
+    if(n !== undefined && n !== null && Math.abs(contato - z.val) >= 1) qualcunoSmorzato = true;
+    // Si mostra il valore CONTATO, non quello grezzo: e' quello che genera i punti a fianco.
     return `<div class="tecq-riga">
-      <span class="tecq-eti">${z.eti}<br>${prove}</span>
-      <span class="tecq-val">${valore}</span>
+      <span class="tecq-eti">${z.eti}</span>
+      <span class="tecq-val"><strong>${contato.toFixed(1)}%</strong></span>
       <span class="tecq-barra"><i style="width:${(quota * 100).toFixed(1)}%"></i></span>
       <span class="tecq-peso">\u00d7${(z.peso * 100).toFixed(0)}%</span>
       <span class="tecq-punti">${punti.toFixed(1)}</span>
     </div>`;
   }).join("");
   const nota = qualcunoSmorzato
-    ? `<div class="tecq-nota">Dove compaiono due percentuali, la seconda \u00e8 quella che conta:
-       poche prove non bastano a provare una percentuale, quindi il valore viene avvicinato
-       alla media del club. Vale nei due sensi \u2014 anche uno 0% su due tiri risale.</div>`
+    ? `<div class="tecq-nota">Percentuali gi\u00e0 corrette per il numero di prove.</div>`
     : "";
   return `<tr class="match-detail tecnica-detail"><td colspan="${colonne}"><div class="inner">
       <div class="tecq-titolo">Efficienza tecnica \u2014 pesi da ${GROUP_LABELS[gruppo] || "attaccante"}</div>
@@ -321,88 +312,49 @@ function dettaglioTecnica(passaggi, contrasti, tiro, gruppo, colonne, tentativi)
     </div></td></tr>`;
 }
 
-// Il dettaglio della classifica generale, dove la colonna Tecnica non e' un numero solo ma
-// un misto fra la carriera e la finestra recente scelta con i filtri.
-//
-// Qui i due lati restano visibili e separati: si vede la percentuale di carriera con le sue
-// prove, quella della finestra con le sue, e i punti che nascono dal miscuglio. La barra
-// mostra dove cade il valore mescolato sulla propria scala.
-//
-// La regola che tiene in piedi tutto: si mescolano le QUOTE, cioe' i valori gia' portati
-// sulla loro scala, non le percentuali. Cosi' i punti delle tre righe sommano esattamente
-// al numero della colonna - il che e' l'unica cosa che rende questo riquadro una spiegazione
-// invece di un secondo parere. C'e' un controllo automatico che lo verifica.
+// Riporta una quota (0-1) alla percentuale corrispondente sulla propria scala. Serve a
+// mostrare UN numero per riga: quello che, messo sulla scala, produce i punti scritti a
+// fianco. Senza questa inversione la riga mostrerebbe una percentuale e ne calcolerebbe
+// un'altra, che e' il difetto da cui nasce tutto questo.
+function daScalaTecnica(quota, chiave){
+  const [min, max] = SCALE_TECNICA[chiave];
+  return min + quota * (max - min);
+}
+
+// Il dettaglio della classifica generale, dove la colonna Tecnica e' un misto fra carriera e
+// finestra recente. Si mescolano le QUOTE - i valori gia' portati sulla loro scala - e non le
+// percentuali: e' l'unico modo perche' le tre righe sommino esattamente al numero nella
+// colonna. Una riga per pezzo, la percentuale che conta davvero, i punti che ne escono.
 function dettaglioTecnicaMista(tec, gruppo, colonne){
   const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   const w = tec.pesoForma;
   const pezzi = [
-    { eti: "passaggi riusciti",  unita: "tentati", chiave: "passaggi",  peso: p.passaggi },
-    { eti: "contrasti riusciti", unita: "tentati", chiave: "contrasti", peso: p.contrasti },
-    { eti: "tiri trasformati",   unita: "tiri",    chiave: "tiro",      peso: p.tiro },
+    { eti: "passaggi riusciti",  chiave: "passaggi",  peso: p.passaggi },
+    { eti: "contrasti riusciti", chiave: "contrasti", peso: p.contrasti },
+    { eti: "tiri trasformati",   chiave: "tiro",      peso: p.tiro },
   ];
-  // "sue ultime 19" e non "ultime 19": la finestra scelta e' quella del CLUB (30 partite,
-  // per esempio), ma dentro quella finestra ciascuno ha le proprie presenze. Scrivere solo
-  // "ultime 19" faceva sembrare che fossero le ultime 19 giocate dalla squadra.
-  const etichettaFinestra = `sue ultime ${tec.partiteFinestra}`;
   let totale = 0;
-  let qualcunoSmorzato = false;
 
   const righe = pezzi.map(z => {
     const d = tec.pezzi[z.chiave];
     const misto = d.forma !== null && w > 0;
-
-    // Ogni lato viene smorzato con le PROPRIE prove: e' tutto il punto.
-    const contatoCar = versoLaMediaTecnica(d.car, d.carTent, z.chiave);
-    const quotaCar = suScalaTecnica(contatoCar, z.chiave);
-    const contatoFor = misto ? versoLaMediaTecnica(d.forma, d.formaTent, z.chiave) : null;
-    const quotaFor = misto ? suScalaTecnica(contatoFor, z.chiave) : null;
-
+    // Ogni lato viene smorzato con le PROPRIE prove prima di essere pesato.
+    const quotaCar = suScalaTecnica(versoLaMediaTecnica(d.car, d.carTent, z.chiave), z.chiave);
+    const quotaFor = misto
+      ? suScalaTecnica(versoLaMediaTecnica(d.forma, d.formaTent, z.chiave), z.chiave)
+      : 0;
     const quota = misto ? (1 - w) * quotaCar + w * quotaFor : quotaCar;
     const punti = 100 * z.peso * quota;
     totale += punti;
 
-    const lato = (eti, valore, contato, tentativi) => {
-      const smorzato = Math.abs(contato - valore) >= 1;
-      if(smorzato) qualcunoSmorzato = true;
-      const mostrato = smorzato
-        ? `${valore.toFixed(0)}% <span class="tecq-freccia">vale</span> <strong>${contato.toFixed(0)}%</strong>`
-        : `<strong>${valore.toFixed(0)}%</strong>`;
-      return `<span class="tecq-lato">
-        ${eti ? `<span class="tecq-lato-eti">${eti}</span>` : ""}
-        <span class="tecq-lato-val">${mostrato}</span>
-        <span class="tecq-prove">su ${Math.round(tentativi)} ${z.unita}</span>
-      </span>`;
-    };
-
-    const valori = misto
-      ? lato("carriera", d.car, contatoCar, d.carTent) +
-        lato(etichettaFinestra, d.forma, contatoFor, d.formaTent)
-      : lato("", d.car, contatoCar, d.carTent);
-
     return `<div class="tecq-riga">
       <span class="tecq-eti">${z.eti}</span>
-      <span class="tecq-val tecq-val-doppio">${valori}</span>
+      <span class="tecq-val"><strong>${daScalaTecnica(quota, z.chiave).toFixed(1)}%</strong></span>
       <span class="tecq-barra"><i style="width:${(quota * 100).toFixed(1)}%"></i></span>
       <span class="tecq-peso">×${(z.peso * 100).toFixed(0)}%</span>
       <span class="tecq-punti">${punti.toFixed(1)}</span>
     </div>`;
   }).join("");
-
-  const mix = w > 0 && tec.partiteFinestra > 0
-    ? `<div class="tecq-nota">Qui dentro la carriera pesa ${Math.round((1 - w) * 100)}% e le sue
-       ultime ${tec.partiteFinestra} partite il ${Math.round(w * 100)}%: e' il miscuglio scelto con
-       i bottoni qui sopra, ridotto perche' ${tec.partiteFinestra} presenze non possono spostare
-       il giudizio quanto ne sposterebbero cento. Ogni lato viene pesato DOPO essere stato portato
-       sulla sua scala, quindi i punti delle tre righe sommano esattamente al numero nella colonna
-       Tecnica.</div>`
-    : `<div class="tecq-nota">Nessuna forma recente nel miscuglio: questi sono i numeri di
-       carriera, e i punti delle tre righe sommano al valore della colonna Tecnica.</div>`;
-
-  const nota = qualcunoSmorzato
-    ? `<div class="tecq-nota">Dove compaiono due percentuali, la seconda è quella che conta:
-       poche prove non bastano a provare una percentuale, quindi il valore viene avvicinato
-       alla media del club. Vale nei due sensi — anche uno 0% su due tiri risale.</div>`
-    : "";
 
   return `<tr class="match-detail tecnica-detail"><td colspan="${colonne}"><div class="inner">
       <div class="tecq-titolo">Efficienza tecnica — pesi da ${GROUP_LABELS[gruppo] || "attaccante"}</div>
@@ -412,8 +364,8 @@ function dettaglioTecnicaMista(tec, gruppo, colonne){
         <span class="tecq-barra"></span><span class="tecq-peso"></span>
         <span class="tecq-punti">${totale.toFixed(0)}</span>
       </div>
-      ${mix}
-      ${nota}
+      <div class="tecq-nota">Percentuali già corrette per il numero di prove e per il miscuglio
+        storico/forma scelto sopra.</div>
     </div></td></tr>`;
 }
 

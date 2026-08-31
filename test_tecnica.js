@@ -164,6 +164,22 @@ setTimeout(() => {
   if (primo) {
     const righe = primo.querySelectorAll(".tecq-riga:not(.tecq-totale)").length;
     verifica("il riquadro ha le tre righe dei pezzi", righe === 3, `ne ha ${righe}`);
+    // La percentuale scritta nella riga deve essere quella che GENERA i punti a fianco: e'
+    // la versione visibile dello stesso difetto: mostrare un numero e calcolarne un altro.
+    const SCALE = { "passaggi riusciti": [60, 90], "contrasti riusciti": [5, 50], "tiri trasformati": [10, 50] };
+    let incoerenti = 0;
+    primo.querySelectorAll(".tecq-riga:not(.tecq-totale)").forEach((r) => {
+      const eti = r.querySelector(".tecq-eti").textContent.trim();
+      const pct = parseFloat(r.querySelector(".tecq-val").textContent);
+      const peso = parseFloat(r.querySelector(".tecq-peso").textContent.replace("×", "")) / 100;
+      const punti = parseFloat(r.querySelector(".tecq-punti").textContent);
+      const [min, max] = SCALE[eti] || [0, 100];
+      const attesi = 100 * peso * Math.max(0, Math.min(1, (pct - min) / (max - min)));
+      if (Math.abs(attesi - punti) > 0.1) incoerenti++;
+    });
+    verifica("la percentuale mostrata è quella che produce i punti", incoerenti === 0,
+      `${incoerenti} righe su 3`);
+
     const totale = primo.querySelector(".tecq-totale .tecq-punti");
     const cella = w.document.querySelector("#powerTable tbody tr .tec-apri");
     verifica("il totale del riquadro e' il numero della colonna",

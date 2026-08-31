@@ -404,7 +404,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_pipeline.py` | 94 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
 | `test_apertura.js` | 13 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 108 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
-| `test_tecnica.js` | 8 controlli che chiedono una cosa sola: **la somma delle tre righe del riquadro Tecnica deve fare il numero della colonna Tecnica**, per ogni giocatore e per tutte e 15 le combinazioni di finestra e peso della forma. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
+| `test_tecnica.js` | 9 controlli su una cosa sola: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le tre righe devono sommare alla colonna (180 casi: 12 giocatori × 3 finestre × 5 pesi) e la percentuale scritta in ogni riga deve essere quella che produce i punti a fianco. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -891,15 +891,24 @@ mostrava `50% di tiri` senza dire che erano **quattro tiri**.
 
 La correzione: si mescolano le **quote**, cioè i tre valori già portati sulla loro scala, e
 non le percentuali. La somma pesata resta lineare lì, quindi le tre righe tornano a sommare
-esattamente alla colonna con qualsiasi filtro. Ogni riga ora mostra i due lati separati, con
-le proprie prove:
+esattamente alla colonna con qualsiasi filtro.
+
+Una riga per pezzo, e la percentuale scritta è **quella che genera i punti a fianco** — già
+corretta per il numero di prove e per il miscuglio storico/forma. Il conto torna anche
+rifacendolo a mano:
 
 ```
-                        carriera          80%          su 8810 tentati    ×45%   32.2
-passaggi riusciti       sue ultime 19     86% vale 84% su  339 tentati
-                        carriera          35%          su 1177 tiri       ×45%   34.1
-tiri trasformati        sue ultime 19     61% vale 48% su   31 tiri
+passaggi riusciti     81.5%   ████████████░░░░░░   ×45%   32.2      (81.5−60)/30 × 45
+contrasti riusciti    15.8%   ██░░░░░░░░░░░░░░░░   ×10%    2.4      (15.8−5)/45 × 10
+tiri trasformati      40.3%   █████████████░░░░░   ×45%   34.1      (40.3−10)/40 × 45
+                                                          ─────
+efficienza tecnica                                           69
 ```
+
+Una prima versione mostrava due righe per pezzo — carriera e finestra separate, ciascuna con
+le sue prove. Scartata: troppo rumore accanto ai numeri, e «sue ultime 19 partite» faceva
+nascere la domanda sbagliata. Quello che serve sapere è **quale percentuale conta**, non da
+quali due pezzi nasce.
 
 **Perché nessun test se n'era accorto.** Un controllo che fa esattamente questa somma esisteva
 già dal 29/08 in `test_ruoli.js`. Ma girava su *Reparto per reparto*, dove non c'è nessun
