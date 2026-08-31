@@ -166,6 +166,16 @@ CREATE TABLE IF NOT EXISTS match_player_stats (
 NAME_ALIASES = {
     "pinosix97": "Pesix_97",
 }
+# REGOLA DEL CLUB, per quando servira': se un giocatore ricompare con un gamertag nuovo ma
+# lo stesso id EA, la sua identita' resta quella di prima e si aggiunge qui la coppia
+# "nome nuovo (minuscolo)" -> "nome canonico". Vale in particolare per domenico: comunque
+# si chiami, e' sempre domenico.
+#
+# ATTENZIONE quando `generate_dashboard.py` segnala "l'id EA ... compare con piu' nomi"
+# durante `test_pipeline.py`: quel messaggio arriva da un test che FABBRICA un cambio di
+# nome finto (aggiunge "_nuovo" alla prima riga del database, su una copia) proprio per
+# verificare che la guardia lo veda. Non e' un cambio di nome vero. Prima di aggiungere un
+# alias, controllare che il nome esista davvero nel database.
 
 
 def canonical_name(raw_name):

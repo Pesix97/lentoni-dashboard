@@ -404,6 +404,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_pipeline.py` | 94 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
 | `test_apertura.js` | 13 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 108 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_tecnica.js` | 8 controlli che chiedono una cosa sola: **la somma delle tre righe del riquadro Tecnica deve fare il numero della colonna Tecnica**, per ogni giocatore e per tutte e 15 le combinazioni di finestra e peso della forma. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -862,6 +863,58 @@ Tre controlli in `test_ruoli.js` verificano che il dettaglio non menta: i tre pe
 **ricostruire esattamente** il numero scritto in tabella (37 righe controllate), i pesi
 devono essere quelli del reparto, e le barre non devono uscire dal contenitore nemmeno con
 valori fuori scala.
+
+#### Il riquadro che spiegava un numero diverso da quello mostrato (31/08/2026)
+
+Nella **classifica generale** — quella con i filtri finestra e peso della forma — la colonna
+Tecnica diceva `68` e il riquadro aperto sulla stessa riga sommava `71`. Alla vista
+predefinita lo scarto arrivava a **sette punti** su Adriano, quasi sette su Jysmu.
+
+Le due cose calcolavano davvero numeri diversi:
+
+| | cosa faceva |
+|---|---|
+| **colonna** | mescolava le due efficienze **già calcolate**: `8% × tecnica di carriera + 92% × tecnica di forma` |
+| **riquadro** | mescolava le tre **percentuali grezze** e poi rifaceva il calcolo da capo |
+
+Coinciderebbero se il calcolo fosse lineare. Nel codice c'era anche scritto — *«la
+normalizzazione è lineare, quindi mescolare i grezzi dà lo stesso risultato dei
+normalizzati»* — ed era vero **quando è stato scritto**, con media voto, gol+assist e
+cartellini. La tecnica è stata agganciata a quello stesso meccanismo più tardi, e non è
+lineare: lo smorzamento dipende dai tentativi, e le scale tagliano a 0 e a 100. Un commento
+esatto è invecchiato in silenzio insieme al codice che descriveva.
+
+Ai due errori se ne sommava un terzo, più concreto: il riquadro scriveva **«su 8810 passaggi
+tentati»**, cioè i tentativi di *carriera*, accanto a percentuali che erano al 92% di
+*forma*. Quindi non smorzava quasi niente proprio dove il campione era piccolo — su Jysmu
+mostrava `50% di tiri` senza dire che erano **quattro tiri**.
+
+La correzione: si mescolano le **quote**, cioè i tre valori già portati sulla loro scala, e
+non le percentuali. La somma pesata resta lineare lì, quindi le tre righe tornano a sommare
+esattamente alla colonna con qualsiasi filtro. Ogni riga ora mostra i due lati separati, con
+le proprie prove:
+
+```
+                        carriera          80%          su 8810 tentati    ×45%   32.2
+passaggi riusciti       sue ultime 19     86% vale 84% su  339 tentati
+                        carriera          35%          su 1177 tiri       ×45%   34.1
+tiri trasformati        sue ultime 19     61% vale 48% su   31 tiri
+```
+
+**Perché nessun test se n'era accorto.** Un controllo che fa esattamente questa somma esisteva
+già dal 29/08 in `test_ruoli.js`. Ma girava su *Reparto per reparto*, dove non c'è nessun
+miscuglio: colonna e riquadro partono dagli stessi identici numeri e **non possono**
+divergere. Il test verificava il caso in cui la proprietà è vera per costruzione. Da qui
+`test_tecnica.js`, che la verifica dove può rompersi: 15 combinazioni di finestra e peso, su
+ogni giocatore, e gira in `giro.sh` prima di pubblicare.
+
+Terza cosa, trovata cercando questa: in `computeRoleAggregates` (la formazione tipo) lo
+smorzamento veniva chiamato con `a.passAtt`, `a.tackleAtt`, `a.shots`, mentre su quell'oggetto
+i campi si chiamano `sumPassAttempts`, `sumTackleAttempts`, `sumShots`. Tre `undefined`, e
+`versoLaMediaTecnica` è scritta per tollerare il tentativo mancante — senza denominatore non
+si può smorzare — quindi restituiva il valore grezzo. **Lo smorzamento lì non si è mai
+applicato, senza un errore, senza un test rosso, senza niente.** Corretto: la formazione tipo
+scelta non cambia, cambiano solo i punteggi interni.
 
 ### I pesi della tecnica sono quattro, uno per reparto
 

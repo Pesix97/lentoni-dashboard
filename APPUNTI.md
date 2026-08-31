@@ -98,14 +98,20 @@ dicono se l'automazione è viva.
 Al 24/08 l'automazione ha quattro giorni di funzionamento verificato alle spalle: la rete
 di sicurezza ha esaurito il suo scopo e il task si può eliminare quando capita.
 
-**L'id EA 212808697 (domenicocasaburi/domenicocasaburi_nuovo): verificato, è lo stesso
-giocatore.** `generate_dashboard.py` lo segnala ogni volta che gira, perché quell'id
-compare sotto due nomi diversi — comportamento corretto del controllo, testato apposta in
-README (simula un cambio di nome e verifica che venga segnalato). Peppe ha già confermato
-in passato che è un cambio di nome su EA/PSN dello stesso Domenico, non due persone. Non è
-un difetto da correggere: solo un avviso ricorrente che finché resta un solo id non spezza
-lo storico. Se un giorno EA gli assegnasse un id diverso, allora sì che servirebbe unirlo a
-mano.
+**`domenicocasaburi_nuovo` non esiste: lo inventa un test.** Verificato il 31/08/2026
+interrogando il database — l'id EA 212808697 compare sotto **un nome solo**. L'avviso
+«l'id EA 212808697 compare con più nomi» esce unicamente mentre gira `test_pipeline.py`,
+perché `test_un_cambio_di_nome_viene_segnalato` **fabbrica** un cambio di nome finto: prende
+la prima riga del database, su una copia, e le appiccica `_nuovo`. Quella prima riga è di
+domenico, e da lì il nome che sembra vero.
+
+Quindi: nessun alias da aggiungere, niente da correggere. Chi legge quell'avviso senza sapere
+da dove viene lo scambia per un problema — è già successo. **Prima di trattarlo come reale,
+interrogare il database.**
+
+Resta valida la regola per quando capiterà sul serio: se qualcuno ricompare con un gamertag
+nuovo e lo stesso id EA, è la stessa persona e si aggiunge la coppia in `NAME_ALIASES` dentro
+`ingest.py`. Per domenico vale in ogni caso: comunque si chiami, è sempre domenico.
 
 ---
 
@@ -559,6 +565,27 @@ lasciato al suo posto, in `modello/pagina.js`.
   per una, `test_pipeline.py` cerca stringhe nel file. Da qui `test_apertura.js`, che apre
   davvero la pagina in un motore HTML e chiede: parte? il menu ha voci? le tabelle hanno
   righe? È la domanda più semplice di tutte, ed era l'unica che nessuno faceva.
+- **Un test che verifica una proprietà dove non può rompersi non è un test.** Dal 29/08 c'era
+  un controllo che sommava i tre pezzi del riquadro Tecnica e chiedeva che facessero il
+  numero della colonna. Girava su *Reparto per reparto*, dove colonna e riquadro partono
+  dagli stessi identici numeri: la somma **non poteva** non tornare. Nella classifica
+  generale, dove c'è il miscuglio carriera/forma, nessuno guardava — e lì lo scarto era di
+  sette punti. Regola: prima di scrivere un'asserzione, chiedersi **in quale caso potrebbe
+  fallire**; se non esiste, si sta verificando una tautologia.
+- **Un commento giusto invecchia insieme al codice che descrive.** «La normalizzazione è
+  lineare, quindi mescolare i grezzi dà lo stesso risultato dei normalizzati» era vero quando
+  è stato scritto (media voto, gol+assist, cartellini). Poi l'efficienza tecnica è stata
+  agganciata allo stesso meccanismo: ha lo smorzamento, che dipende dai tentativi, e le scale
+  che tagliano a 0 e 100. Il commento è rimasto lì a rassicurare per due giorni su una cosa
+  che non valeva più. **Quando si aggiunge una voce a un meccanismo, si rilegge il commento
+  che ne giustifica il funzionamento**, non solo il codice.
+- **Un difetto silenzioso è peggio di uno che rompe la pagina.** In `computeRoleAggregates` lo
+  smorzamento veniva chiamato con `a.passAtt` invece di `a.sumPassAttempts`: tre `undefined`.
+  E `versoLaMediaTecnica` è scritta per tollerare il tentativo mancante — senza denominatore
+  non si può smorzare — quindi restituiva il valore grezzo e nessuno se ne è accorto per
+  giorni. La tolleranza che rende robusta una funzione è la stessa che nasconde l'errore di
+  chi la chiama. Dove si tollera un dato mancante, **vale la pena distinguere "assente" da
+  "sbagliato"**.
 - **Fra due danni possibili, proteggere quello irreversibile.** Le guardie prima della
   pubblicazione saltavano l'intero commit quando la pagina usciva male — database compreso.
   Ma una pagina rotta si rigenera al giro dopo, mentre una partita uscita dalla finestra di

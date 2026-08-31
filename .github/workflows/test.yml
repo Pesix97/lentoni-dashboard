@@ -31,6 +31,18 @@ jobs:
       - name: Test della logica dei ruoli
         run: node test_ruoli.js /tmp/prova.html
 
+      # Serve jsdom: questi due montano la pagina in un motore HTML vero invece di leggerla
+      # come testo. Sono le uniche reti che si accorgono di un guasto che vive dentro un
+      # template letterale, cioe' in un pezzo di codice che nessun altro test esegue.
+      - name: Installa jsdom
+        run: npm install --no-save --no-fund --no-audit jsdom
+
+      - name: La pagina si apre davvero
+        run: node test_apertura.js /tmp/prova.html
+
+      - name: Il dettaglio della tecnica quadra con la colonna
+        run: node test_tecnica.js /tmp/prova.html
+
       - name: Sintassi degli script
         run: |
           bash -n giro.sh

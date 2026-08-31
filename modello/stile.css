@@ -475,7 +475,9 @@
   color:var(--muted); margin-bottom:10px;
 }
 .tecq-riga{
-  display:grid; grid-template-columns:minmax(150px,1.2fr) minmax(120px,auto) minmax(60px,1fr) 46px 48px;
+  /* La seconda colonna ha un tetto: da quando porta DUE righe (carriera e forma) senza un
+     massimo si allargava a piacere e schiacciava la barra fino a farla sparire. */
+  display:grid; grid-template-columns:minmax(150px,1.2fr) minmax(120px,300px) minmax(60px,1fr) 46px 48px;
   align-items:center; gap:12px; padding:6px 0; font-size:12.5px;
 }
 .tecq-eti{ color:var(--muted); line-height:1.35; }
@@ -490,6 +492,16 @@
   overflow:hidden; display:block; min-width:40px;
 }
 .tecq-barra i{ display:block; height:8px; border-radius:5px; background:var(--accent); }
+/* Quando la colonna e' un misto fra carriera e finestra recente, la cella dei valori porta
+   due righe invece di una: ciascuna con la sua percentuale e le sue prove. Vederle separate
+   e' il modo di capire perche' il numero si sposta quando si muove il filtro. */
+.tecq-val-doppio{ white-space:normal; display:flex; flex-direction:column; gap:3px; align-items:flex-end; }
+.tecq-lato{ display:flex; align-items:baseline; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
+.tecq-lato-eti{
+  font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+  opacity:.55; min-width:60px; text-align:right;
+}
+.tecq-lato-val{ font-variant-numeric:tabular-nums; white-space:nowrap; }
 .tecq-totale{ border-top:1px solid var(--border); margin-top:8px; padding-top:10px; }
 .tecq-totale .tecq-eti{ color:var(--text); font-weight:600; }
 .tecq-nota{
@@ -501,4 +513,5 @@
 @media (max-width:820px){
   .tecq-riga{ grid-template-columns:1fr auto 46px; gap:8px; }
   .tecq-barra, .tecq-peso{ display:none; }
+  .tecq-lato-eti{ min-width:0; }
 }

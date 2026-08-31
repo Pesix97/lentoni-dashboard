@@ -94,13 +94,20 @@ python3 generate_dashboard.py --db lentoni.db --out index.html
 python3 -m unittest test_pipeline
 node test_ruoli.js index.html
 node test_apertura.js index.html     # apre davvero la pagina: serve `npm install jsdom`
+node test_tecnica.js index.html      # il riquadro Tecnica somma al numero della colonna
 ```
 
-**L'ultimo non è opzionale, ed è nato da un guasto in produzione.** Il 29/08/2026 una
+**Gli ultimi due non sono opzionali, e sono nati da guasti veri.** Il 29/08/2026 una
 dashboard inutilizzabile è finita online con tutti gli altri controlli verdi: una variabile
 scritta male dentro un template letterale, `ReferenceError` a runtime, niente menu e
 diciassette sezioni impilate. Sintassi giusta, ancore tutte presenti, 192 controlli passati.
 Nessuno montava i pezzi per vedere se la cosa si accendeva.
+
+Il 31/08/2026, stessa lezione da un'altra parte: la colonna Tecnica mostrava 68 e il riquadro
+che la spiega, aperto sulla stessa riga, 71. Un controllo che faceva esattamente quella somma
+esisteva già — ma girava dove colonna e riquadro partono dagli stessi numeri e **non possono**
+divergere. **Prima di scrivere un'asserzione, chiedersi in quale caso potrebbe fallire.** Se
+non esiste un caso simile, si sta verificando una tautologia.
 
 **Il "Come funziona" della dashboard spiega COME FUNZIONA, non cosa abbiamo fatto.** È una
 distinzione che si perde da sola: ogni modifica lascia la tentazione di scrivere lì perché è

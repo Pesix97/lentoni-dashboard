@@ -482,7 +482,9 @@
   color:var(--muted); margin-bottom:10px;
 }
 .tecq-riga{
-  display:grid; grid-template-columns:minmax(150px,1.2fr) minmax(120px,auto) minmax(60px,1fr) 46px 48px;
+  /* La seconda colonna ha un tetto: da quando porta DUE righe (carriera e forma) senza un
+     massimo si allargava a piacere e schiacciava la barra fino a farla sparire. */
+  display:grid; grid-template-columns:minmax(150px,1.2fr) minmax(120px,300px) minmax(60px,1fr) 46px 48px;
   align-items:center; gap:12px; padding:6px 0; font-size:12.5px;
 }
 .tecq-eti{ color:var(--muted); line-height:1.35; }
@@ -497,6 +499,16 @@
   overflow:hidden; display:block; min-width:40px;
 }
 .tecq-barra i{ display:block; height:8px; border-radius:5px; background:var(--accent); }
+/* Quando la colonna e' un misto fra carriera e finestra recente, la cella dei valori porta
+   due righe invece di una: ciascuna con la sua percentuale e le sue prove. Vederle separate
+   e' il modo di capire perche' il numero si sposta quando si muove il filtro. */
+.tecq-val-doppio{ white-space:normal; display:flex; flex-direction:column; gap:3px; align-items:flex-end; }
+.tecq-lato{ display:flex; align-items:baseline; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
+.tecq-lato-eti{
+  font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+  opacity:.55; min-width:60px; text-align:right;
+}
+.tecq-lato-val{ font-variant-numeric:tabular-nums; white-space:nowrap; }
 .tecq-totale{ border-top:1px solid var(--border); margin-top:8px; padding-top:10px; }
 .tecq-totale .tecq-eti{ color:var(--text); font-weight:600; }
 .tecq-nota{
@@ -508,6 +520,7 @@
 @media (max-width:820px){
   .tecq-riga{ grid-template-columns:1fr auto 46px; gap:8px; }
   .tecq-barra, .tecq-peso{ display:none; }
+  .tecq-lato-eti{ min-width:0; }
 }
 </style>
 </head>
@@ -1332,6 +1345,102 @@ function dettaglioTecnica(passaggi, contrasti, tiro, gruppo, colonne, tentativi)
     </div></td></tr>`;
 }
 
+// Il dettaglio della classifica generale, dove la colonna Tecnica non e' un numero solo ma
+// un misto fra la carriera e la finestra recente scelta con i filtri.
+//
+// Qui i due lati restano visibili e separati: si vede la percentuale di carriera con le sue
+// prove, quella della finestra con le sue, e i punti che nascono dal miscuglio. La barra
+// mostra dove cade il valore mescolato sulla propria scala.
+//
+// La regola che tiene in piedi tutto: si mescolano le QUOTE, cioe' i valori gia' portati
+// sulla loro scala, non le percentuali. Cosi' i punti delle tre righe sommano esattamente
+// al numero della colonna - il che e' l'unica cosa che rende questo riquadro una spiegazione
+// invece di un secondo parere. C'e' un controllo automatico che lo verifica.
+function dettaglioTecnicaMista(tec, gruppo, colonne){
+  const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
+  const w = tec.pesoForma;
+  const pezzi = [
+    { eti: "passaggi riusciti",  unita: "tentati", chiave: "passaggi",  peso: p.passaggi },
+    { eti: "contrasti riusciti", unita: "tentati", chiave: "contrasti", peso: p.contrasti },
+    { eti: "tiri trasformati",   unita: "tiri",    chiave: "tiro",      peso: p.tiro },
+  ];
+  // "sue ultime 19" e non "ultime 19": la finestra scelta e' quella del CLUB (30 partite,
+  // per esempio), ma dentro quella finestra ciascuno ha le proprie presenze. Scrivere solo
+  // "ultime 19" faceva sembrare che fossero le ultime 19 giocate dalla squadra.
+  const etichettaFinestra = `sue ultime ${tec.partiteFinestra}`;
+  let totale = 0;
+  let qualcunoSmorzato = false;
+
+  const righe = pezzi.map(z => {
+    const d = tec.pezzi[z.chiave];
+    const misto = d.forma !== null && w > 0;
+
+    // Ogni lato viene smorzato con le PROPRIE prove: e' tutto il punto.
+    const contatoCar = versoLaMediaTecnica(d.car, d.carTent, z.chiave);
+    const quotaCar = suScalaTecnica(contatoCar, z.chiave);
+    const contatoFor = misto ? versoLaMediaTecnica(d.forma, d.formaTent, z.chiave) : null;
+    const quotaFor = misto ? suScalaTecnica(contatoFor, z.chiave) : null;
+
+    const quota = misto ? (1 - w) * quotaCar + w * quotaFor : quotaCar;
+    const punti = 100 * z.peso * quota;
+    totale += punti;
+
+    const lato = (eti, valore, contato, tentativi) => {
+      const smorzato = Math.abs(contato - valore) >= 1;
+      if(smorzato) qualcunoSmorzato = true;
+      const mostrato = smorzato
+        ? `${valore.toFixed(0)}% <span class="tecq-freccia">vale</span> <strong>${contato.toFixed(0)}%</strong>`
+        : `<strong>${valore.toFixed(0)}%</strong>`;
+      return `<span class="tecq-lato">
+        ${eti ? `<span class="tecq-lato-eti">${eti}</span>` : ""}
+        <span class="tecq-lato-val">${mostrato}</span>
+        <span class="tecq-prove">su ${Math.round(tentativi)} ${z.unita}</span>
+      </span>`;
+    };
+
+    const valori = misto
+      ? lato("carriera", d.car, contatoCar, d.carTent) +
+        lato(etichettaFinestra, d.forma, contatoFor, d.formaTent)
+      : lato("", d.car, contatoCar, d.carTent);
+
+    return `<div class="tecq-riga">
+      <span class="tecq-eti">${z.eti}</span>
+      <span class="tecq-val tecq-val-doppio">${valori}</span>
+      <span class="tecq-barra"><i style="width:${(quota * 100).toFixed(1)}%"></i></span>
+      <span class="tecq-peso">×${(z.peso * 100).toFixed(0)}%</span>
+      <span class="tecq-punti">${punti.toFixed(1)}</span>
+    </div>`;
+  }).join("");
+
+  const mix = w > 0 && tec.partiteFinestra > 0
+    ? `<div class="tecq-nota">Qui dentro la carriera pesa ${Math.round((1 - w) * 100)}% e le sue
+       ultime ${tec.partiteFinestra} partite il ${Math.round(w * 100)}%: e' il miscuglio scelto con
+       i bottoni qui sopra, ridotto perche' ${tec.partiteFinestra} presenze non possono spostare
+       il giudizio quanto ne sposterebbero cento. Ogni lato viene pesato DOPO essere stato portato
+       sulla sua scala, quindi i punti delle tre righe sommano esattamente al numero nella colonna
+       Tecnica.</div>`
+    : `<div class="tecq-nota">Nessuna forma recente nel miscuglio: questi sono i numeri di
+       carriera, e i punti delle tre righe sommano al valore della colonna Tecnica.</div>`;
+
+  const nota = qualcunoSmorzato
+    ? `<div class="tecq-nota">Dove compaiono due percentuali, la seconda è quella che conta:
+       poche prove non bastano a provare una percentuale, quindi il valore viene avvicinato
+       alla media del club. Vale nei due sensi — anche uno 0% su due tiri risale.</div>`
+    : "";
+
+  return `<tr class="match-detail tecnica-detail"><td colspan="${colonne}"><div class="inner">
+      <div class="tecq-titolo">Efficienza tecnica — pesi da ${GROUP_LABELS[gruppo] || "attaccante"}</div>
+      ${righe}
+      <div class="tecq-riga tecq-totale">
+        <span class="tecq-eti">efficienza tecnica</span><span class="tecq-val"></span>
+        <span class="tecq-barra"></span><span class="tecq-peso"></span>
+        <span class="tecq-punti">${totale.toFixed(0)}</span>
+      </div>
+      ${mix}
+      ${nota}
+    </div></td></tr>`;
+}
+
 // ---- Quante prove servono perche' una percentuale valga per se stessa ----
 //
 // Difetto trovato il 29/08/2026 su una segnalazione: un centrocampista risultava a 97 di
@@ -1646,6 +1755,10 @@ function computeFormScores(windowSize){
         // I tre pezzi si conservano anche separati: il testa a testa apre l'efficienza
         // tecnica per mostrare da quale dei tre nasce il distacco.
         passaggi: pass, contrasti: tackle, tiro: shot,
+        // E con loro i TENTATIVI della finestra. Senza questi il dettaglio finiva per
+        // spiegare una percentuale recente usando i tentativi di tutta la carriera, cioe'
+        // per non smorzarla affatto: e' il difetto trovato il 31/08/2026.
+        tentPassaggi: a.passAtt, tentContrasti: a.tackleAtt, tentTiro: a.shots,
         redRate:   a.red / a.games,
       };
     });
@@ -1712,10 +1825,49 @@ function computeBlendedScores(windowSize, weight){
     Object.keys(carriera).forEach(k => {
       grezzi[k] = hasForm ? (1 - pesoForma) * carriera[k] + pesoForma * daForma[k] : carriera[k];
     });
+    // ---- I due lati della tecnica, tenuti separati ----
+    //
+    // DIFETTO TROVATO IL 31/08/2026, su segnalazione: la colonna Tecnica diceva 68 e il
+    // dettaglio, aperto sulla stessa riga, 71. Su Adriano alla vista predefinita lo scarto
+    // arrivava a sette punti.
+    //
+    // Le due cose calcolavano davvero numeri diversi. La colonna mescola le due efficienze
+    // GIA' FINITE (quella di carriera e quella di forma); il dettaglio mescolava le tre
+    // percentuali grezze e poi rifaceva il calcolo da capo. Coinciderebbero se il calcolo
+    // fosse lineare - ed e' esattamente cio' che il commento qui sopra da' per scontato,
+    // scritto quando le voci erano solo media voto, gol+assist e cartellini. Per quelle e'
+    // vero. Per la tecnica no: lo smorzamento dipende dai TENTATIVI (diversi fra carriera e
+    // finestra) e le scale tagliano a 0 e a 100, e un taglio non e' un'operazione lineare.
+    //
+    // Ai due errori se ne sommava un terzo: il dettaglio mostrava i tentativi di CARRIERA
+    // ("su 8810 passaggi") accanto a percentuali che erano al 92% di forma, quindi non
+    // smorzava quasi nulla mentre la colonna smorzava sul campione vero della finestra.
+    //
+    // La somma pesata resta pero' lineare NELLE QUOTE, cioe' nei tre valori gia' portati
+    // sulla loro scala. Mescolando li' - e non prima, sulle percentuali - le tre righe del
+    // dettaglio tornano a sommare esattamente alla colonna, qualunque sia il peso scelto.
+    // Per questo qui si conservano i due lati separati invece del solo risultato.
+    const lato = (car, carTent, fo, foTent) => ({
+      car, carTent, forma: hasForm ? fo : null, formaTent: hasForm ? foTent : null,
+    });
+    const tCar = tentativiDiCarriera(g);
+    const tecnica = {
+      pesoForma,
+      partiteFinestra: hasForm ? f.games : 0,
+      pezzi: {
+        passaggi:  lato(g.pass_success_rate,   tCar.passaggi,
+                        hasForm ? f.passaggi : 0,  hasForm ? f.tentPassaggi : 0),
+        contrasti: lato(g.tackle_success_rate, tCar.contrasti,
+                        hasForm ? f.contrasti : 0, hasForm ? f.tentContrasti : 0),
+        tiro:      lato(g.shot_success_rate,   tCar.tiro,
+                        hasForm ? f.tiro : 0,      hasForm ? f.tentTiro : 0),
+      },
+    };
     return {
       ...s,
       vociMescolate: voci,
       grezziMescolati: grezzi,
+      tecnica,
       historicScore: s.score,
       formScore: hasForm ? f.score : null,
       formGames: hasForm ? f.games : 0,
@@ -2589,7 +2741,7 @@ let growthChart = null;
           <td data-label="Tecnica"><span class="tec-apri" data-tec="g-${s.r.player_name}">${s.grezziMescolati.tech.toFixed(0)}</span></td>
           <td data-label="MOTM%">${s.motmRate.toFixed(0)}%</td>
         </tr>
-        ${dettaglioTecnica(s.grezziMescolati.passaggi, s.grezziMescolati.contrasti, s.grezziMescolati.tiro, s.r.gruppo, 11, tentativiDiCarriera(s.r)).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-g-${s.r.player_name}"`)}`;
+        ${dettaglioTecnicaMista(s.tecnica, s.r.gruppo, 11).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-g-${s.r.player_name}"`)}`;
       }
       const i = posizione++;
       const rankCls = i===0 ? "g1" : i===1 ? "g2" : i===2 ? "g3" : "";
@@ -2607,7 +2759,7 @@ let growthChart = null;
           <td data-label="Tecnica"><span class="tec-apri" data-tec="g-${s.r.player_name}">${s.grezziMescolati.tech.toFixed(0)}</span></td>
           <td data-label="MOTM%">${s.motmRate.toFixed(0)}%</td>
         </tr>
-        ${dettaglioTecnica(s.grezziMescolati.passaggi, s.grezziMescolati.contrasti, s.grezziMescolati.tiro, s.r.gruppo, 11, tentativiDiCarriera(s.r)).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-g-${s.r.player_name}"`)}
+        ${dettaglioTecnicaMista(s.tecnica, s.r.gruppo, 11).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-g-${s.r.player_name}"`)}
       `;
     }).join("");
   }
@@ -2976,8 +3128,15 @@ function computeRoleAggregates(){
       winRate: (a.sumWin / a.games) * 100,
       // Qui NON si usano i pesi difensivi: questa e' la base della formazione tipo, che
       // per decisione esplicita del club resta com'e' finche' non si chiede di cambiarla.
+      // I nomi dei campi qui sono sumPassAttempts / sumTackleAttempts / sumShots. Fino al
+      // 31/08/2026 c'era scritto a.passAtt / a.tackleAtt / a.shots, che su questo oggetto
+      // sono tre `undefined`: versoLaMediaTecnica e' scritta per tollerare il tentativo
+      // mancante (senza denominatore non si puo' smorzare) e restituiva il valore grezzo.
+      // Risultato: lo smorzamento qui non si e' mai applicato, in silenzio. Un difetto che
+      // non fa rumore e' peggio di uno che rompe la pagina - questo e' rimasto nascosto
+      // finche' non e' saltato fuori cercando tutt'altro.
       techEff: efficienzaTecnica(passSuccess, tackleSuccess, shotSuccess, null,
-                 { passaggi: a.passAtt, contrasti: a.tackleAtt, tiro: a.shots }),
+                 { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots }),
       redRate: a.sumRedCards / a.games,
       fallback: false,
     };

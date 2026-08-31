@@ -178,6 +178,13 @@ if [ -d node_modules/jsdom ] || node -e "require('jsdom')" 2>/dev/null; then
     echo "  la pagina non si apre: pubblico solo il database, non la pagina"
     SOLO_DATABASE="si"
   fi
+  # Il riquadro della tecnica deve sommare al numero della colonna. Sta qui e non fra i test
+  # generali perche' e' una cosa che si rompe con i DATI, non con il codice: bastano poche
+  # partite recenti di un giocatore per finire in un caso limite delle scale.
+  if ! node test_tecnica.js index.html; then
+    echo "  il dettaglio della tecnica non quadra con la colonna: pubblico solo il database"
+    SOLO_DATABASE="si"
+  fi
 else
   echo "  jsdom assente: salto il controllo di apertura (non bloccante)"
 fi
