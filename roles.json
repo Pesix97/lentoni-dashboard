@@ -117,6 +117,60 @@
   ],
   "eccezioni_partita": [
     {
+      "match_id": "1021160454210393",
+      "quando": "31/08 00:07 SertGirenler FC",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1021160454210393",
+      "quando": "31/08 00:07 SertGirenler FC",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1021210557950240",
+      "quando": "31/08 00:25 Brabonjak FC",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1021210557950240",
+      "quando": "31/08 00:25 Brabonjak FC",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1021210557950240",
+      "quando": "31/08 00:25 Brabonjak FC",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1021312487870040",
+      "quando": "31/08 00:48 TBOX Masia",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1021312487870040",
+      "quando": "31/08 00:48 TBOX Masia",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1021484083600169",
+      "quando": "31/08 01:04 Foot2LaR",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1021544225690396",
+      "quando": "31/08 01:34 Fideoss FC",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
       "match_id": "990436866090226",
       "quando": "21/08 01:28 FRISAPOMODORO39",
       "giocatore": "Pesix_97",
@@ -1239,6 +1293,10 @@
     {
       "serata": "2026-08-28T20:45Z",
       "partite": 10
+    },
+    {
+      "serata": "2026-08-30T22:07Z",
+      "partite": 5
     }
   ],
   "_serate_chiuse": [

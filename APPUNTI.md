@@ -39,6 +39,22 @@ riga può restare falsa: sette giorni.
 
 ## Da fare quando capita
 
+**Da correggere subito: la tabella diagnostica dice una cosa ora falsa.** In README,
+CLAUDE.md e nel compito della guardia notturna c'è scritto che nelle Actions le *righe
+grigie, cancellate* significano «le uccidiamo noi». Era vero prima del 29/08/2026, quando
+`cancel-in-progress` valeva anche per i cicli programmati.
+
+Adesso **è falso e fuorviante**: con l'accodamento le partenze in coda vengono cancellate a
+decine — quattro cron l'ora contro un ciclo che dura cinque ore fanno una ventina di
+cancellazioni per ciclo — ed è il funzionamento normale. Peppe ha aperto le Actions il
+31/08 durante una serata, ha visto nove righe grigie di fila e si è allarmato: giustamente,
+perché la nostra documentazione gli diceva che era colpa nostra.
+
+Il segnale vero non è il colore delle righe ma: **c'è almeno un'esecuzione che sta facendo
+giri?** E si legge nel battito (`esecuzioni` con evento `schedule`), non nelle Actions. Nelle
+Actions serve semmai il contrario: se NON ci sono righe affatto, GitHub non sta lanciando.
+
+
 **La riga della salute archivio: risolto il 29/08/2026.** Diceva «108 partite archiviate in
 totale» e sotto «ne abbiamo salvate 98 (74%)» senza spiegare perché i due numeri non
 coincidessero, e la domanda di Peppe è stata quella che farebbe chiunque legga.
