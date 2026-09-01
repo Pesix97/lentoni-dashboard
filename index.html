@@ -620,7 +620,7 @@
         <thead><tr id="rosterHead">
           <th class="col-rango">#</th>
           <th data-key="player_name">Giocatore</th>
-          <th data-key="role_effective">Ruolo</th>
+          <th data-key="gruppo">Ruolo</th>
           <th data-key="pro_overall">OVR</th>
           <th data-key="games_played">PG</th>
           <th data-key="win_rate">Win%</th>
@@ -2085,7 +2085,7 @@ function fmtStatValue(def, v){
 // Niente e' andato perso, incluse le soglie: le classifiche escludevano dalle percentuali
 // chi aveva poche partite (MIN_GAMES_RATE), ma quella soglia coincide con il minimo per
 // entrare in rosa, quindi qui la rispettano gia' tutti.
-const COLONNE_BASE = ["player_name","role_effective","pro_overall","games_played",
+const COLONNE_BASE = ["player_name","gruppo","pro_overall","games_played",
                       "win_rate","goals","assists","rating_ave","man_of_the_match","red_cards"];
 const COLONNE_EXTRA = STAT_DEFS
   .filter(d => !COLONNE_BASE.includes(d.key))
@@ -2124,7 +2124,6 @@ function renderRoster(){
       th.dataset.verso = rosterSort.dir === -1 ? "giu" : "su";
     else delete th.dataset.verso;
   });
-  collegaOrdinamento();
 
   const tbody = document.querySelector("#rosterTable tbody");
   if(rows.length === 0){
@@ -2166,14 +2165,25 @@ function ordinaPer(key){
   renderRoster();
 }
 
-// Le intestazioni vengono ricostruite a ogni disegno, quindi gli ascoltatori si riattaccano.
-function collegaOrdinamento(){
-  document.querySelectorAll('#rosterTable th').forEach(th => {
-    if(!th.dataset.key || th.dataset.collegata) return;
-    th.dataset.collegata = "1";
-    th.addEventListener("click", () => ordinaPer(th.dataset.key));
+// L'ascolto sta sulla RIGA delle intestazioni, non sulle singole celle.
+//
+// Le celle vengono ricostruite a ogni disegno (le colonne aggiunte compaiono e spariscono),
+// quindi un ascoltatore attaccato a una cella muore con lei. Il primo tentativo riattaccava
+// gli ascoltatori dopo ogni ricostruzione, saltando quelle gia' collegate con un attributo
+// `data-collegata` - ma le celle si ricostruiscono da `outerHTML`, che quell'attributo se lo
+// porta dietro: rinascevano tutte marcate come collegate, e nessuna lo era piu'.
+// Risultato: le intestazioni non rispondevano piu' al clic. Segnalato subito, il 01/09/2026.
+//
+// Un ascoltatore solo sulla riga - che non viene mai sostituita - non ha questo problema e
+// non ha stato da tenere in ordine.
+(function ascoltaIntestazioni(){
+  const testa = document.getElementById("rosterHead");
+  if(!testa) return;
+  testa.addEventListener("click", (e) => {
+    const th = e.target.closest("th");
+    if(th && th.dataset.key) ordinaPer(th.dataset.key);
   });
-}
+})();
 
 (function inizializzaColonne(){
   const barra = document.getElementById("rosterColonne");

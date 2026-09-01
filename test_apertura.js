@@ -100,6 +100,7 @@ setTimeout(() => {
     // La sezione "Classifiche complete" e' stata assorbita dalla tabella dei giocatori il
     // 01/09/2026: al suo posto si controlla che quella tabella sappia aggiungere colonne.
     ["barra delle colonne aggiuntive", "#rosterColonne .filter-btn"],
+    ["intestazioni ordinabili", "#rosterHead th[data-key]"],
   ];
   riempite.forEach(([nome, sel]) => {
     const n = d.querySelectorAll(sel).length;
@@ -125,6 +126,36 @@ setTimeout(() => {
   // E i dettagli devono partire CHIUSI: aperti tutti insieme la tabella e' illeggibile.
   const apertiSubito = d.querySelectorAll("tr.tecnica-detail.open").length;
   verifica("i dettagli partono chiusi", apertiSubito === 0, `${apertiSubito} gia' aperti`);
+
+  // Le intestazioni della tabella giocatori devono RISPONDERE al clic, non solo esistere.
+  // Il 01/09/2026 sono rimaste mute per un giro: le celle si ricostruiscono da `outerHTML`,
+  // che si portava dietro il marcatore "ascoltatore gia' attaccato" senza l'ascoltatore.
+  // Esistevano, avevano il data-key giusto, erano perfette a guardarle - e non facevano
+  // niente. Da qui il controllo: si clicca davvero e si guarda se l'ordine cambia.
+  {
+    const nomePrimo = () => {
+      const c = d.querySelector("#rosterTable tbody tr td:nth-child(2)");
+      return c ? c.textContent.trim() : null;
+    };
+    const th = (k) => [...d.querySelectorAll("#rosterHead th")].find(t => t.dataset.key === k);
+    const partenza = nomePrimo();
+    if (th("games_played")) th("games_played").click();
+    const dopoPresenze = nomePrimo();
+    verifica("cliccare un'intestazione riordina la tabella",
+      partenza !== null && dopoPresenze !== null && partenza !== dopoPresenze,
+      `prima ${partenza}, dopo ${dopoPresenze}`);
+
+    // Secondo clic sulla stessa: l'ordine si inverte, e chi era primo non lo e' piu'.
+    if (th("games_played")) th("games_played").click();
+    verifica("il secondo clic inverte il verso",
+      nomePrimo() !== dopoPresenze, `resta ${nomePrimo()}`);
+
+    // E il segno di quale colonna sta ordinando deve seguire il clic.
+    const ordinata = d.querySelector("#rosterHead th.ordinata");
+    verifica("l'intestazione ordinata e' segnalata",
+      !!ordinata && ordinata.dataset.key === "games_played" && !!ordinata.dataset.verso,
+      ordinata ? `${ordinata.dataset.key} ${ordinata.dataset.verso}` : "nessuna");
+  }
 
   // 6. Una sezione alla volta. La dashboard e' una pagina sola che ne mostra una per volta:
   //    se il JavaScript muore prima di nasconderle, si vedono tutte impilate - ed e'

@@ -565,6 +565,13 @@ lasciato al suo posto, in `modello/pagina.js`.
   per una, `test_pipeline.py` cerca stringhe nel file. Da qui `test_apertura.js`, che apre
   davvero la pagina in un motore HTML e chiede: parte? il menu ha voci? le tabelle hanno
   righe? È la domanda più semplice di tutte, ed era l'unica che nessuno faceva.
+- **«C'è» non vuol dire «funziona».** Le intestazioni della tabella giocatori esistevano,
+  avevano il `data-key` giusto, erano perfette a guardarle — e al clic non facevano niente.
+  Causa: le celle si ricostruiscono da `outerHTML`, che si porta dietro il `data-collegata`
+  con cui si evitava di riattaccare due volte l'ascoltatore. Rinascevano tutte marcate come
+  collegate, e nessuna lo era. **Un attributo non è uno stato affidabile se il markup viene
+  rigenerato**: meglio un ascoltatore solo sul contenitore, che non ha stato da tenere in
+  ordine. E i controlli devono *cliccare*, non contare elementi.
 - **Due tabelle sugli stessi numeri sono una tabella e un filtro.** «Rosa» e «Classifiche
   complete» leggevano lo stesso `DATA.roster`: la prima mostrava dieci colonne insieme, la
   seconda una statistica alla volta con la posizione a fianco. Non erano due funzioni, erano
