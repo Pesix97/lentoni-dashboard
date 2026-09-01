@@ -1044,97 +1044,6 @@ function sparkline(trend){
   ).join("")}</div>`;
 }
 
-// ---- Roster table ----
-let rosterSort = { key: "goals", dir: -1 };
-function renderRoster(){
-  const filterVal = document.getElementById("rosterFilter").value.toLowerCase();
-  let rows = (DATA.roster || []).filter(r =>
-    (r.player_name||"").toLowerCase().includes(filterVal) ||
-    (r.pro_name||"").toLowerCase().includes(filterVal)
-  );
-  rows.sort((a,b) => {
-    const av = a[rosterSort.key], bv = b[rosterSort.key];
-    if (typeof av === "string") return av.localeCompare(bv) * rosterSort.dir;
-    return ((av||0) - (bv||0)) * rosterSort.dir;
-  });
-  const tbody = document.querySelector("#rosterTable tbody");
-  if(rows.length === 0){
-    tbody.innerHTML = `<tr><td colspan="11" class="empty">Nessun giocatore trovato</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td data-label="Giocatore"><span class="player-link" data-player="${r.player_name}">${r.player_name}</span>${r.pro_name && r.pro_name !== r.player_name ? ` <span class="pos-badge">(${r.pro_name})</span>` : ""}</td>
-      <td data-label="Ruolo">${gruppoBadge(r.gruppo, r.gruppo_da_assegnare)}</td>
-      <td data-label="OVR">${r.pro_overall || "-"}</td>
-      <td data-label="PG">${r.games_played}</td>
-      <td data-label="Win%">${r.win_rate}%</td>
-      <td data-label="Gol">${r.goals}</td>
-      <td data-label="Assist">${r.assists}</td>
-      <td data-label="Media">${r.rating_ave}</td>
-      <td data-label="MOTM">${r.man_of_the_match}</td>
-      <td data-label="Rossi">${r.red_cards}</td>
-      <td data-label="Forma">${sparkline((r.prev_goals_trend||[]).slice().reverse())}</td>
-    </tr>
-  `).join("");
-  updateQuickFilterHighlight();
-}
-function updateQuickFilterHighlight(){
-  document.querySelectorAll('#rosterQuickFilters .filter-btn').forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.key === rosterSort.key);
-  });
-}
-document.getElementById("rosterFilter").addEventListener("input", renderRoster);
-document.querySelectorAll('#rosterTable th').forEach(th => {
-  th.addEventListener("click", () => {
-    const key = th.dataset.key;
-    if(!key) return;
-    rosterSort.dir = (rosterSort.key === key) ? -rosterSort.dir : -1;
-    rosterSort.key = key;
-    renderRoster();
-  });
-});
-document.querySelectorAll('#rosterQuickFilters .filter-btn').forEach(btn => {
-  btn.addEventListener("click", () => {
-    const key = btn.dataset.key;
-    rosterSort.dir = (rosterSort.key === key) ? -rosterSort.dir : -1;
-    rosterSort.key = key;
-    renderRoster();
-  });
-});
-renderRoster();
-
-// ---- Top scorers chart ----
-(function renderScorersChart(){
-  const ctx = document.getElementById("chartScorers");
-  const top = [...(DATA.roster || [])].sort((a,b) => b.goals - a.goals).slice(0, 8);
-  if(top.length === 0){
-    ctx.parentElement.innerHTML = '<div class="empty">Nessun dato disponibile</div>';
-    return;
-  }
-  new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: top.map(p => p.player_name),
-      datasets: [{
-        label: "Gol",
-        data: top.map(p => p.goals),
-        backgroundColor: "#f0b90b",
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: "#b99aa0" }, grid: { color: "#4a232a" } },
-        y: { ticks: { color: "#b99aa0" }, grid: { display: false } },
-      }
-    }
-  });
-})();
-
 // ---- Definizione di tutte le statistiche disponibili (usata da Premi e da Classifiche) ----
 const MIN_GAMES_RATE = LEADERBOARD_MIN_GAMES;
 const STAT_DEFS = [
@@ -1168,6 +1077,141 @@ function fmtStatValue(def, v){
 // intrattenimento, e il progetto ha preso la direzione opposta - descrivere come si
 // gioca invece di premiare chi sta davanti. Le sezioni analitiche che le sostituiscono
 // sono "Vittorie e sconfitte" e "Scheda osservatore".
+
+// ---- La tabella dei giocatori: rosa e classifiche nello stesso posto ----
+//
+// UNIFICATA IL 01/09/2026. Prima erano due sezioni distinte che guardavano gli stessi dati:
+// "Rosa" mostrava dieci colonne insieme, "Classifiche complete" mostrava UNA statistica alla
+// volta scelta da un menu, ordinata, con la posizione a fianco. Due schermate, due modi di
+// scegliere, un solo insieme di numeri sotto.
+//
+// Adesso e' una tabella sola: ordinabile per qualunque colonna (che e' cio' che faceva il
+// menu delle classifiche) e con una colonna # che mostra la posizione nell'ordinamento
+// scelto (che e' cio' che le classifiche aggiungevano). Le statistiche che stavano solo di
+// la' - passaggi, contrasti, tiro, clean sheet, gol+assist - si aggiungono come colonne
+// quando servono, invece di occupare spazio sempre.
+//
+// Niente e' andato perso, incluse le soglie: le classifiche escludevano dalle percentuali
+// chi aveva poche partite (MIN_GAMES_RATE), ma quella soglia coincide con il minimo per
+// entrare in rosa, quindi qui la rispettano gia' tutti.
+const COLONNE_BASE = ["player_name","role_effective","pro_overall","games_played",
+                      "win_rate","goals","assists","rating_ave","man_of_the_match","red_cards"];
+const COLONNE_EXTRA = STAT_DEFS
+  .filter(d => !COLONNE_BASE.includes(d.key))
+  .map(d => ({ key: d.key, label: d.label, icon: d.icon, def: d }));
+
+let rosterSort = { key: "goals", dir: -1 };
+const colonneAttive = new Set();
+
+function renderRoster(){
+  const filterVal = document.getElementById("rosterFilter").value.toLowerCase();
+  let rows = (DATA.roster || []).filter(r =>
+    (r.player_name||"").toLowerCase().includes(filterVal) ||
+    (r.pro_name||"").toLowerCase().includes(filterVal)
+  );
+  const extra = COLONNE_EXTRA.filter(c => colonneAttive.has(c.key));
+  const valore = (r, key) => {
+    const c = COLONNE_EXTRA.find(x => x.key === key);
+    return c ? statValue(c.def, r) : r[key];
+  };
+  rows.sort((a,b) => {
+    const av = valore(a, rosterSort.key), bv = valore(b, rosterSort.key);
+    if (typeof av === "string") return av.localeCompare(bv) * rosterSort.dir;
+    return ((av||0) - (bv||0)) * rosterSort.dir;
+  });
+
+  // Le intestazioni si ridisegnano perche' le colonne aggiunte compaiono e spariscono.
+  const testa = document.getElementById("rosterHead");
+  const fisse = [...testa.querySelectorAll("th")].filter(th => !th.dataset.extra);
+  const forma = fisse.pop();   // "Forma" resta sempre l'ultima colonna
+  testa.innerHTML = fisse.map(th => th.outerHTML).join("") +
+    extra.map(c => `<th data-key="${c.key}" data-extra="1">${c.icon} ${c.label}</th>`).join("") +
+    forma.outerHTML;
+  testa.querySelectorAll("th").forEach(th => {
+    th.classList.toggle("ordinata", th.dataset.key === rosterSort.key);
+    if(th.dataset.key === rosterSort.key)
+      th.dataset.verso = rosterSort.dir === -1 ? "giu" : "su";
+    else delete th.dataset.verso;
+  });
+  collegaOrdinamento();
+
+  const tbody = document.querySelector("#rosterTable tbody");
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="${12 + extra.length}" class="empty">Nessun giocatore trovato</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((r, i) => `
+    <tr>
+      <td data-label="#" class="col-rango">${i + 1}</td>
+      <td data-label="Giocatore"><span class="player-link" data-player="${r.player_name}">${r.player_name}</span>${r.pro_name && r.pro_name !== r.player_name ? ` <span class="pos-badge">(${r.pro_name})</span>` : ""}</td>
+      <td data-label="Ruolo">${gruppoBadge(r.gruppo, r.gruppo_da_assegnare)}</td>
+      <td data-label="OVR">${r.pro_overall || "-"}</td>
+      <td data-label="PG">${r.games_played}</td>
+      <td data-label="Win%">${r.win_rate}%</td>
+      <td data-label="Gol">${r.goals}</td>
+      <td data-label="Assist">${r.assists}</td>
+      <td data-label="Media">${r.rating_ave}</td>
+      <td data-label="MOTM">${r.man_of_the_match}</td>
+      <td data-label="Rossi">${r.red_cards}</td>
+      ${extra.map(c => `<td data-label="${c.label}">${fmtStatValue(c.def, statValue(c.def, r))}${c.def.unit === "%" ? "%" : ""}</td>`).join("")}
+      <td data-label="Forma">${sparkline((r.prev_goals_trend||[]).slice().reverse())}</td>
+    </tr>
+  `).join("");
+  updateQuickFilterHighlight();
+}
+
+function updateQuickFilterHighlight(){
+  document.querySelectorAll('#rosterQuickFilters .filter-btn').forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.key === rosterSort.key);
+  });
+  document.querySelectorAll('#rosterColonne .filter-btn').forEach(btn => {
+    btn.classList.toggle("active", colonneAttive.has(btn.dataset.col));
+  });
+}
+
+function ordinaPer(key){
+  rosterSort.dir = (rosterSort.key === key) ? -rosterSort.dir : -1;
+  rosterSort.key = key;
+  renderRoster();
+}
+
+// Le intestazioni vengono ricostruite a ogni disegno, quindi gli ascoltatori si riattaccano.
+function collegaOrdinamento(){
+  document.querySelectorAll('#rosterTable th').forEach(th => {
+    if(!th.dataset.key || th.dataset.collegata) return;
+    th.dataset.collegata = "1";
+    th.addEventListener("click", () => ordinaPer(th.dataset.key));
+  });
+}
+
+(function inizializzaColonne(){
+  const barra = document.getElementById("rosterColonne");
+  if(!barra) return;
+  barra.insertAdjacentHTML("beforeend", COLONNE_EXTRA.map(c =>
+    `<span class="filter-btn" data-col="${c.key}">${c.icon} ${c.label}</span>`).join(""));
+  barra.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const k = btn.dataset.col;
+      if(colonneAttive.has(k)){
+        colonneAttive.delete(k);
+        // Se si toglie la colonna su cui si stava ordinando, l'ordinamento torna ai gol
+        // invece di restare appeso a una colonna che non c'e' piu'.
+        if(rosterSort.key === k){ rosterSort.key = "goals"; rosterSort.dir = -1; }
+      } else {
+        colonneAttive.add(k);
+        ordinaPer(k);   // si aggiunge una colonna per guardarla: la si ordina subito
+        return;
+      }
+      renderRoster();
+    });
+  });
+})();
+
+document.getElementById("rosterFilter").addEventListener("input", renderRoster);
+document.querySelectorAll('#rosterQuickFilters .filter-btn').forEach(btn => {
+  btn.addEventListener("click", () => ordinaPer(btn.dataset.key));
+});
+renderRoster();
 
 // ---- Novita: confronto fra l'ultima serata e la penultima ----
 // Ogni run del task salva uno snapshot dei totali di carriera. La differenza
@@ -1302,124 +1346,6 @@ function fmtStatValue(def, v){
     <div class="empty" style="text-align:left; padding:10px 0 0;">
       Ultima serata ${quando(ultima)} · precedente ${quando(precedente)}.
     </div>`;
-})();
-
-// ---- Crescita nel tempo: serie storiche per giocatore ----
-const GROWTH_STATS = [
-  { key: "goals",               label: "Gol",              color: "#d5203a" },
-  { key: "assists",             label: "Assist",           color: "#f0b90b" },
-  { key: "games_played",        label: "Partite giocate",  color: "#33c17a" },
-  { key: "man_of_the_match",    label: "MOTM",             color: "#ffd966" },
-  { key: "rating_ave",          label: "Media voto",       color: "#e5566d", noDelta: true },
-  { key: "win_rate",            label: "Win %",            color: "#7ec8e3", noDelta: true },
-  { key: "pass_success_rate",   label: "% Passaggi",       color: "#b39ddb", noDelta: true },
-  { key: "shot_success_rate",   label: "% Tiro",           color: "#ffab91", noDelta: true },
-];
-let growthChart = null;
-
-(function initGrowth(){
-  const wrap    = document.getElementById("growthWrap");
-  const selP    = document.getElementById("growthPlayer");
-  const selS    = document.getElementById("growthStat");
-  const modeBtn = document.getElementById("growthMode");
-  const summary = document.getElementById("growthSummary");
-  const mh = DATA.memberHistory || [];
-  const snaps = [...new Set(mh.map(r => r.fetched_at))].sort();
-
-  if(snaps.length < 2){
-    wrap.innerHTML = '<div class="empty">Serve almeno un secondo aggiornamento per disegnare una curva. Il grafico si arricchisce da solo ogni giorno.</div>';
-    selP.style.display = selS.style.display = modeBtn.style.display = "none";
-    return;
-  }
-
-  // Solo giocatori presenti nel roster filtrato, ordinati alfabeticamente.
-  const valid = new Set((DATA.roster || []).map(r => r.player_name));
-  const players = [...new Set(mh.map(r => r.player_name))]
-    .filter(n => valid.has(n)).sort((a,b) => a.localeCompare(b));
-  if(players.length === 0){
-    wrap.innerHTML = '<div class="empty">Nessun giocatore con abbastanza partite da tracciare.</div>';
-    return;
-  }
-
-  selP.innerHTML = players.map(n => `<option value="${n}">${n}</option>`).join("");
-  selS.innerHTML = GROWTH_STATS.map(s => `<option value="${s.key}">${s.label}</option>`).join("");
-
-  // Preselezione: chi e' cresciuto di piu' in gol nel periodo tracciato, cosi'
-  // la curva mostrata all'apertura non e' una riga piatta.
-  const growthByPlayer = players.map(n => {
-    const rows = mh.filter(r => r.player_name === n).sort((a,b) => a.fetched_at.localeCompare(b.fetched_at));
-    if(rows.length < 2) return { n, g: 0 };
-    return { n, g: (rows[rows.length-1].goals || 0) - (rows[0].goals || 0) };
-  }).sort((a,b) => b.g - a.g);
-  if(growthByPlayer.length && growthByPlayer[0].g > 0) selP.value = growthByPlayer[0].n;
-
-  function draw(){
-    const name = selP.value, statKey = selS.value;
-    const stat = GROWTH_STATS.find(s => s.key === statKey);
-    const delta = modeBtn.dataset.mode === "delta" && !stat.noDelta;
-    const rows = mh.filter(r => r.player_name === name).sort((a,b) => a.fetched_at.localeCompare(b.fetched_at));
-
-    let labels = rows.map(r => fmtDate(r.fetched_at));
-    let values = rows.map(r => Number(r[statKey]) || 0);
-    if(delta){
-      labels = labels.slice(1);
-      values = values.slice(1).map((v,i) => v - (Number(rows[i][statKey]) || 0));
-    }
-
-    if(growthChart) growthChart.destroy();
-    growthChart = new Chart(document.getElementById("growthChart"), {
-      type: delta ? "bar" : "line",
-      data: { labels, datasets: [{
-        label: stat.label,
-        data: values,
-        borderColor: stat.color,
-        backgroundColor: delta ? stat.color : stat.color + "2e",
-        borderRadius: delta ? 4 : 0,
-        tension: 0.25,
-        fill: !delta,
-      }]},
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: "#b99aa0" }, grid: { color: "#4a232a" } },
-          y: { beginAtZero: delta, ticks: { color: "#b99aa0" }, grid: { color: "#4a232a" } },
-        }
-      }
-    });
-
-    const first = Number(rows[0][statKey]) || 0;
-    const last  = Number(rows[rows.length - 1][statKey]) || 0;
-    const diff  = last - first;
-    const diffStr = stat.noDelta ? diff.toFixed(2) : String(Math.round(diff));
-    const arrow = diff > 0 ? '<span class="trend-up">▲</span>' : diff < 0 ? '<span class="trend-down">▼</span>' : "—";
-    summary.innerHTML = `<div class="empty" style="text-align:left; padding:0;">
-      <strong>${name}</strong> — ${stat.label}: da ${stat.noDelta ? first.toFixed(2) : first} a
-      ${stat.noDelta ? last.toFixed(2) : last} ${arrow} ${diff > 0 ? "+" : ""}${diffStr}
-      su ${rows.length} aggiornamenti (dal ${fmtDate(rows[0].fetched_at)}).
-    </div>`;
-  }
-
-  selP.addEventListener("change", draw);
-  selS.addEventListener("change", () => {
-    const stat = GROWTH_STATS.find(s => s.key === selS.value);
-    // Le percentuali e le medie non hanno senso come "guadagno per aggiornamento".
-    if(stat.noDelta && modeBtn.dataset.mode === "delta"){
-      modeBtn.dataset.mode = "total";
-      modeBtn.textContent = "Vista: totali";
-    }
-    modeBtn.style.opacity = stat.noDelta ? ".4" : "1";
-    modeBtn.style.pointerEvents = stat.noDelta ? "none" : "auto";
-    draw();
-  });
-  modeBtn.addEventListener("click", () => {
-    const delta = modeBtn.dataset.mode === "delta";
-    modeBtn.dataset.mode = delta ? "total" : "delta";
-    modeBtn.textContent = delta ? "Vista: totali" : "Vista: guadagno per aggiornamento";
-    draw();
-  });
-
-  draw();
 })();
 
 // ---- Share card: immagine PNG generata su canvas, senza librerie esterne ----
@@ -1567,46 +1493,6 @@ let growthChart = null;
     try{ await navigator.clipboard.writeText(url); flash("Link copiato: " + url); }
     catch(e){ flash("Copia non riuscita, il link è " + url); }
   });
-})();
-
-// ---- Classifiche complete (navigabili, tutte le statistiche) ----
-(function renderLeaderboard(){
-  const selStat = document.getElementById("lbStat");
-  const dirBtn = document.getElementById("lbDirToggle");
-  const tbody = document.querySelector("#lbTable tbody");
-  const roster = DATA.roster || [];
-  if(roster.length === 0){
-    selStat.parentElement.parentElement.innerHTML = `<div class="empty">Nessun giocatore con almeno ${LEADERBOARD_MIN_GAMES} partite ancora.</div>`;
-    return;
-  }
-  selStat.innerHTML = STAT_DEFS.map(def => `<option value="${def.key}">${def.icon} ${def.label}</option>`).join("");
-
-  function draw(){
-    const def = STAT_DEFS.find(d => d.key === selStat.value) || STAT_DEFS[0];
-    const dir = +dirBtn.dataset.dir;
-    dirBtn.textContent = "Ordine: " + (dir === -1 ? "dal più alto" : "dal più basso");
-    const rows = [...roster]
-      .map(r => ({ r, v: statValue(def, r) }))
-      .sort((a,b) => (b.v - a.v) * dir * -1);
-    tbody.innerHTML = rows.map(({r, v}, i) => {
-      const rankCls = i===0 ? "g1" : i===1 ? "g2" : i===2 ? "g3" : "";
-      return `
-        <tr>
-          <td data-label="#"><span class="lb-rank ${rankCls}">#${i+1}</span></td>
-          <td data-label="Giocatore"><span class="player-link" data-player="${r.player_name}">${r.player_name}</span></td>
-          <td data-label="Ruolo">${gruppoBadge(r.gruppo, r.gruppo_da_assegnare)}</td>
-          <td data-label="Valore" class="lb-value">${fmtStatValue(def, v)} ${def.unit}</td>
-          <td data-label="Partite">${r.games_played}</td>
-        </tr>
-      `;
-    }).join("");
-  }
-  selStat.addEventListener("change", draw);
-  dirBtn.addEventListener("click", () => {
-    dirBtn.dataset.dir = (+dirBtn.dataset.dir) * -1;
-    draw();
-  });
-  draw();
 })();
 
 // ---- Indice di Forza (power ranking) ----
@@ -3768,19 +3654,24 @@ document.addEventListener("keydown", (e) => {
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
   overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
-  rosa: "rosa", crescita: "crescita", classifiche: "classifiche",
-  forza: "forza", formazione: "formazione", h2h: "h2h",
+  giocatori: "giocatori",
+  forza: "forza", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
   osservatore: "osservatore", serate: "serate", partite: "partite",
 };
+
+// Le pagine tolte il 01/09/2026. Un link vecchio - salvato nei preferiti, mandato nel gruppo
+// - deve portare dove il contenuto e' finito, non alla home senza spiegazioni.
+const PAGINE_TRASLOCATE = {
+  rosa: "giocatori", classifiche: "giocatori", h2h: "giocatori",
+  crescita: "giocatori",   // la sezione Crescita non esiste piu': i suoi dati stanno in tabella
+};
+
 const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
-  { key: "rosa", icon: "🧑‍🤝‍🧑", label: "Rosa" },
-  { key: "crescita", icon: "📈", label: "Crescita" },
-  { key: "classifiche", icon: "📋", label: "Classifiche" },
+  { key: "giocatori", icon: "🧑‍🤝‍🧑", label: "Giocatori" },
   { key: "forza", icon: "💪", label: "Indice di Forza" },
   { key: "formazione", icon: "⚽", label: "Formazione" },
-  { key: "h2h", icon: "⚔️", label: "Testa a testa" },
   { key: "riepilogo", icon: "🎁", label: "Riepilogo" },
   { key: "avversari", icon: "🆚", label: "Avversari" },
   { key: "diagnosi", icon: "🔍", label: "Vittorie e sconfitte" },
@@ -3790,6 +3681,7 @@ const PAGES = [
 ].filter(p => Object.values(PAGE_MAP).includes(p.key));
 
 function showPage(pageKey){
+  if(PAGINE_TRASLOCATE[pageKey]) pageKey = PAGINE_TRASLOCATE[pageKey];
   if(!PAGES.some(p => p.key === pageKey)) pageKey = "home";
   Object.keys(PAGE_MAP).forEach(sectionId => {
     const el = document.getElementById(sectionId);
@@ -3843,8 +3735,11 @@ function closeDrawer(){
   });
 
   window.addEventListener("hashchange", () => showPage(location.hash.slice(1)));
+  // Un'ancora di una pagina traslocata e' valida quanto una attuale: showPage() la
+  // reindirizza da sola, quindi qui basta non scartarla prima di passargliela.
   const initial = location.hash.slice(1);
-  showPage(PAGES.some(p => p.key === initial) ? initial : "home");
+  const riconosciuta = PAGES.some(p => p.key === initial) || !!PAGINE_TRASLOCATE[initial];
+  showPage(riconosciuta ? initial : "home");
 })();
 
 // ---- Back to top ----
@@ -3870,7 +3765,7 @@ function closeDrawer(){
 
   function jumpToPlayer(name){
     closeDrawer();
-    showPage("rosa");
+    showPage("giocatori");
     const filterInput = document.getElementById("rosterFilter");
     filterInput.value = name;
     filterInput.dispatchEvent(new Event("input"));

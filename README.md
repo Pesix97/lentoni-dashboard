@@ -403,7 +403,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
 | `test_pipeline.py` | 94 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
 | `test_apertura.js` | 13 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
-| `test_ruoli.js` | 108 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_ruoli.js` | 113 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 9 controlli su una cosa sola: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le tre righe devono sommare alla colonna (180 casi: 12 giocatori × 3 finestre × 5 pesi) e la percentuale scritta in ogni riga deve essere quella che produce i punti a fianco. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
@@ -1116,8 +1116,41 @@ Le due soglie sono separate in `modello/pagina.js`: `PARTITE_MINIME_REPARTO` e
 `CREDIBILITA_REPARTO` per i reparti, `CREDIBILITA` per il peso della forma nell'indice — che
 prima erano la stessa costante, e cambiarne una cambiava anche l'altra.
 
-Resta valida anche la soglia più vecchia delle **classifiche complete**: sotto le 3 presenze
-il giocatore compare con tutte le sue cifre ma senza posizione (`MIN_PER_CLASSIFICA`).
+Resta valida anche la soglia più vecchia delle **classifiche per reparto**: sotto le 3
+presenze il giocatore compare con tutte le sue cifre ma senza posizione
+(`MIN_PER_CLASSIFICA`).
+
+## Rosa, classifiche e confronto sono una sezione sola
+
+Fino al 01/09/2026 erano **tre pagine più una**, e guardavano tutte gli stessi giocatori:
+
+- **Rosa** — dieci colonne insieme, ordinabili;
+- **Classifiche complete** — *una* statistica alla volta scelta da un menu, con la posizione
+  a fianco;
+- **Confronto giocatori** — due menu e la scomposizione del distacco;
+- **Crescita nel tempo** — un grafico per giocatore e per statistica.
+
+Tre modi diversi di scegliere un giocatore nella stessa dashboard, e due tabelle costruite
+sugli stessi numeri. Ora è una pagina sola, **Giocatori**:
+
+- la tabella si ordina per qualunque colonna — è ciò che faceva il menu delle classifiche —
+  e una colonna `#` mostra la posizione nell'ordinamento scelto, che è ciò che le classifiche
+  aggiungevano;
+- le nove statistiche che stavano solo di là (gol+assist, gol+assist a partita, passaggi e
+  contrasti totali, le tre percentuali, i due clean sheet) **si aggiungono come colonne**
+  quando servono, invece di occupare spazio sempre. Aggiungerne una la ordina subito, che è
+  il motivo per cui la si aggiunge;
+- il **testa a testa** è sotto la tabella, invariato.
+
+Nessuna funzione è andata persa, incluse le soglie: le classifiche escludevano dalle
+percentuali chi aveva poche partite (`MIN_GAMES_RATE`), ma quella soglia coincide con il
+minimo per entrare in rosa, quindi la rispettano già tutti.
+
+**Crescita nel tempo** è stata invece tolta e basta, su richiesta.
+
+I vecchi indirizzi continuano a funzionare: `#rosa`, `#classifiche`, `#h2h` e `#crescita`
+portano alla pagina Giocatori (`PAGINE_TRASLOCATE`). Un link salvato nei preferiti o mandato
+nel gruppo non deve finire sulla home senza spiegazioni.
 
 ### La scheda osservatore e i confronti onesti
 

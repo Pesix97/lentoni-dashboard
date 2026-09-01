@@ -97,7 +97,9 @@ setTimeout(() => {
   const riempite = [
     ["classifica generale", "#powerTable tbody tr"],
     ["rosa", "#rosterTable tbody tr"],
-    ["classifiche complete", "#lbTable tbody tr"],
+    // La sezione "Classifiche complete" e' stata assorbita dalla tabella dei giocatori il
+    // 01/09/2026: al suo posto si controlla che quella tabella sappia aggiungere colonne.
+    ["barra delle colonne aggiuntive", "#rosterColonne .filter-btn"],
   ];
   riempite.forEach(([nome, sel]) => {
     const n = d.querySelectorAll(sel).length;

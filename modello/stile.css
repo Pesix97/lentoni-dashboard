@@ -238,6 +238,13 @@
   th, td{padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap;}
   th{color:var(--muted); font-weight:600; cursor:pointer; user-select:none; position:sticky; top:0; background:var(--panel);}
   th:hover{color:var(--text);}
+  /* Su quale colonna si sta ordinando, e in che verso. Con dodici colonne e piu', senza
+     questo segno non si capisce piu' che cosa si sta guardando. */
+  th.ordinata{color:var(--accent-2);}
+  th.ordinata[data-verso="giu"]::after{content:" \25BC"; font-size:9px;}
+  th.ordinata[data-verso="su"]::after{content:" \25B2"; font-size:9px;}
+  /* La posizione nell'ordinamento scelto: e' quel che facevano le Classifiche complete. */
+  .col-rango{width:34px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums;}
   tr{transition:background .1s;}
   tr:hover td{background:var(--panel-2);}
   .table-wrap{max-height:480px; overflow:auto;}

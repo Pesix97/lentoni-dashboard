@@ -565,6 +565,17 @@ lasciato al suo posto, in `modello/pagina.js`.
   per una, `test_pipeline.py` cerca stringhe nel file. Da qui `test_apertura.js`, che apre
   davvero la pagina in un motore HTML e chiede: parte? il menu ha voci? le tabelle hanno
   righe? È la domanda più semplice di tutte, ed era l'unica che nessuno faceva.
+- **Due tabelle sugli stessi numeri sono una tabella e un filtro.** «Rosa» e «Classifiche
+  complete» leggevano lo stesso `DATA.roster`: la prima mostrava dieci colonne insieme, la
+  seconda una statistica alla volta con la posizione a fianco. Non erano due funzioni, erano
+  due viste della stessa — e costavano due schermate, due modi di scegliere un giocatore e
+  due pezzi di codice da tenere allineati. Unificate il 01/09/2026: ordinamento per colonna
+  (era il menu delle classifiche), colonna `#` (era la posizione), colonne che si aggiungono
+  (erano le statistiche in più). Regola: **prima di aggiungere una vista, chiedersi se non
+  sia un ordinamento di quella che c'è già.**
+- **Togliere una pagina non è togliere il suo indirizzo.** `#rosa`, `#classifiche`, `#h2h` e
+  `#crescita` restano validi e portano dove il contenuto è finito. Un link vive nei preferiti
+  e nelle chat molto più a lungo della sezione che lo ha generato.
 - **Una correzione moltiplicativa riduce un episodio, non lo corregge.** Tirare un valore
   verso la media con `c = n/(n+K)` non porta mai chi ha il valore grezzo più alto sotto chi
   sta già sulla media: comprime tutti *senza scambiarli di posto*. Alzare K da 5 a 20 non

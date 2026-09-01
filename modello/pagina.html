@@ -85,70 +85,74 @@
   </div>
 </section>
 
-<section class="two-col" id="rosa">
-  <div>
-    <h2>Rosa <span class="h2-sub">— solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
-    <div class="panel">
-      <input type="text" class="filter" id="rosterFilter" placeholder="Filtra giocatore...">
-      <div class="filter-bar" id="rosterQuickFilters">
-        <span class="pos-badge">Ordina per:</span>
-        <span class="filter-btn" data-key="games_played">Partite giocate</span>
-        <span class="filter-btn" data-key="goals">Gol fatti</span>
-        <span class="filter-btn" data-key="assists">Assist fatti</span>
-        <span class="filter-btn" data-key="rating_ave">Media migliore</span>
-      </div>
-      <div class="table-wrap">
-        <table id="rosterTable" class="responsive-table">
-          <thead><tr>
-            <th data-key="player_name">Giocatore</th>
-            <th data-key="role_effective">Ruolo</th>
-            <th data-key="pro_overall">OVR</th>
-            <th data-key="games_played">PG</th>
-            <th data-key="win_rate">Win%</th>
-            <th data-key="goals">Gol</th>
-            <th data-key="assists">Assist</th>
-            <th data-key="rating_ave">Media</th>
-            <th data-key="man_of_the_match">MOTM</th>
-            <th data-key="red_cards">Rossi</th>
-            <th>Forma (ultime partite)</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  <div>
-    <h2>Top marcatori</h2>
-    <div class="panel"><canvas id="chartScorers"></canvas></div>
-  </div>
-</section>
-
-<section id="crescita">
-  <h2>Crescita nel tempo <span class="h2-sub">— i totali di carriera a ogni aggiornamento: dati sempre completi</span></h2>
+<section id="giocatori">
+  <h2>Giocatori <span class="h2-sub">— rosa, classifiche e confronto · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
   <div class="panel">
-    <div class="lb-controls">
-      <select class="h2h-select" id="growthPlayer"></select>
-      <select class="h2h-select" id="growthStat"></select>
-      <span class="filter-btn" id="growthMode" data-mode="total">Vista: totali</span>
+    <input type="text" class="filter" id="rosterFilter" placeholder="Filtra giocatore...">
+    <div class="filter-bar" id="rosterQuickFilters">
+      <span class="pos-badge">Ordina per:</span>
+      <span class="filter-btn" data-key="games_played">Partite giocate</span>
+      <span class="filter-btn" data-key="goals">Gol fatti</span>
+      <span class="filter-btn" data-key="assists">Assist fatti</span>
+      <span class="filter-btn" data-key="rating_ave">Media migliore</span>
     </div>
-    <div id="growthWrap"><canvas id="growthChart"></canvas></div>
-    <div id="growthSummary" style="margin-top:12px;"></div>
-  </div>
-</section>
-
-<section id="classifiche">
-  <h2>Classifiche complete <span class="h2-sub">— tutte le statistiche · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
-  <div class="panel">
-    <div class="lb-controls">
-      <select class="h2h-select" id="lbStat"></select>
-      <span class="filter-btn" id="lbDirToggle" data-dir="-1">Ordine: dal più alto</span>
+    <div class="filter-bar" id="rosterColonne">
+      <span class="pos-badge">Aggiungi colonne:</span>
     </div>
     <div class="table-wrap">
-      <table id="lbTable" class="responsive-table">
-        <thead><tr><th>#</th><th>Giocatore</th><th>Ruolo</th><th>Valore</th><th>Partite</th></tr></thead>
+      <table id="rosterTable" class="responsive-table">
+        <thead><tr id="rosterHead">
+          <th class="col-rango">#</th>
+          <th data-key="player_name">Giocatore</th>
+          <th data-key="role_effective">Ruolo</th>
+          <th data-key="pro_overall">OVR</th>
+          <th data-key="games_played">PG</th>
+          <th data-key="win_rate">Win%</th>
+          <th data-key="goals">Gol</th>
+          <th data-key="assists">Assist</th>
+          <th data-key="rating_ave">Media</th>
+          <th data-key="man_of_the_match">MOTM</th>
+          <th data-key="red_cards">Rossi</th>
+          <th>Forma (ultime partite)</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </div>
+  </div>
+
+  <h2 id="confronto-giocatori">Testa a testa <span class="h2-sub">— perché uno sta più in alto dell'altro</span></h2>
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Il distacco fra due giocatori nell'Indice di Forza viene <strong style="color:var(--text);">spezzato
+        nelle voci che lo compongono</strong>: quanti punti arrivano dalla media voto, quanti dai gol, quanti
+        dai cartellini. I pezzi sommano esattamente al distacco totale, quindi non resta niente di
+        inspiegato.
+        <br><br>
+        Accanto a ogni voce c'è <strong style="color:var(--text);">dove si collocano nella rosa</strong>
+        (minimo, mediana, massimo). Senza quel riferimento un confronto non si legge: «7,80 contro 7,50» non
+        dice niente finché non sai che la rosa va da 6,80 a 8,00.
+        <br><br>
+        Il confronto <strong style="color:var(--text);">segue i filtri dell'Indice di Forza</strong>: se lì hai
+        scelto una finestra di forma e un peso, qui viene spiegato quel distacco, non un altro.
+        <br><br>
+        <strong style="color:var(--text);">I punti mostrati sono quelli veri.</strong> Le voci si misurano su
+        scale fisse, non rispetto ai compagni: un distacco di dieci punti su una voce significa dieci punti,
+        non «dieci punti relativi a chi c'è in rosa». L'efficienza tecnica si può aprire per vedere da quale
+        dei suoi tre pezzi nasce il divario.
+      </div>
+    </div>
+  </details>
+  <div class="panel">
+    <div class="h2h-controls">
+      <select class="h2h-select" id="h2hA"></select>
+      <span class="h2h-vs">VS</span>
+      <select class="h2h-select" id="h2hB"></select>
+    </div>
+    <div id="h2hVerdetto" style="margin-top:16px;"></div>
+    <div id="h2hVoci"></div>
+    <div id="h2hNote" style="margin-top:12px;"></div>
   </div>
 </section>
 
@@ -351,42 +355,6 @@
   </div>
 </section>
 
-<section id="h2h">
-  <h2>Confronto giocatori <span class="h2-sub">— perché uno sta più in alto dell'altro</span></h2>
-  <details class="spiega">
-    <summary>Come funziona</summary>
-    <div class="panel" style="margin-bottom:12px;">
-      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
-        Il distacco fra due giocatori nell'Indice di Forza viene <strong style="color:var(--text);">spezzato
-        nelle voci che lo compongono</strong>: quanti punti arrivano dalla media voto, quanti dai gol, quanti
-        dai cartellini. I pezzi sommano esattamente al distacco totale, quindi non resta niente di
-        inspiegato.
-        <br><br>
-        Accanto a ogni voce c'è <strong style="color:var(--text);">dove si collocano nella rosa</strong>
-        (minimo, mediana, massimo). Senza quel riferimento un confronto non si legge: «7,80 contro 7,50» non
-        dice niente finché non sai che la rosa va da 6,80 a 8,00.
-        <br><br>
-        Il confronto <strong style="color:var(--text);">segue i filtri dell'Indice di Forza</strong>: se lì hai
-        scelto una finestra di forma e un peso, qui viene spiegato quel distacco, non un altro.
-        <br><br>
-        <strong style="color:var(--text);">I punti mostrati sono quelli veri.</strong> Le voci si misurano su
-        scale fisse, non rispetto ai compagni: un distacco di dieci punti su una voce significa dieci punti,
-        non «dieci punti relativi a chi c'è in rosa». L'efficienza tecnica si può aprire per vedere da quale
-        dei suoi tre pezzi nasce il divario.
-      </div>
-    </div>
-  </details>
-  <div class="panel">
-    <div class="h2h-controls">
-      <select class="h2h-select" id="h2hA"></select>
-      <span class="h2h-vs">VS</span>
-      <select class="h2h-select" id="h2hB"></select>
-    </div>
-    <div id="h2hVerdetto" style="margin-top:16px;"></div>
-    <div id="h2hVoci"></div>
-    <div id="h2hNote" style="margin-top:12px;"></div>
-  </div>
-</section>
 
 <section id="riepilogo">
   <h2>Riepilogo periodo tracciato <span class="h2-sub">— dalle partite presenti nel database</span></h2>

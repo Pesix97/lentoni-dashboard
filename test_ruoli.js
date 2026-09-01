@@ -272,6 +272,18 @@ console.log("\nCollegamenti interni");
     .filter(id => !html.includes(`id="${id}"`));
   verifica("ogni salto interno trova il suo bersaglio",
     senzaBersaglio.length === 0, senzaBersaglio.join(", "));
+
+  // Le pagine tolte devono continuare a rispondere. Un indirizzo vive nei preferiti e nelle
+  // chat molto piu' a lungo della sezione che lo ha generato: se un giorno #rosa finisse in
+  // home, chi ci arriva penserebbe che la dashboard e' rotta.
+  const traslocate = new Function(
+    script.match(/const PAGINE_TRASLOCATE = \{[\s\S]*?\};/)[0] + "return PAGINE_TRASLOCATE;")();
+  const orfane = Object.entries(traslocate).filter(([, dove]) => !chiavi.has(dove));
+  verifica(`i vecchi indirizzi portano a una pagina che esiste (${Object.keys(traslocate).join(", ")})`,
+    orfane.length === 0, orfane.map(([a, d]) => `#${a} -> ${d}`).join(", "));
+  const doppie = Object.keys(traslocate).filter(a => chiavi.has(a));
+  verifica("nessun indirizzo traslocato coincide con una pagina viva",
+    doppie.length === 0, doppie.join(", "));
 }
 
 // La sezione Serate elenca chiunque abbia giocato quella sera, e quei nomi sono
@@ -705,7 +717,9 @@ console.log("\nNovita' dall'ultima serata");
   try {
     new Function(
       ritaglia("const DATA = {", "// ---- Cards ----") + "\n" +
-      ritaglia("// Confronta l'ULTIMA SERATA", "// ---- Crescita nel tempo"))();
+      // Il blocco finisce dove comincia la Share card: prima era la sezione "Crescita nel
+      // tempo", tolta il 01/09/2026.
+      ritaglia("// Confronta l'ULTIMA SERATA", "// ---- Share card:"))();
     const h = String(magazzino["newsBody"].innerHTML);
     const D = ambiente.DATA;
     const serate = D.serate || [];
