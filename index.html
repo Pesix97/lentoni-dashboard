@@ -1522,12 +1522,51 @@ const CREDIBILITA = 5;
 
 function credibilita(n){ return n / (n + CREDIBILITA); }
 
+// ---- La soglia delle classifiche per reparto ----
+//
+// ALZATA IL 01/09/2026, e con essa e' cambiata la forma della correzione. Il caso: fra i
+// DIFENSORI, Adriano risultava primo con UNA partita giocata li'. Alzare la vecchia soglia
+// da 5 a 8, 10, 15, 20 non spostava NIENTE - misurato, resta primo a 20.
+//
+// Il motivo, guardando i suoi numeri da difensore su quella partita:
+//
+//     media voto   9.30   (media del reparto 7.60)
+//     MOTM        100%    (un premio su una partita; media del reparto 16.7%)
+//
+// La vecchia correzione tirava ogni valore verso la media del reparto in proporzione alle
+// partite: `c = n/(n+K)`, con c che vale un sesto per chi ne ha una. Ma c non arriva mai a
+// zero, e chi ha il valore grezzo piu' alto resta il piu' alto anche dopo: comprimere
+// avvicina tutti alla media SENZA scambiarli di posto, se gli altri stanno gia' sulla media.
+// Su MOTM era matematicamente impossibile che scendesse - nessun altro difensore ha premi,
+// quindi la media e' fatta quasi solo da lui e comprimere verso quella media non lo tocca.
+// **Una soglia moltiplicativa non puo' correggere un episodio: puo' solo ridurlo.**
+//
+// Sotto le PARTITE_MINIME_REPARTO, quindi, il peso e' zero netto: quel giocatore vale
+// esattamente la media del suo reparto, su ogni voce. Non sparisce dalla classifica - resta
+// visibile, a meta' - ma non puo' ne' vincerla ne' perderla con un episodio. Sopra la soglia
+// la credibilita' riparte da zero e cresce col solito n/(n+K), contate le partite OLTRE la
+// soglia: con tre partite si comincia a valere per se stessi, piano.
+const PARTITE_MINIME_REPARTO = 2;   // 1-2 partite in un ruolo non dicono niente
+const CREDIBILITA_REPARTO = 8;      // e da li' in su si sale piano
+
+function credibilitaReparto(n){
+  const oltre = (n || 0) - PARTITE_MINIME_REPARTO;
+  return oltre <= 0 ? 0 : oltre / (oltre + CREDIBILITA_REPARTO);
+}
+
+// E la media verso cui si tira e' pesata sulla credibilita', non semplice. Serve, e il caso
+// dei difensori lo mostra: il 100% di premi di Adriano su una partita entrava nella media del
+// reparto e la portava da 0% a 16,7%. Poi ognuno veniva tirato verso QUELLA media - cioe'
+// verso un numero fatto quasi solo dall'episodio che si voleva correggere, che finiva per
+// premiare tutti quelli sotto soglia e penalizzare i difensori veri, che di premi ne hanno
+// zero. Un episodio non deve sporcare il metro con cui lo si misura.
 function versoLaMedia(valori, partite){
-  const media = valori.reduce((t, v) => t + v, 0) / valori.length;
-  return valori.map((v, i) => {
-    const c = credibilita(partite[i]);
-    return c * v + (1 - c) * media;
-  });
+  const pesi = partite.map(credibilitaReparto);
+  const somma = pesi.reduce((t, p) => t + p, 0);
+  const media = somma > 0
+    ? valori.reduce((t, v, i) => t + v * pesi[i], 0) / somma
+    : valori.reduce((t, v) => t + v, 0) / valori.length;
+  return valori.map((v, i) => pesi[i] * v + (1 - pesi[i]) * media);
 }
 
 function rankGroup(pool){
@@ -2213,26 +2252,35 @@ function fmtStatValue(def, v){
   const verso = (n) => n > 0 ? "up" : n < 0 ? "down" : "flat";
   const quando = (s) => `${s.giorno} ${s.inizio}–${s.fine}`;
 
-  // Il colore sta SOLO sui numeri col segno. Il valore grande e' un dato di fatto - 15 gol
-  // sono 15 gol - e colorarlo costringeva a decidere se fosse buono o cattivo; la variazione
-  // invece un verso ce l'ha per definizione. Verde il piu', rosso il meno, sempre.
-  const delta = (n, dec) => `<span class="${verso(n)}">${segno(n, dec)}</span>`;
+  // Il colore sta SOLO sui numeri col segno: il valore grande e' un dato di fatto - 15 gol
+  // sono 15 gol - e colorarlo costringe a decidere se sia buono o cattivo, cosa che il
+  // numero da solo non dice. La variazione invece un verso ce l'ha.
+  //
+  // E il verso e' quello del MIGLIORAMENTO, non quello del segno: "+12 gol subiti" e' rosso
+  // pur avendo il piu' davanti. Il segno resta quello vero - dodici in piu' sono in piu' -
+  // ma il colore risponde all'unica domanda per cui serve un colore: e' andata meglio o
+  // peggio? Il verso si passa esplicitamente, cosi' ogni scheda dichiara il suo.
+  const delta = (n, dec, buono) => {
+    const versoBuono = (buono === undefined ? 1 : buono) * n;
+    return `<span class="${verso(versoBuono)}">${segno(n, dec)}</span>`;
+  };
+  const PIU_E_MEGLIO = 1, MENO_E_MEGLIO = -1;
 
   const schede = [
     { k:"Partite", v:String(A.partite),
       s:`${A.v}V · ${A.n}N · ${A.p}P` + (B.partite ? ` · la volta prima ${B.partite}` : "") },
     { k:"Gol fatti", v:String(A.gf),
-      s:`${delta(A.gf - B.gf)} rispetto alla serata precedente` },
-    // NOTA: qui il colore segue il segno come tutti gli altri, quindi "+12 gol subiti" esce
-    // verde pur essendo un peggioramento. E' voluto: la regola e' "piu' verde, meno rosso",
-    // uguale ovunque. Prima questa scheda ribaltava il verso da sola, ed era l'unica.
+      s:`${delta(A.gf - B.gf, 0, PIU_E_MEGLIO)} rispetto alla serata precedente` },
     { k:"Gol subiti", v:String(A.gs),
-      s:`${delta(A.gs - B.gs)} rispetto alla serata precedente` },
+      s:`${delta(A.gs - B.gs, 0, MENO_E_MEGLIO)} rispetto alla serata precedente` },
     { k:"Media voto squadra", v: A.media ? A.media.toFixed(2) : "—",
-      s: A.media && B.media ? `${delta(A.media - B.media, 2)} rispetto alla serata precedente` : "prima serata utile" },
+      s: A.media && B.media
+        ? `${delta(A.media - B.media, 2, PIU_E_MEGLIO)} rispetto alla serata precedente`
+        : "prima serata utile" },
   ];
   if(dSr !== null)
-    schede.push({ k:"Skill rating", v:String(srOra), s:`${delta(dSr)} da prima della serata` });
+    schede.push({ k:"Skill rating", v:String(srOra),
+                  s:`${delta(dSr, 0, PIU_E_MEGLIO)} da prima della serata` });
 
   // Chi c'era. Il confronto della media ha senso solo per chi ha giocato in entrambe: per
   // gli altri si dichiara l'assenza invece di inventare una variazione.

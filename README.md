@@ -1002,17 +1002,20 @@ Lo skill rating è l'unico dato che non viene dalle partite — si legge dalle i
 club, prendendo l'ultima precedente all'inizio della serata. È una finestra, non una misura
 esatta, e l'etichetta lo dichiara.
 
-**Il colore è riservato ai numeri col segno.** Verde il più, rosso il meno; tutto il resto
-bianco. Prima erano colorati anche i valori grandi — 15 gol fatti in verde, 26 subiti in
-rosso, il win rate in rosso sotto il 50% — e quel colore era un giudizio mascherato da dato:
-26 gol subiti in sette partite sono un numero, se sia molto o poco lo dice il confronto, non
-la tinta. Una variazione invece un verso ce l'ha per definizione, ed è lì che il colore
-aggiunge qualcosa.
+**Il colore è riservato alle variazioni, e segue il miglioramento — non il segno.** Tutti i
+valori sono bianchi; solo i numeri col `+` o col `−` sono colorati, verde se le cose sono
+andate meglio, rosso se peggio.
 
-Un solo effetto collaterale, dichiarato: **«+12 gol subiti» esce verde** pur essendo un
-peggioramento. La scheda dei gol subiti prima ribaltava il verso da sola, ed era l'unica di
-tutta la dashboard a farlo. Fra una regola uguale ovunque e un'eccezione che si spiega solo
-a parole, si è scelta la regola.
+Prima erano colorati anche i valori grandi — 15 gol fatti in verde, 26 subiti in rosso, il
+win rate in rosso sotto il 50% — e quel colore era un giudizio mascherato da dato: 26 gol
+subiti in sette partite sono un numero, se sia molto o poco lo dice il confronto, non la
+tinta. E il win rate cambiava colore per una partita.
+
+Il caso che decide la regola sono i **gol subiti**: `+12` ha il più davanti ma è un
+peggioramento, quindi è **rosso**. Il segno resta quello vero — dodici in più sono in più —
+mentre il colore risponde all'unica domanda per cui serve un colore: *è andata meglio o
+peggio?* Ogni scheda dichiara il proprio verso (`PIU_E_MEGLIO` o `MENO_E_MEGLIO`) invece di
+lasciarlo dedurre, e un controllo in `test_ruoli.js` verifica proprio quel caso.
 
 ## Il confronto testa a testa spiega il distacco
 
@@ -1064,24 +1067,57 @@ non era valutato affatto. Ora chi non ha partite archiviate resta **fuori classi
 fondo e con il motivo scritto: metterlo terzo sarebbe falso, metterlo ultimo pure.
 
 Il secondo si corregge con la statistica. Ogni valore viene tirato verso la media del
-reparto in proporzione a quante partite lo sostengono:
+reparto in proporzione a quante partite lo sostengono.
+
+#### Perché una soglia moltiplicativa non bastava (01/09/2026)
+
+La prima versione usava `c = n/(n+5)`: con una partita il valore contava per un sesto e per
+il resto valeva la media del reparto. Sembra sufficiente, e non lo è. Il caso che l'ha
+smontata: fra i **difensori**, Adriano primo con **una partita**.
+
+| | Adriano (1 partita) | media reparto |
+|---|---|---|
+| media voto | 9,30 | 7,60 |
+| MOTM | **100%** | 16,7% |
+
+Alzare la soglia a 8, 10, 15, 20 non spostava niente — **misurato, resta primo anche a 20**.
+Due motivi, e nessuno dei due si risolve con un numero più grande:
+
+1. `c` non arriva mai a zero, e comprimere verso la media **avvicina tutti senza scambiarli
+   di posto** quando gli altri sono già sulla media. Chi ha il valore grezzo più alto resta
+   il più alto, per quanto lo si comprima.
+2. Peggio: quel 100% di premi **entrava nella media stessa**, portandola da 0% a 16,7%. Ogni
+   difensore veniva quindi tirato verso un numero fatto quasi solo dall'episodio che si
+   voleva correggere. Un episodio non deve sporcare il metro con cui lo si misura.
+
+La correzione ha due pezzi:
 
 ```
- 1 partita  →  conta per il 17%,  il resto è la media del reparto
- 3 partite  →  38%
- 5 partite  →  50%
-10 partite  →  67%
-40 partite  →  89%
+c(n) = 0                              se n ≤ 2
+c(n) = (n−2) / (n−2 + 8)              altrimenti
+
+ 1-2 partite  →   0%   vale esattamente la media dei credibili
+ 3 partite    →  11%
+ 6 partite    →  33%
+10 partite    →  50%
+40 partite    →  83%
 ```
 
-Non basta però da solo: con una partita il punteggio finisce **esattamente a metà
-classifica**, e metà classifica è comunque sopra un titolare che rende sotto la media. Per
-questo sotto le **3 presenze nel reparto** il giocatore resta in tabella con tutte le sue
-cifre, ma senza posizione. Una partita non è un rendimento: si mostra, non si ordina.
+…e la media verso cui si tira è **pesata sulla credibilità**, così chi non è credibile non
+contribuisce al riferimento.
 
-La soglia è stata scelta dal club a 3 sapendo il compromesso: con 3 partite il valore conta
-per il 38% di sé stesso, quindi qualcuno entra in classifica su un campione ancora sottile.
-Alzarla a 5 è una riga in `modello/pagina.js` (`MIN_PER_CLASSIFICA`).
+Chi sta sotto le tre presenze non sparisce dalla classifica: resta visibile, ma vale come un
+giocatore medio del suo reparto, quindi non può né vincerla né perderla con un episodio.
+Nei difensori l'ordine è tornato quello sensato — Maverik (6 partite) e Smilzo (10) davanti,
+Adriano terzo — e l'Indice di Forza non cambia di un decimale, perché questa correzione vive
+solo dentro le classifiche per reparto.
+
+Le due soglie sono separate in `modello/pagina.js`: `PARTITE_MINIME_REPARTO` e
+`CREDIBILITA_REPARTO` per i reparti, `CREDIBILITA` per il peso della forma nell'indice — che
+prima erano la stessa costante, e cambiarne una cambiava anche l'altra.
+
+Resta valida anche la soglia più vecchia delle **classifiche complete**: sotto le 3 presenze
+il giocatore compare con tutte le sue cifre ma senza posizione (`MIN_PER_CLASSIFICA`).
 
 ### La scheda osservatore e i confronti onesti
 

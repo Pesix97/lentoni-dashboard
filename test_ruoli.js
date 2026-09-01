@@ -734,6 +734,24 @@ console.log("\nNovita' dall'ultima serata");
     verifica(`vittorie, pari e sconfitte coincidono (${v}V ${n}N ${p}P)`,
       h.includes(`${v}V · ${n}N · ${p}P`));
 
+    // Il colore segue il MIGLIORAMENTO, non il segno. Il caso che lo mette alla prova sono i
+    // gol subiti: "+12" ha il piu' davanti ma e' un peggioramento, e deve uscire rosso.
+    // Nessun valore grande deve invece essere colorato: il colore e' solo per le variazioni.
+    const scheda = (nome) => (h.split('<div class="news-card">').slice(1)
+      .find(c => (c.match(/class="nk">([^<]*)</) || [])[1] === nome)) || "";
+    const colore = (nome) => (scheda(nome).match(/class="ns">\s*<span class="(up|down|flat)"/) || [])[1] || null;
+
+    const gsPrec = (serate[1] && (serate[1].matchIds || []).reduce((t, id) =>
+      t + ((perId.get(id) || {}).goals_against || 0), 0)) ?? null;
+    if(gsPrec !== null && gs !== gsPrec){
+      const atteso = gs > gsPrec ? "down" : "up";
+      verifica(`i gol subiti sono ${atteso === "down" ? "rossi" : "verdi"} (${gs} contro ${gsPrec} della volta prima)`,
+        colore("Gol subiti") === atteso, `sono ${colore("Gol subiti")}`);
+    }
+    verifica("nessun valore grande e' colorato",
+      !/class="nv (up|down|flat)"/.test(h),
+      (h.match(/class="nv [^"]*"/g) || []).slice(0, 3).join(", "));
+
     // I giocatori elencati devono essere esattamente quelli che hanno giocato.
     const attesi = new Set();
     ids.forEach(id => (D.matchPlayers[id] || []).forEach(g => attesi.add(g.player_name)));

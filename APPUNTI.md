@@ -565,6 +565,21 @@ lasciato al suo posto, in `modello/pagina.js`.
   per una, `test_pipeline.py` cerca stringhe nel file. Da qui `test_apertura.js`, che apre
   davvero la pagina in un motore HTML e chiede: parte? il menu ha voci? le tabelle hanno
   righe? È la domanda più semplice di tutte, ed era l'unica che nessuno faceva.
+- **Una correzione moltiplicativa riduce un episodio, non lo corregge.** Tirare un valore
+  verso la media con `c = n/(n+K)` non porta mai chi ha il valore grezzo più alto sotto chi
+  sta già sulla media: comprime tutti *senza scambiarli di posto*. Alzare K da 5 a 20 non
+  spostava di una posizione Adriano primo fra i difensori con una partita — misurato, non
+  supposto. Per correggere un episodio serve un **pavimento**: sotto la soglia il peso è
+  zero netto, e quel giocatore vale la media, punto.
+- **Un episodio non deve entrare nella media con cui lo si corregge.** Il 100% di premi di
+  Adriano su una partita portava la media MOTM del reparto da 0% a 16,7%, e poi ciascuno
+  veniva tirato verso *quel* numero: il metro era fatto dall'anomalia da misurare. La media
+  ora è pesata sulla credibilità, così chi non è credibile non contribuisce al riferimento.
+  Regola generale: **quando si corregge verso un aggregato, controllare che il caso da
+  correggere non sia dentro l'aggregato.**
+- **Una costante usata in due posti diventa due decisioni legate per sbaglio.** `CREDIBILITA`
+  serviva sia alle classifiche di reparto sia al peso della forma nell'indice: alzarla per il
+  primo avrebbe cambiato il secondo senza che nessuno l'avesse chiesto. Ora sono separate.
 - **Un test che verifica una proprietà dove non può rompersi non è un test.** Dal 29/08 c'era
   un controllo che sommava i tre pezzi del riquadro Tecnica e chiedeva che facessero il
   numero della colonna. Girava su *Reparto per reparto*, dove colonna e riquadro partono
