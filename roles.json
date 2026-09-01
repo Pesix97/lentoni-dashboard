@@ -1171,6 +1171,66 @@
       "quando": "29/08 01:59 circoloco",
       "giocatore": "Smilzo_87",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1023748245810013",
+      "quando": "31/08 23:06 MIABAU",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1023908145900165",
+      "quando": "31/08 23:26 MAGNETO FC",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1023908145900165",
+      "quando": "31/08 23:26 MAGNETO FC",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1023908145900165",
+      "quando": "31/08 23:26 MAGNETO FC",
+      "giocatore": "Jysmu",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1023868406480333",
+      "quando": "31/08 23:45 Çöp Tenekesi",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1023956579060343",
+      "quando": "01/09 00:29 Çöp Tenekesi",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1024138099090079",
+      "quando": "01/09 00:49 11 Goats",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1024168186400318",
+      "quando": "01/09 01:08 Sorry For Us",
+      "giocatore": "Jysmu",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1024168186400318",
+      "quando": "01/09 01:08 Sorry For Us",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1024168186400318",
+      "quando": "01/09 01:08 Sorry For Us",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -1297,6 +1357,10 @@
     {
       "serata": "2026-08-30T22:07Z",
       "partite": 5
+    },
+    {
+      "serata": "2026-08-31T21:06Z",
+      "partite": 7
     }
   ],
   "_serate_chiuse": [
