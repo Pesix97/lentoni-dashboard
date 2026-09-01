@@ -39,20 +39,24 @@ riga può restare falsa: sette giorni.
 
 ## Da fare quando capita
 
-**Da correggere subito: la tabella diagnostica dice una cosa ora falsa.** In README,
-CLAUDE.md e nel compito della guardia notturna c'è scritto che nelle Actions le *righe
-grigie, cancellate* significano «le uccidiamo noi». Era vero prima del 29/08/2026, quando
-`cancel-in-progress` valeva anche per i cicli programmati.
+**La tabella diagnostica diceva una cosa falsa: risolto il 01/09/2026.** In README
+c'era scritto che nelle Actions le *righe grigie, cancellate* significano «le uccidiamo
+noi». Era vero prima del 29/08/2026, quando `cancel-in-progress` valeva anche per i cicli
+programmati.
 
-Adesso **è falso e fuorviante**: con l'accodamento le partenze in coda vengono cancellate a
-decine — quattro cron l'ora contro un ciclo che dura cinque ore fanno una ventina di
-cancellazioni per ciclo — ed è il funzionamento normale. Peppe ha aperto le Actions il
-31/08 durante una serata, ha visto nove righe grigie di fila e si è allarmato: giustamente,
-perché la nostra documentazione gli diceva che era colpa nostra.
+Dopo l'accodamento era **falso e fuorviante**: con quattro cron l'ora contro un ciclo da
+cinque ore, una ventina di cancellazioni per ciclo è il funzionamento normale. Peppe ha
+aperto le Actions il 31/08 durante una serata, ha visto nove righe grigie di fila e si è
+allarmato: giustamente, perché la documentazione gli diceva che era colpa nostra.
 
-Il segnale vero non è il colore delle righe ma: **c'è almeno un'esecuzione che sta facendo
-giri?** E si legge nel battito (`esecuzioni` con evento `schedule`), non nelle Actions. Nelle
-Actions serve semmai il contrario: se NON ci sono righe affatto, GitHub non sta lanciando.
+La riga è stata corretta in README.md, con una nota che dice il segnale vero: **c'è almeno
+un'esecuzione che sta facendo giri?** Si legge nel battito (`esecuzioni` con evento
+`schedule`), non nelle Actions. Nelle Actions serve semmai il contrario: se NON ci sono
+righe affatto, GitHub non sta lanciando.
+
+**Resta da fare:** la skill `lentoni-dashboard` (quella letta a inizio conversazione)
+contiene la stessa tabella con la stessa frase sbagliata — non è un file di questo repo,
+va corretta a parte via proposta di modifica skill.
 
 
 **La riga della salute archivio: risolto il 29/08/2026.** Diceva «108 partite archiviate in

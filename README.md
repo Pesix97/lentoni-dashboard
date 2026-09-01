@@ -228,9 +228,14 @@ Se dovesse ricapitare, in ordine:
    | Cosa si vede | Cosa significa |
    | --- | --- |
    | **nessuna riga** nella fascia | GitHub le ha scartate per carico: è il caso del 27/08 |
-   | righe **grigie, cancellate** | le uccidiamo noi: `cancel-in-progress` sul gruppo sbagliato |
+   | righe **grigie, cancellate** | normale con l'accodamento: se il ciclo precedente sta ancora girando, la partenza successiva aspetta e viene cancellata quando arriva il turno buono — non è un guasto nostro |
    | righe **rosse** | il codice fallisce, e il log dice dove |
    | righe verdi **più corte del ciclo** | qualcosa le tronca a metà |
+
+   Il colore da solo non basta: il segnale vero è se **almeno un'esecuzione sta
+   facendo giri**, e quello si legge nel battito (`esecuzioni` con evento `schedule`),
+   non nelle Actions. Nelle Actions vale il contrario: se non c'è **nessuna riga**,
+   GitHub non sta lanciando.
 3. **Verificare il contatore di carriera di EA**, che è la prova indipendente di quante
    partite si siano perse davvero: la differenza fra due letture consecutive di
    `games_played` in `club_stats_history` dice quante se ne sono giocate, e si confronta
