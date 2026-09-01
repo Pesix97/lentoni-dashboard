@@ -1136,11 +1136,17 @@ sugli stessi numeri. Ora è una pagina sola, **Giocatori**:
 - la tabella si ordina per qualunque colonna — è ciò che faceva il menu delle classifiche —
   e una colonna `#` mostra la posizione nell'ordinamento scelto, che è ciò che le classifiche
   aggiungevano;
-- le nove statistiche che stavano solo di là (gol+assist, gol+assist a partita, passaggi e
-  contrasti totali, le tre percentuali, i due clean sheet) **si aggiungono come colonne**
-  quando servono, invece di occupare spazio sempre. Aggiungerne una la ordina subito, che è
-  il motivo per cui la si aggiunge;
+- a schermo restano **quattro statistiche**: presenze, gol, assist, media voto. Le altre
+  undici **si aggiungono come colonne** quando servono (gol+assist e gol+assist a partita,
+  % vittorie, MOTM, cartellini, passaggi e contrasti totali, le tre percentuali, i clean
+  sheet da difensore). Aggiungerne una la ordina subito, che è il motivo per cui la si
+  aggiunge;
 - il **testa a testa** è sotto la tabella, invariato.
+
+Undici colonne sempre accese facevano leggere peggio le quattro che si guardano davvero.
+Sono sparite del tutto l'**OVR** — non dice niente sul rendimento — e i **clean sheet da
+portiere**, che in questo club nessuno fa. Restano entrambi nella scheda del giocatore, dove
+il contesto c'è.
 
 Nessuna funzione è andata persa, incluse le soglie: le classifiche escludevano dalle
 percentuali chi aveva poche partite (`MIN_GAMES_RATE`), ma quella soglia coincide con il

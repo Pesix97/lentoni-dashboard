@@ -1062,8 +1062,6 @@ const STAT_DEFS = [
   { key: "tackles_made", label: "Contrasti totali", icon: "⚔️", unit: "contrasti", minGames: 0, awardTitle: "Più contrasti vinti" },
   { key: "shot_success_rate", label: "% Precisione tiro", icon: "🎯", unit: "%", minGames: MIN_GAMES_RATE, awardTitle: "Miglior % precisione tiro" },
   { key: "clean_sheets_def", label: "Clean sheet (difensore)", icon: "🧱", unit: "clean sheet", minGames: 0, awardTitle: "Miglior muro difensivo" },
-  { key: "clean_sheets_gk", label: "Clean sheet (portiere)", icon: "🥅", unit: "clean sheet", minGames: 0, awardTitle: "Miglior portiere" },
-  { key: "pro_overall", label: "Overall (OVR)", icon: "💪", unit: "OVR", minGames: 0, awardTitle: "Overall più alto" },
 ];
 function statValue(def, r){
   return def.compute ? def.compute(r) : (r[def.key] ?? 0);
@@ -1094,8 +1092,13 @@ function fmtStatValue(def, v){
 // Niente e' andato perso, incluse le soglie: le classifiche escludevano dalle percentuali
 // chi aveva poche partite (MIN_GAMES_RATE), ma quella soglia coincide con il minimo per
 // entrare in rosa, quindi qui la rispettano gia' tutti.
-const COLONNE_BASE = ["player_name","gruppo","pro_overall","games_played",
-                      "win_rate","goals","assists","rating_ave","man_of_the_match","red_cards"];
+// Quattro statistiche sempre a schermo - presenze, gol, assist, media - e tutto il resto a
+// portata di un clic. Scelta del club il 01/09/2026, dopo aver visto la tabella piena:
+// undici colonne sempre accese fanno leggere peggio le quattro che si guardano davvero.
+// % vittorie, MOTM e cartellini sono passati fra le colonne da aggiungere; OVR e i clean
+// sheet del portiere sono spariti del tutto (l'OVR non dice niente sul rendimento, e in
+// porta non ci va nessuno). Restano nella scheda del giocatore, dove hanno senso.
+const COLONNE_BASE = ["player_name","gruppo","games_played","goals","assists","rating_ave"];
 const COLONNE_EXTRA = STAT_DEFS
   .filter(d => !COLONNE_BASE.includes(d.key))
   .map(d => ({ key: d.key, label: d.label, icon: d.icon, def: d }));
@@ -1136,7 +1139,7 @@ function renderRoster(){
 
   const tbody = document.querySelector("#rosterTable tbody");
   if(rows.length === 0){
-    tbody.innerHTML = `<tr><td colspan="${12 + extra.length}" class="empty">Nessun giocatore trovato</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${8 + extra.length}" class="empty">Nessun giocatore trovato</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map((r, i) => `
@@ -1144,14 +1147,10 @@ function renderRoster(){
       <td data-label="#" class="col-rango">${i + 1}</td>
       <td data-label="Giocatore"><span class="player-link" data-player="${r.player_name}">${r.player_name}</span>${r.pro_name && r.pro_name !== r.player_name ? ` <span class="pos-badge">(${r.pro_name})</span>` : ""}</td>
       <td data-label="Ruolo">${gruppoBadge(r.gruppo, r.gruppo_da_assegnare)}</td>
-      <td data-label="OVR">${r.pro_overall || "-"}</td>
       <td data-label="PG">${r.games_played}</td>
-      <td data-label="Win%">${r.win_rate}%</td>
       <td data-label="Gol">${r.goals}</td>
       <td data-label="Assist">${r.assists}</td>
       <td data-label="Media">${r.rating_ave}</td>
-      <td data-label="MOTM">${r.man_of_the_match}</td>
-      <td data-label="Rossi">${r.red_cards}</td>
       ${extra.map(c => `<td data-label="${c.label}">${fmtStatValue(c.def, statValue(c.def, r))}${c.def.unit === "%" ? "%" : ""}</td>`).join("")}
       <td data-label="Forma">${sparkline((r.prev_goals_trend||[]).slice().reverse())}</td>
     </tr>
