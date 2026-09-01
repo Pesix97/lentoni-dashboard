@@ -830,7 +830,9 @@ function computeBlendedScores(windowSize, weight){
   const cards = [
     ["Partite giocate", gp, ""],
     ["Bilancio", `${l.wins ?? 0}V ${l.ties ?? 0}P ${l.losses ?? 0}S`, ""],
-    ["Win rate", winPct + "%", winPct >= 50 ? "win" : "loss"],
+    // Il colore in questa riga di schede e' riservato ai numeri col segno: un 45% rosso
+    // diceva "male" senza un metro, e sopra il 50 diventava verde per una partita.
+    ["Win rate", winPct + "%", ""],
     ["Gol fatti/subiti", `${l.goals ?? 0} / ${l.goals_against ?? 0}`, ""],
     ["Skill rating", l.skill_rating ?? "-", ""],
     ["Promozioni/Retrocessioni", `${l.promotions ?? 0} / ${l.relegations ?? 0}`, ""],
@@ -1195,20 +1197,26 @@ function fmtStatValue(def, v){
   const verso = (n) => n > 0 ? "up" : n < 0 ? "down" : "flat";
   const quando = (s) => `${s.giorno} ${s.inizio}–${s.fine}`;
 
+  // Il colore sta SOLO sui numeri col segno. Il valore grande e' un dato di fatto - 15 gol
+  // sono 15 gol - e colorarlo costringeva a decidere se fosse buono o cattivo; la variazione
+  // invece un verso ce l'ha per definizione. Verde il piu', rosso il meno, sempre.
+  const delta = (n, dec) => `<span class="${verso(n)}">${segno(n, dec)}</span>`;
+
   const schede = [
-    { k:"Partite", v:String(A.partite), c:"flat",
+    { k:"Partite", v:String(A.partite),
       s:`${A.v}V · ${A.n}N · ${A.p}P` + (B.partite ? ` · la volta prima ${B.partite}` : "") },
-    { k:"Gol fatti", v:String(A.gf), c: verso(A.gf - B.gf),
-      s:`${segno(A.gf - B.gf)} rispetto alla serata precedente` },
-    { k:"Gol subiti", v:String(A.gs), c: verso(B.gs - A.gs),
-      s:`${segno(A.gs - B.gs)} rispetto alla serata precedente` },
+    { k:"Gol fatti", v:String(A.gf),
+      s:`${delta(A.gf - B.gf)} rispetto alla serata precedente` },
+    // NOTA: qui il colore segue il segno come tutti gli altri, quindi "+12 gol subiti" esce
+    // verde pur essendo un peggioramento. E' voluto: la regola e' "piu' verde, meno rosso",
+    // uguale ovunque. Prima questa scheda ribaltava il verso da sola, ed era l'unica.
+    { k:"Gol subiti", v:String(A.gs),
+      s:`${delta(A.gs - B.gs)} rispetto alla serata precedente` },
     { k:"Media voto squadra", v: A.media ? A.media.toFixed(2) : "—",
-      c: A.media && B.media ? verso(A.media - B.media) : "flat",
-      s: A.media && B.media ? `${segno(A.media - B.media, 2)} rispetto alla serata precedente` : "prima serata utile" },
+      s: A.media && B.media ? `${delta(A.media - B.media, 2)} rispetto alla serata precedente` : "prima serata utile" },
   ];
   if(dSr !== null)
-    schede.push({ k:"Skill rating", v:String(srOra), c: verso(dSr),
-                  s:`${segno(dSr)} da prima della serata` });
+    schede.push({ k:"Skill rating", v:String(srOra), s:`${delta(dSr)} da prima della serata` });
 
   // Chi c'era. Il confronto della media ha senso solo per chi ha giocato in entrambe: per
   // gli altri si dichiara l'assenza invece di inventare una variazione.
@@ -1222,8 +1230,8 @@ function fmtStatValue(def, v){
       : `<span style="color:var(--muted);">non c'era</span>`;
     return `<div class="mover">
       <b>${n}</b> — ${a.partite} pt · media ${a.media ? a.media.toFixed(2) : "—"} ${delta}
-      ${a.gol ? ` · <span class="mv">${a.gol} gol</span>` : ""}
-      ${a.assist ? ` · <span class="mv">${a.assist} assist</span>` : ""}
+      ${a.gol ? ` · ${a.gol} gol` : ""}
+      ${a.assist ? ` · ${a.assist} assist` : ""}
       ${a.mom ? ` · ⭐${a.mom}` : ""}
     </div>`;
   }).join("");
@@ -1235,7 +1243,7 @@ function fmtStatValue(def, v){
       ${schede.map(c => `
         <div class="news-card">
           <div class="nk">${c.k}</div>
-          <div class="nv ${c.c}">${c.v}</div>
+          <div class="nv">${c.v}</div>
           <div class="ns">${c.s}</div>
         </div>`).join("")}
     </div>

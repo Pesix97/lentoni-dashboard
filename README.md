@@ -1002,6 +1002,18 @@ Lo skill rating è l'unico dato che non viene dalle partite — si legge dalle i
 club, prendendo l'ultima precedente all'inizio della serata. È una finestra, non una misura
 esatta, e l'etichetta lo dichiara.
 
+**Il colore è riservato ai numeri col segno.** Verde il più, rosso il meno; tutto il resto
+bianco. Prima erano colorati anche i valori grandi — 15 gol fatti in verde, 26 subiti in
+rosso, il win rate in rosso sotto il 50% — e quel colore era un giudizio mascherato da dato:
+26 gol subiti in sette partite sono un numero, se sia molto o poco lo dice il confronto, non
+la tinta. Una variazione invece un verso ce l'ha per definizione, ed è lì che il colore
+aggiunge qualcosa.
+
+Un solo effetto collaterale, dichiarato: **«+12 gol subiti» esce verde** pur essendo un
+peggioramento. La scheda dei gol subiti prima ribaltava il verso da sola, ed era l'unica di
+tutta la dashboard a farlo. Fra una regola uguale ovunque e un'eccezione che si spiega solo
+a parole, si è scelta la regola.
+
 ## Il confronto testa a testa spiega il distacco
 
 Mostrava un grafico a barre con gol e assist come **totali di carriera** accanto a delle

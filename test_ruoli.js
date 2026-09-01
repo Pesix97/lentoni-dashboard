@@ -714,7 +714,9 @@ console.log("\nNovita' dall'ultima serata");
     const carta = (nome) => {
       const blocco = h.split('<div class="news-card">').slice(1)
         .find(c => (c.match(/class="nk">([^<]*)</) || [])[1] === nome);
-      return blocco ? (blocco.match(/class="nv [^"]*">([^<]*)</) || [])[1] : null;
+      // `class="nv"` e basta: dal 01/09/2026 il valore grande non porta piu' la classe
+      // up/down/flat, perche' il colore in questa sezione sta solo sui numeri col segno.
+      return blocco ? (blocco.match(/class="nv"[^>]*>([^<]*)</) || [])[1] : null;
     };
 
     // Ricostruzione indipendente della serata piu' recente.
@@ -768,7 +770,8 @@ console.log("\nNovita' dall'ultima serata");
     const precedente = [...storia].reverse().find(x => x.fetched_at < istanti[0]);
     if(precedente && storia.length){
       const atteso = storia[storia.length-1].skill_rating - precedente.skill_rating;
-      const mostrato = (h.match(/Skill rating[\s\S]*?class="ns">([+−]?\d+)/) || [])[1];
+      // La variazione ora vive dentro uno <span class="up|down"> per essere colorata.
+      const mostrato = (h.match(/Skill rating[\s\S]*?class="ns">\s*<span[^>]*>([+−]?\d+)/) || [])[1];
       const num = mostrato ? Number(mostrato.replace("−","-")) : null;
       verifica(`la variazione di skill rating parte dall'inizio della serata (${atteso >= 0 ? "+" : ""}${atteso})`,
         num === atteso, `mostra ${mostrato}`);

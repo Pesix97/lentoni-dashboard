@@ -312,16 +312,21 @@
     background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px;
   }
   .news-card .nk{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
-  .news-card .nv{font-size:22px; font-weight:800; margin-top:4px;}
-  .news-card .nv.up{color:var(--win);} .news-card .nv.down{color:var(--loss);} .news-card .nv.flat{color:var(--muted);}
+  /* REGOLA DEL COLORE IN QUESTA SEZIONE: il colore e' riservato ai numeri COL SEGNO.
+     Verde il piu', rosso il meno; tutto il resto bianco. Un numero senza segno e' un dato
+     di fatto - 15 gol sono 15 gol - e colorarlo obbligava a dargli un giudizio; una
+     variazione invece un verso ce l'ha per definizione. */
+  .news-card .nv{font-size:22px; font-weight:800; margin-top:4px; color:var(--text);}
   .news-card .ns{font-size:12px; color:var(--muted); margin-top:3px;}
+  #novita .up{color:var(--win); font-weight:700;}
+  #novita .down{color:var(--loss); font-weight:700;}
+  #novita .flat{color:var(--muted);}
   .news-movers{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
   .mover{
     background:var(--panel-2); border:1px solid var(--border); border-radius:8px;
-    padding:8px 12px; font-size:12.5px;
+    padding:8px 12px; font-size:12.5px; color:var(--text);
   }
   .mover b{color:var(--gold);}
-  .mover .mv{color:var(--win); font-weight:700;}
 
   /* ---- Share card ---- */
   .share-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
