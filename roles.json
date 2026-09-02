@@ -57,7 +57,7 @@
       "etichetta_ea": "midfielder"
     },
     "Smilzo_87": {
-      "gruppo": "ESTERNI",
+      "gruppo": "CENTROCAMPISTI",
       "etichetta_ea": "midfielder"
     },
     "Maverik_44_": {
@@ -1361,6 +1361,10 @@
     {
       "serata": "2026-08-31T21:06Z",
       "partite": 7
+    },
+    {
+      "serata": "2026-09-01T21:41Z",
+      "partite": 5
     }
   ],
   "_serate_chiuse": [
