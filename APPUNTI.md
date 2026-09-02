@@ -228,6 +228,29 @@ pulizia di ruoli ed esclusioni: è la parte più sporca dell'archivio.
 **La cosa da rifare a settembre non è l'indice: è la misura.** Lo script che l'ha prodotta
 va rieseguito quando le partite saranno il doppio, e solo allora i pesi vanno riscritti.
 
+**Rimisurato il 02/09/2026, come previsto: 124 partite utilizzabili su 125, 11 giocatori.**
+
+```
+gol + assist            +0.93     era +0.63
+scarto vs compagni      +0.87     era +0.19
+media voto              +0.86     era +0.07 (rumore)
+premio migliore         +0.82     era +0.08 (rumore)
+```
+
+Il distacco netto di agosto è sparito: tutte e quattro sono ora vicine, dentro lo stesso
+margine di incertezza dichiarato (±0.33 con una decina di giocatori) — non distinguibili
+statisticamente fra loro. Non basta per ripesare l'indice verso una in particolare.
+
+Il salto più sospetto è quello del premio migliore: da +0.08 (rumore puro) a +0.82. Può
+essere il segnale vero che emerge con più dati, o un artefatto di come si sono divise le
+due metà stavolta. Non c'è modo di distinguerlo da qui.
+
+**Deciso insieme il 02/09/2026: non si ripesa ora.** Si aspetta ancora un pezzo di
+archivio per vedere se questo quadro tiene. Attenzione però al conflitto con la scadenza
+qui sopra: l'archivio di FC 26 si chiude il 18/09 e con FC 27 si riparte da zero — se si
+aspetta troppo, questa misura non si potrà più rifare su questo titolo. Va tenuto d'occhio
+il ritmo delle partite fra ora e il 18/09 per capire se resta tempo per un secondo giro.
+
 **Va fatto entro il 18 settembre**, perché lì l'archivio di FC 26 si chiude e non crescerà
 più. Misurato il 25/08: 8,6 partite al giorno nell'ultima settimana, quindi si chiuderà fra
 le 144 e le 275 partite a seconda del ritmo. È anche l'ultima occasione per rifare la
@@ -748,3 +771,15 @@ lasciato al suo posto, in `modello/pagina.js`.
   vecchia — pagina ferma fino alle 13:00. Dopo una correzione che sblocca la pubblicazione
   non si aspetta il ciclo in corso: si lancia *Run workflow*, che parte con il codice
   aggiornato e in un gruppo di concorrenza suo.
+- **Uno script che "salta in silenzio" un file mancante è un guasto silenzioso come gli
+  altri.** `genera-documenti.py` cerca `proclubs_lentoni/CLAUDE.md` (e README, APPUNTI)
+  dentro `Downloads`, perché prima ci stava, ed è scritto per non fermarsi se un file manca
+  — utile finché i file mancano per un errore di battitura, un problema quando spariscono
+  perché la cartella si è spostata per davvero. Il 02/09/2026, dopo lo spostamento del
+  progetto in `C:\dev`, ha continuato a girare senza errori producendo `Documenti.html` con
+  4 documenti invece di 7: i tre file di Lentoni mancavano all'appello e nessuno se n'è
+  accorto finché non è stato rilanciato apposta. Corretto aggiungendo `LENTONI_BASE` (una
+  variabile d'ambiente, default `C:\dev` per Windows) invece di ricalcolare il percorso
+  della dashboard come offset fisso dallo script: i due non condividono più una cartella
+  comune, quindi nessun percorso relativo può reggere in entrambi i contesti (Windows di
+  Peppe e la sandbox di sessione con cui lo rilancia Claude).

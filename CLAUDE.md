@@ -133,8 +133,15 @@ Infine, se è cambiato uno di questi documenti, va rigenerata la pagina che Pepp
 leggerli — Windows non apre i `.md`:
 
 ```
-python3 "../Claude - skill/genera-documenti.py"
+LENTONI_BASE=".." python3 "../../Downloads/Claude - skill/genera-documenti.py"
 ```
+
+(Lo script vive ancora dentro `Downloads/Claude - skill/`, invariato. `LENTONI_BASE`
+serve dal 02/09/2026, da quando la cartella del progetto non e' piu' dentro Downloads:
+senza, lo script cerca CLAUDE.md/README.md/APPUNTI.md dove non ci sono piu' e li salta in
+silenzio, producendo un `Documenti.html` incompleto senza dirlo — successo il 02/09/2026
+stesso, scoperto solo rilanciandolo a mano. Su Windows nativo, senza questa variabile, lo
+script usa da solo `C:\dev` come base: e' li' che vive ora la dashboard.)
 
 Produce `Downloads\Documenti.html`. È una **copia**: se non si rigenera, lui legge la
 versione vecchia senza accorgersene.
@@ -185,9 +192,10 @@ Il filtro giusto, da usare sempre prima di concludere qualcosa sull'automazione:
 ## Pubblicazione
 
 **Dal 02/09/2026 il push non richiede piu' di chiedere il token.** Le credenziali stanno
-in un file che Peppe ha scritto di suo pugno, fuori dalla cartella del repository:
+in un file che Peppe ha scritto di suo pugno, fuori dalla cartella del repository — prima
+in `Downloads`, ora accanto al repository stesso dopo che il progetto si e' spostato:
 
-    Downloads/.lentoni-git-credentials.txt
+    C:\dev\.lentoni-git-credentials.txt
 
 e git le legge da solo, perche' nel repository e' configurato
 
