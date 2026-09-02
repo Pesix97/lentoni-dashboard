@@ -739,3 +739,12 @@ lasciato al suo posto, in `modello/pagina.js`.
   silenzio - nessuna partita persa, solo la pagina vecchia. Soglia alzata a 0,15, con il
   calcolo del caso peggiore scritto nel commento accanto. Verificato che il controllo sa
   ancora fallire: un errore di +5 punti iniettato apposta viene ancora segnalato.
+  Confermato in produzione lo stesso giorno alle 07:58 UTC: il ciclo lanciato a mano
+  (run `33606224066`) ha rigenerato e pubblicato la pagina al primo giro, battito senza
+  `problema`, pagina online tornata al dato corrente.
+- **Un ciclo già avviato lavora con il codice del suo checkout.** Corollario pratico del
+  punto sopra, costato quasi un'ora il 02/09/2026: il fix era su GitHub alle 07:50, ma il
+  ciclo programmato era partito alle 07:39:29 e avrebbe continuato per 5h20 con la versione
+  vecchia — pagina ferma fino alle 13:00. Dopo una correzione che sblocca la pubblicazione
+  non si aspetta il ciclo in corso: si lancia *Run workflow*, che parte con il codice
+  aggiornato e in un gruppo di concorrenza suo.
