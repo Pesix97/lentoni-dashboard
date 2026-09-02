@@ -184,6 +184,28 @@ Il filtro giusto, da usare sempre prima di concludere qualcosa sull'automazione:
 
 ## Pubblicazione
 
-Il token GitHub **non è memorizzato da nessuna parte**, per scelta. Va chiesto, usato
-inline in un singolo comando di push, e non deve mai finire in `.git/config` né nei log —
-filtrare l'output con `sed 's/github_pat_[A-Za-z0-9_]*/[TOKEN]/g'`.
+**Dal 02/09/2026 il push non richiede piu' di chiedere il token.** Le credenziali stanno
+in un file che Peppe ha scritto di suo pugno, fuori dalla cartella del repository:
+
+    Downloads/.lentoni-git-credentials.txt
+
+e git le legge da solo, perche' nel repository e' configurato
+
+    git config credential.helper 'store --file=../.lentoni-git-credentials.txt'
+
+**Quel file non va mai aperto, letto o stampato**: serve solo che git lo trovi. Se c'e' da
+diagnosticarlo (formato sbagliato, spazi iniziali, a capo mancante) si guardano *conteggi* —
+`grep -c`, `wc`, i primi byte con `od` — mai il contenuto. E' cosi' che il 02/09 sono venuti
+fuori i tre spazi iniziali copiati per sbaglio da un blocco di codice, senza vedere il token.
+
+Perche' fuori dalla cartella del repository: dentro, prima o poi, finirebbe in un commit.
+Perche' il percorso e' **relativo**: la cartella montata ha l'id di sessione nel percorso
+assoluto, che cambia ad ogni sessione nuova — quello relativo regge finche' i comandi
+partono dalla radice del repository. Se in una sessione futura git torna a chiedere le
+credenziali, si rimette quella riga di `git config`: non serve nessun token per farlo.
+
+Resta valida la regola di prima: il token non deve mai finire in `.git/config` (li' c'e'
+solo il percorso del file) ne' nei log — filtrare l'output con
+`sed 's/github_pat_[A-Za-z0-9_]*/[TOKEN]/g'`.
+
+**Un token incollato in chat e' un token bruciato**: va revocato e rigenerato, non usato.
