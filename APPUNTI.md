@@ -728,3 +728,14 @@ lasciato al suo posto, in `modello/pagina.js`.
   l'ultimo avvio, perché il suo primo giro deve ancora arrivare: contarlo darebbe un
   allarme ad ogni esecuzione, cioè rumore continuo — il modo più sicuro di far ignorare
   un allarme vero.
+- **Una soglia di confronto deve reggere l'arrotondamento della pagina, non solo la
+  matematica.** Trovato il 02/09/2026: il controllo che verifica che la percentuale
+  mostrata nel dettaglio tecnica produca i punti a fianco confrontava valori già
+  arrotondati a un decimale (percentuale e punti, ±0,05 ciascuno) con una soglia di 0,1 -
+  più stretta del possibile scarto legittimo (fino a 0,125 nel caso peggiore: "passaggi
+  riusciti" per attaccanti/esterni, peso 45% su una scala di 30 punti). Risultato: la
+  pagina è rimasta ferma **8 ore** (dalle 23:35 alle 07:19 UTC, 25 giri) bloccata da un
+  falso positivo su Pesix_97, mentre il database continuava ad aggiornarsi sotto in
+  silenzio - nessuna partita persa, solo la pagina vecchia. Soglia alzata a 0,15, con il
+  calcolo del caso peggiore scritto nel commento accanto. Verificato che il controllo sa
+  ancora fallire: un errore di +5 punti iniettato apposta viene ancora segnalato.

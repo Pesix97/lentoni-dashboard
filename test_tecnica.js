@@ -175,7 +175,17 @@ setTimeout(() => {
       const punti = parseFloat(r.querySelector(".tecq-punti").textContent);
       const [min, max] = SCALE[eti] || [0, 100];
       const attesi = 100 * peso * Math.max(0, Math.min(1, (pct - min) / (max - min)));
-      if (Math.abs(attesi - punti) > 0.1) incoerenti++;
+      // La soglia deve reggere il doppio arrotondamento della pagina: la percentuale e'
+      // scritta a un decimale (errore fino a 0.05) e i punti pure (fino a 0.05). Il caso
+      // peggiore e' "passaggi riusciti" per attaccanti/esterni: peso 45%, scala di 30 punti
+      // (60-90), quindi un decimo di percentuale vale 100*0.45/30 = 1.5 punti di errore.
+      // Massimo teorico: 1.5*0.05 (sulla percentuale) + 0.05 (sui punti) = 0.125.
+      //
+      // Trovato il 02/09/2026: Pesix_97, passaggi riusciti, scarto 0.100 - dentro
+      // l'arrotondamento lecito della pagina, ma sopra la vecchia soglia di 0.1. Il
+      // controllo bloccava la pubblicazione per un falso positivo, e la pagina e' rimasta
+      // ferma 8 ore mentre il database continuava ad aggiornarsi sotto.
+      if (Math.abs(attesi - punti) > 0.15) incoerenti++;
     });
     verifica("la percentuale mostrata è quella che produce i punti", incoerenti === 0,
       `${incoerenti} righe su 3`);
