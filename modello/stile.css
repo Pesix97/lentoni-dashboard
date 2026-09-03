@@ -296,7 +296,7 @@
      unica): senza questa riga il titolo del mese e la griglia finiscono appaiati come
      due elementi in fila, invece che uno sopra l'altro. L'id ha piu' peso della classe,
      quindi vince senza toccare .filter-bar altrove nella pagina. */
-  #serateFiltri{display:block;}
+  #serateFiltri{display:block; max-width:380px;}
   .calMese{display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:12px;}
   .calTitolo{font-weight:700; font-size:15px; text-transform:capitalize; min-width:130px; text-align:center;}
   .calNav{cursor:pointer; user-select:none; width:32px; height:32px; border-radius:50%;
@@ -310,17 +310,19 @@
     justify-content:center; gap:2px; border-radius:8px; font-size:13px; color:var(--muted);}
   .calDay.fuori{visibility:hidden;}
   .calDay.vuoto{color:var(--border);}
-  .calDay.haPartite{background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+  /* Una casella con partite si vede anche senza leggere il numero: tinta rossa e bordo
+     rosso, non il grigio quasi invisibile di prima sullo sfondo scuro. Un giorno con
+     piu' sessioni (es. pomeriggio e sera) prende la stessa idea ma in dorato - tinta
+     piu' forte, bordo piu' forte - cosi' i due casi si distinguono scorrendo il mese,
+     non solo guardando da vicino la singola casella. */
+  .calDay.haPartite{background:rgba(213,32,58,.16); border:1px solid var(--accent); color:var(--text);
     cursor:pointer; font-weight:700; transition:all .12s;}
   .calDay.haPartite:hover{border-color:var(--accent-2); transform:scale(1.04);}
   .calDay.haPartite.active{background:var(--accent-2); border-color:var(--accent-2);}
   .calDay.haPartite.active, .calDay.haPartite.active .badge{color:#0f1420;}
-  /* Il conteggio partite sta SOTTO il numero, non sovrapposto: una pillola rossa. Un
-     giorno con piu' sessioni (es. pomeriggio e sera) non cambia solo la pillola - tutta
-     la casella prende una tinta dorata, cosi' si vede anche senza guardare da vicino. */
   .calDay .badge{font-size:10px; font-weight:800; padding:1px 6px; border-radius:8px;
     background:var(--accent); color:#fff; line-height:1.4;}
-  .calDay.multi{background:rgba(240,185,11,.22); border-color:var(--gold);}
+  .calDay.multi{background:rgba(240,185,11,.32); border-color:var(--gold); border-width:2px;}
   .calDay.multi .badge{background:var(--gold); color:#3a2600;}
   .calDay.multi.active{background:var(--gold); border-color:var(--gold);}
   .calDay.multi.active .badge{background:#3a2600; color:var(--gold);}
