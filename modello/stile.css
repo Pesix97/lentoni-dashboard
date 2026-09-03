@@ -322,10 +322,16 @@
   .calDay.haPartite.active, .calDay.haPartite.active .badge{color:#0f1420;}
   .calDay .badge{font-size:10px; font-weight:800; padding:1px 6px; border-radius:8px;
     background:var(--accent); color:#fff; line-height:1.4;}
-  .calDay.multi{background:rgba(240,185,11,.32); border-color:var(--gold); border-width:2px;}
-  .calDay.multi .badge{background:var(--gold); color:#3a2600;}
-  .calDay.multi.active{background:var(--gold); border-color:var(--gold);}
-  .calDay.multi.active .badge{background:#3a2600; color:var(--gold);}
+  /* Il dorato di "active" (accent-2) e' lo stesso usato in tutta la pagina per lo stato
+     selezionato: usarlo anche per il multi-sessione lo confondeva con la selezione. Il
+     multi-sessione ha un colore suo, il verde delle vittorie, che non e' ne' il rosso
+     del giorno normale ne' il dorato della selezione. La pillola resta verde anche da
+     selezionati, cosi' il segnale "piu' sessioni" non sparisce quando lo sfondo diventa
+     dorato per via della selezione. */
+  .calDay.multi{background:rgba(51,193,122,.20); border-color:var(--win); border-width:2px;}
+  .calDay.multi .badge{background:var(--win); color:#0f1420;}
+  .calDay.multi.active{background:var(--accent-2); border-color:var(--accent-2);}
+  .calDay.multi.active .badge{background:var(--win); color:#0f1420;}
 
   .form-strip{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
   .form-chip{
