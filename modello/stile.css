@@ -292,29 +292,38 @@
   .filter-btn.active{background:var(--accent-2); color:#0f1420; border-color:var(--accent-2); font-weight:600;}
 
   /* ---- Calendario delle serate ---- */
-  .calMese{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:10px;}
-  .calTitolo{font-weight:600; font-size:14px; text-transform:capitalize; min-width:120px; text-align:center;}
-  .calNav{cursor:pointer; user-select:none; width:28px; height:28px; border-radius:50%;
+  /* #serateFiltri porta ancora la classe .filter-bar di prima (display:flex, riga
+     unica): senza questa riga il titolo del mese e la griglia finiscono appaiati come
+     due elementi in fila, invece che uno sopra l'altro. L'id ha piu' peso della classe,
+     quindi vince senza toccare .filter-bar altrove nella pagina. */
+  #serateFiltri{display:block;}
+  .calMese{display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:12px;}
+  .calTitolo{font-weight:700; font-size:15px; text-transform:capitalize; min-width:130px; text-align:center;}
+  .calNav{cursor:pointer; user-select:none; width:32px; height:32px; border-radius:50%;
     border:1px solid var(--border); color:var(--muted); display:flex; align-items:center;
-    justify-content:center; font-size:16px; transition:all .12s;}
+    justify-content:center; font-size:18px; transition:all .12s; flex:none;}
   .calNav:hover{color:var(--text); border-color:var(--accent-2);}
-  .calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:12px;}
+  .calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:12px;}
   .calDow{text-align:center; font-size:10px; color:var(--muted); text-transform:uppercase;
-    letter-spacing:.04em; padding-bottom:2px;}
-  .calDay{position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center;
-    border-radius:8px; font-size:12px; color:var(--muted);}
+    letter-spacing:.04em; padding-bottom:4px;}
+  .calDay{aspect-ratio:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:2px; border-radius:8px; font-size:13px; color:var(--muted);}
   .calDay.fuori{visibility:hidden;}
   .calDay.vuoto{color:var(--border);}
   .calDay.haPartite{background:var(--panel-2); border:1px solid var(--border); color:var(--text);
-    cursor:pointer; font-weight:600; transition:all .12s;}
-  .calDay.haPartite:hover{border-color:var(--accent-2);}
-  .calDay.haPartite.active{background:var(--accent-2); color:#0f1420; border-color:var(--accent-2);}
-  /* Cerchio rosso col numero di partite; se sono piu' sessioni (es. pomeriggio e sera)
-     il badge diventa un quadrato dorato, riconoscibile anche senza leggere il numero. */
-  .calDay .badge{position:absolute; bottom:-4px; right:-4px; min-width:15px; height:15px; padding:0 3px;
-    border-radius:50%; background:var(--accent); color:#fff; font-size:9px; font-weight:700;
-    display:flex; align-items:center; justify-content:center; line-height:1; box-shadow:0 0 0 2px var(--panel-2);}
-  .calDay.multi .badge{border-radius:4px; background:var(--gold); color:#3a2600;}
+    cursor:pointer; font-weight:700; transition:all .12s;}
+  .calDay.haPartite:hover{border-color:var(--accent-2); transform:scale(1.04);}
+  .calDay.haPartite.active{background:var(--accent-2); border-color:var(--accent-2);}
+  .calDay.haPartite.active, .calDay.haPartite.active .badge{color:#0f1420;}
+  /* Il conteggio partite sta SOTTO il numero, non sovrapposto: una pillola rossa. Un
+     giorno con piu' sessioni (es. pomeriggio e sera) non cambia solo la pillola - tutta
+     la casella prende una tinta dorata, cosi' si vede anche senza guardare da vicino. */
+  .calDay .badge{font-size:10px; font-weight:800; padding:1px 6px; border-radius:8px;
+    background:var(--accent); color:#fff; line-height:1.4;}
+  .calDay.multi{background:rgba(240,185,11,.22); border-color:var(--gold);}
+  .calDay.multi .badge{background:var(--gold); color:#3a2600;}
+  .calDay.multi.active{background:var(--gold); border-color:var(--gold);}
+  .calDay.multi.active .badge{background:#3a2600; color:var(--gold);}
 
   .form-strip{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
   .form-chip{
@@ -452,9 +461,11 @@
     input.filter{width:100%;}
     .filter-bar{gap:6px;}
     .filter-btn{padding:9px 13px; font-size:12.5px;}
+    .calMese{gap:10px;}
+    .calTitolo{font-size:13px; min-width:0;}
     .calGrid{gap:4px;}
     .calDay{font-size:11px;}
-    .calDay .badge{min-width:13px; height:13px; font-size:8px;}
+    .calDay .badge{font-size:9px; padding:0 4px;}
     select.h2h-select{width:100%; min-width:0;}
     .h2h-controls{flex-direction:column; align-items:stretch;}
     .h2h-vs{text-align:center;}
