@@ -3363,17 +3363,86 @@ function computeOutfieldLineup(){
       : Infinity;
   };
 
+  // Ogni giorno prende anche una data vera (anno/mese/numero), con lo stesso scarto di
+  // sei ore usato in Python per "sera" (generate_dashboard.py, elenco_serate): senza,
+  // un giorno vicino a mezzanotte finirebbe piazzato nel mese sbagliato della griglia.
+  giorni.forEach(g => {
+    const primo = matchById.get(g.sessioni[0].matchIds[0]);
+    const sera = new Date(new Date(primo.played_at).getTime() - 6 * 3600 * 1000);
+    g.anno = sera.getFullYear();
+    g.mese = sera.getMonth();
+    g.numGiorno = sera.getDate();
+    g.partite = g.sessioni.reduce((n, s) => n + s.matchIds.length, 0);
+  });
+
+  // I mesi con almeno una serata, dal piu' recente: e' quello che si apre di default,
+  // non il mese del calendario di oggi (con una pausa lunga potrebbero non coincidere).
+  const mesi = [];
+  giorni.forEach(g => {
+    if(!mesi.find(m => m.anno === g.anno && m.mese === g.mese)) mesi.push({ anno: g.anno, mese: g.mese });
+  });
+  mesi.sort((a, b) => (b.anno - a.anno) || (b.mese - a.mese));
+
+  let meseIdx = 0;
   let scelto = giorni[0].giorno;
+
+  const NOMI_MESE = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio",
+    "agosto","settembre","ottobre","novembre","dicembre"];
+  const NOMI_GIORNO = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+
   function disegna(){
-    filtriEl.innerHTML = giorni.map(g => {
-      const partite = g.sessioni.reduce((n, s) => n + s.matchIds.length, 0);
-      const doppia = g.sessioni.length > 1
-        ? `<span style="opacity:.65;"> · ${g.sessioni.length} sessioni</span>` : "";
-      return `<span class="filter-btn ${g.giorno === scelto ? "active" : ""}" data-g="${g.giorno}">${g.giorno}
-        <span style="opacity:.65;">${partite}</span>${doppia}</span>`;
+    const { anno, mese } = mesi[meseIdx];
+    const primoDelMese = new Date(anno, mese, 1);
+    // getDay(): 0=domenica..6=sabato. La griglia comincia di lunedi'.
+    const primaColonna = (primoDelMese.getDay() + 6) % 7;
+    const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+
+    const celle = [];
+    for(let i = 0; i < primaColonna; i++) celle.push(null);
+    for(let d = 1; d <= giorniNelMese; d++){
+      celle.push(giorni.find(g => g.anno === anno && g.mese === mese && g.numGiorno === d)
+        || { vuoto: true, numGiorno: d });
+    }
+
+    const celleHtml = celle.map(c => {
+      if(c === null) return `<span class="calDay fuori"></span>`;
+      if(c.vuoto) return `<span class="calDay vuoto">${c.numGiorno}</span>`;
+      // Un giorno con piu' sessioni (es. pomeriggio e sera) si distingue da uno con una
+      // sola: badge quadrato dorato invece che cerchietto rosso, non solo il numero.
+      const multi = c.sessioni.length > 1 ? " multi" : "";
+      const attiva = c.giorno === scelto ? " active" : "";
+      return `<span class="calDay haPartite${multi}${attiva}" data-g="${c.giorno}">${c.numGiorno}` +
+        `<span class="badge">${c.partite}</span></span>`;
     }).join("");
-    filtriEl.querySelectorAll(".filter-btn").forEach(b =>
-      b.addEventListener("click", () => { scelto = b.dataset.g; disegna(); }));
+
+    filtriEl.innerHTML = `
+      <div class="calMese">
+        <span class="calNav" data-d="1"${meseIdx >= mesi.length - 1 ? ' style="visibility:hidden;"' : ""}>&lsaquo;</span>
+        <span class="calTitolo">${NOMI_MESE[mese]} ${anno}</span>
+        <span class="calNav" data-d="-1"${meseIdx <= 0 ? ' style="visibility:hidden;"' : ""}>&rsaquo;</span>
+      </div>
+      <div class="calGrid">
+        ${NOMI_GIORNO.map(n => `<span class="calDow">${n}</span>`).join("")}
+        ${celleHtml}
+      </div>`;
+
+    filtriEl.querySelectorAll(".calNav").forEach(b => b.addEventListener("click", () => {
+      const nuovo = meseIdx + Number(b.dataset.d);
+      if(nuovo < 0 || nuovo >= mesi.length) return;
+      meseIdx = nuovo;
+      // Cambiare mese senza selezionare niente lascerebbe la scheda sotto a mostrare la
+      // sera del mese precedente, con la griglia sopra senza nessun giorno acceso: si
+      // seleziona la sera piu' recente del mese appena mostrato.
+      const { anno, mese } = mesi[meseIdx];
+      const primaDelMese = giorni.find(g => g.anno === anno && g.mese === mese);
+      if(primaDelMese) scelto = primaDelMese.giorno;
+      disegna();
+    }));
+    filtriEl.querySelectorAll(".calDay.haPartite").forEach(b => b.addEventListener("click", () => {
+      scelto = b.dataset.g;
+      disegna();
+    }));
+
     const g = giorni.find(x => x.giorno === scelto) || giorni[0];
     detEl.innerHTML = g.sessioni.map(s => scheda(s, limiteDi(s))).join("");
   }

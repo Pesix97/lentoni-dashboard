@@ -1022,6 +1022,31 @@ mentre il colore risponde all'unica domanda per cui serve un colore: *è andata 
 peggio?* Ogni scheda dichiara il proprio verso (`PIU_E_MEGLIO` o `MENO_E_MEGLIO`) invece di
 lasciarlo dedurre, e un controllo in `test_ruoli.js` verifica proprio quel caso.
 
+## Le serate si sfogliano da un calendario, non da un elenco che cresce
+
+Fino al 02/09/2026 ogni sera con partite aveva un suo bottone, tutti in fila, uno per
+giorno — funzionava con poche decine di serate, ma la fila non aveva un limite: con la
+stagione ancora aperta fino al 18/09 sarebbero diventati troppi per stare su una riga,
+anche a capo.
+
+Ora è una griglia mensile: si apre sull'ultimo mese con partite (non sul mese del
+calendario di oggi — con una pausa lunga potrebbero non coincidere), i giorni senza
+partite restano visibili ma spenti e non cliccabili, e due frecce cambiano mese, disabili
+oltre il primo e l'ultimo con dati.
+
+Un giorno con **due sessioni** (è successo il 18/08: partita nel pomeriggio e poi la sera)
+si distingue **anche visivamente**, non solo nel numero: il pallino col conteggio delle
+partite diventa un quadratino dorato invece che un cerchietto rosso. La regola del
+raggruppamento — un bottone per giorno di calendario, non per sessione — resta quella
+decisa a suo tempo (vedi il commento in `pagina.js`, funzione `renderSerate`); cambia solo
+come viene mostrata.
+
+I dati non sono cambiati: ogni serata aveva già un timestamp completo (`chiave`, in
+`elenco_serate` dentro `generate_dashboard.py`), la griglia lo usa per sapere in che mese
+e giorno piazzarla, con lo stesso scarto di sei ore già usato per l'etichetta "sera" — la
+stessa regola in due posti, come sempre in questo progetto, l'avrebbe fatta prima o poi
+divergere.
+
 ## Il confronto testa a testa spiega il distacco
 
 Mostrava un grafico a barre con gol e assist come **totali di carriera** accanto a delle
