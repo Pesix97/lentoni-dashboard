@@ -1743,6 +1743,12 @@ function computeFormScores(windowSize){
     });
   });
 
+  // Conteggio grezzo delle presenze nella finestra, PRIMA del filtro sulla soglia minima.
+  // Serve a chi resta sotto soglia: senza questo la scheda non sa dire "ne hai 3" e puo'
+  // solo dire "nessuna", che e' falso per chi ne ha 1-3 (bug analogo gia' trovato e corretto
+  // nella scheda giocatore, vedi commento piu' sotto su role_from_matches).
+  const gamesByPlayer = new Map([...agg.entries()].map(([name, a]) => [name, a.games]));
+
   const pool = [...agg.entries()]
     .filter(([, a]) => a.games >= FORM_MIN_APPS)
     .map(([name, a]) => {
@@ -1768,9 +1774,7 @@ function computeFormScores(windowSize){
       };
     });
 
-  if(pool.length === 0) return new Map();
-
-  return new Map(pool.map(p => [p.name, {
+  const formMap = pool.length === 0 ? new Map() : new Map(pool.map(p => [p.name, {
     ...p,
     // Serve al testa a testa: senza i valori normalizzati anche della forma, il distacco
     // si puo' mostrare solo sulle carriere, e non coinciderebbe con la classifica filtrata.
@@ -1789,12 +1793,14 @@ function computeFormScores(windowSize){
       PESI_INDICE.disc    * normWith(p.redRate,   "disc")
     ))),
   }]));
+
+  return { formMap, gamesByPlayer };
 }
 
 // Fonde storico e forma. Chi non ha abbastanza partite recenti resta al 100% storico
 // (segnalato con `formAvailable: false`), invece di essere penalizzato per assenza di dati.
 function computeBlendedScores(windowSize, weight){
-  const form = computeFormScores(windowSize);
+  const { formMap: form, gamesByPlayer } = computeFormScores(windowSize);
   const punteggi = POWER_SCORES.map(s => {
     const f = form.get(s.r.player_name);
     const hasForm = !!f;
@@ -1876,6 +1882,9 @@ function computeBlendedScores(windowSize, weight){
       historicScore: s.score,
       formScore: hasForm ? f.score : null,
       formGames: hasForm ? f.games : 0,
+      // Presenze REALI nella finestra, anche sotto la soglia minima: serve a chi resta
+      // fuori classifica per dire quante ne ha davvero invece di dire sempre "nessuna".
+      formGamesInWindow: gamesByPlayer.get(s.r.player_name) || 0,
       formAvailable: hasForm,
       pesoFormaEffettivo: pesoForma,
       blendedScore: blended,
@@ -2644,13 +2653,24 @@ renderRoster();
     let posizione = 0;
     tbody.innerHTML = rows.map((s) => {
       if(s.fuoriClassifica){
+        // "Nessuna" e' vero solo a 0. Da 1 a FORM_MIN_APPS-1 il giocatore le partite
+        // le ha, solo non abbastanza: dirlo in modo diverso evita di sembrare un dato
+        // mancante quando invece e' sotto soglia (segnalato il 03/09/2026 su gio05596,
+        // 3 presenze contro le 4 richieste).
+        const n = s.formGamesInWindow;
+        const motivoBreve = n === 0
+          ? "nessuna partita archiviata"
+          : `solo ${n} partit${n === 1 ? "a" : "e"} archiviat${n === 1 ? "a" : "e"} (ne servono ${FORM_MIN_APPS})`;
+        const motivoTitolo = n === 0
+          ? "Nessuna partita archiviata nella finestra scelta"
+          : `${n} partit${n === 1 ? "a" : "e"} archiviat${n === 1 ? "a" : "e"} nella finestra scelta, ne servono ${FORM_MIN_APPS}`;
         return `
         <tr style="opacity:.6;">
-          <td data-label="#"><span class="opp-tag" title="Nessuna partita archiviata nella finestra scelta">—</span></td>
+          <td data-label="#"><span class="opp-tag" title="${motivoTitolo}">—</span></td>
           <td data-label="Giocatore"><span class="player-link" data-player="${s.r.player_name}">${s.r.player_name}</span></td>
           <td data-label="Ruolo">${gruppoBadge(s.r.gruppo, s.r.gruppo_da_assegnare)}</td>
           <td data-label="Indice" class="lb-value" colspan="2" style="font-size:12px; color:var(--muted);">
-            non valutabile sulla forma: nessuna partita archiviata</td>
+            non valutabile sulla forma: ${motivoBreve}</td>
           <td data-label="Storico" class="career-cell">${s.historicScore.toFixed(1)}</td>
           <td data-label="Forma" class="career-cell">-</td>
           <td data-label="Media">${s.r.rating_ave}</td>
