@@ -1231,6 +1231,72 @@
       "quando": "01/09 01:08 Sorry For Us",
       "giocatore": "Smilzo_87",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1028714793180197",
+      "quando": "02/09 23:32 Vittuone Goat",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1028828658310052",
+      "quando": "02/09 23:52 essekler fc",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1028796914500291",
+      "quando": "03/09 00:11 Ludopatici team",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1028960418550468",
+      "quando": "03/09 00:30 Patates Spor",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1028888880570052",
+      "quando": "03/09 00:47 Habo  Wabo",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1028714793180197",
+      "quando": "02/09 23:32 Vittuone Goat",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1028828658310052",
+      "quando": "02/09 23:52 essekler fc",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1028796914500291",
+      "quando": "03/09 00:11 Ludopatici team",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1028960418550468",
+      "quando": "03/09 00:30 Patates Spor",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1028888880570052",
+      "quando": "03/09 00:47 Habo  Wabo",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1029176258900254",
+      "quando": "03/09 01:07 anubisdet",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
     }
   ],
   "_esclusioni_partita": [
@@ -1365,6 +1431,10 @@
     {
       "serata": "2026-09-01T21:41Z",
       "partite": 5
+    },
+    {
+      "serata": "2026-09-02T21:32Z",
+      "partite": 6
     }
   ],
   "_serate_chiuse": [
