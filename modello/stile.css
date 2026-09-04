@@ -410,6 +410,8 @@
   .lb-rank.g2{color:#c9d1d9;}
   .lb-rank.g3{color:#d19a5c;}
   .lb-value{font-weight:700; color:var(--accent);}
+  .diag-win{font-weight:700; color:var(--win);}
+  .diag-loss{font-weight:700; color:var(--loss);}
 
   .power-podium{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:16px;}
   .power-card{

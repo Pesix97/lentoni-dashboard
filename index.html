@@ -417,6 +417,8 @@
   .lb-rank.g2{color:#c9d1d9;}
   .lb-rank.g3{color:#d19a5c;}
   .lb-value{font-weight:700; color:var(--accent);}
+  .diag-win{font-weight:700; color:var(--win);}
+  .diag-loss{font-weight:700; color:var(--loss);}
 
   .power-podium{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:16px;}
   .power-card{
@@ -3723,35 +3725,40 @@ function computeOutfieldLineup(){
     const a = V[v.k], b = P ? P[v.k] : null, c = S[v.k];
     let diff = "";
     if(v.quanto !== null){
-      let testo = null, rilevante = false;
+      let testo = null, rilevante = false, segno = 0;
       if(v.gol){
         const d = c - a;
         testo = `${d > 0 ? "+" : "−"}${Math.abs(d).toFixed(1)} gol`;
         rilevante = Math.abs(d) >= 0.5;
+        segno = d;
       } else if(v.perc){
         const d = Math.round(c - a);
         testo = d === 0 ? "uguale"
               : `${d > 0 ? "+" : "−"}${Math.abs(d)} ${Math.abs(d) === 1 ? "punto" : "punti"}`;
         rilevante = Math.abs(d) >= 5;
+        segno = d;
       } else {
         // Come nella scheda osservatore: differenza assoluta, stessa unita' della riga.
         // "+3.5 gol subiti" invece di "+287%", che sembrava un refuso.
-        const diff = c - a;
-        const scritto = v.f(Math.abs(diff));
-        testo = scritto === v.f(0) ? "uguale" : `${diff > 0 ? "+" : "−"}${scritto}`;
-        rilevante = a ? Math.abs(100 * diff / Math.abs(a)) >= 8 : diff !== 0;
+        const diffAssoluta = c - a;
+        const scritto = v.f(Math.abs(diffAssoluta));
+        testo = scritto === v.f(0) ? "uguale" : `${diffAssoluta > 0 ? "+" : "−"}${scritto}`;
+        rilevante = a ? Math.abs(100 * diffAssoluta / Math.abs(a)) >= 8 : diffAssoluta !== 0;
+        segno = diffAssoluta;
       }
       if(testo !== null){
-        diff = rilevante
-          ? `<span style="color:var(--accent);">${testo}</span>`
-          : `<span style="color:var(--muted);">quasi uguale</span>`;
+        // Su richiesta di Peppe (04/09/2026): solo i delta negativi risaltano in rosso,
+        // quelli positivi restano nel colore del testo normale, cosi' il rosso significa
+        // sempre "peggio nelle sconfitte" e non semplicemente "e' cambiato qualcosa".
+        const colore = !rilevante ? "var(--muted)" : (segno < 0 ? "var(--loss)" : "var(--text)");
+        diff = `<span style="color:${colore};">${rilevante ? testo : "quasi uguale"}</span>`;
       }
     }
     return `<tr>
       <td data-label="Indicatore">${v.lab}</td>
-      <td data-label="Vittoria" class="lb-value">${v.f(a)}</td>
+      <td data-label="Vittoria" class="diag-win">${v.f(a)}</td>
       <td data-label="Pareggio">${b == null ? "—" : v.f(b)}</td>
-      <td data-label="Sconfitta">${v.f(c)}</td>
+      <td data-label="Sconfitta" class="diag-loss">${v.f(c)}</td>
       <td data-label="Differenza" style="font-size:12px;">${diff}</td>
     </tr>`;
   }).join("");
