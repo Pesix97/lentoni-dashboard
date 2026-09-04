@@ -3667,8 +3667,12 @@ function openPlayerCard(name){
         </div>
         <div class="role-split">
           ${r.role_from_matches
+            // "n" e' gia' un conteggio di partite giocate in quel ruolo (vedi
+            // ROLE_COUNTS_BY_NAME sopra e "righe.reduce" piu' sotto per chi non e' ancora
+            // in rosa): l'etichetta diceva "pt" come se fosse un punteggio, ma non lo e'
+            // mai stato. Corretto il 04/09/2026 su segnalazione di Peppe.
             ? Object.entries(r.role_counts).sort((a,b) => b[1]-a[1]).map(([pos, n]) =>
-                `<span class="rs"><b>${ROLE_LABELS[pos] || pos}</b> ${n} pt</span>`).join("")
+                `<span class="rs"><b>${ROLE_LABELS[pos] || pos}</b> ${n} ${n === 1 ? "partita" : "partite"}</span>`).join("")
               + (r.favorite_position && r.favorite_position !== r.role_effective
                   ? `<span class="rs">ruolo EA: ${ROLE_LABELS[r.favorite_position] || r.favorite_position}</span>` : "")
             : `<span class="rs">ruolo EA: ${ROLE_LABELS[r.favorite_position] || r.favorite_position || "-"} · nessuna partita archiviata</span>`}
