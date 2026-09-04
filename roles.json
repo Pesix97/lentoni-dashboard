@@ -1297,6 +1297,54 @@
       "quando": "03/09 01:07 anubisdet",
       "giocatore": "ilmille",
       "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1031230817080225",
+      "quando": "03/09 23:36 Braia FC",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1031230817080225",
+      "quando": "03/09 23:36 Braia FC",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1031452174860126",
+      "quando": "03/09 23:59 anubisdet",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1031500204170179",
+      "quando": "04/09 00:17 Real stempiati",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1031500204170179",
+      "quando": "04/09 00:17 Real stempiati",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1031500204170179",
+      "quando": "04/09 00:17 Real stempiati",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1031518347960267",
+      "quando": "04/09 00:39 RiCOT FC",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1031518347960267",
+      "quando": "04/09 00:39 RiCOT FC",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -1434,6 +1482,10 @@
     },
     {
       "serata": "2026-09-02T21:32Z",
+      "partite": 6
+    },
+    {
+      "serata": "2026-09-03T20:58Z",
       "partite": 6
     }
   ],
