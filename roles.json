@@ -1041,6 +1041,24 @@
       "gruppo": "ATTACCANTI"
     },
     {
+      "match_id": "1002436822090037",
+      "quando": "24/08 23:48 ÅAMLAR UTD FC",
+      "giocatore": "Bagherese_95",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1008300948880024",
+      "quando": "27/08 01:22 HENDEKLÄ°LER",
+      "giocatore": "Bagherese_95",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1031230817080225",
+      "quando": "03/09 23:36 Braia FC",
+      "giocatore": "Bagherese_95",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
       "match_id": "1008214879740341",
       "quando": "27/08 00:50 Grizzli CFP 2",
       "giocatore": "domenicocasaburi",
@@ -1605,8 +1623,14 @@
     "CORRETTO il 05/09/2026 su decisione di Peppe: non e' un centrocampista, e' un attaccante.",
     "Da CENTROCAMPISTI ad ATTACCANTI, etichetta_ea invariata a 'midfielder' - stesso schema di",
     "Pesix_97/ktm-008/domenicocasaburi (COC: EA scrive sempre 'midfielder' per lui, il reparto",
-    "vero e' un altro). Le eccezioni_partita gia' registrate per lui confermano la scelta: 4",
-    "partite manuali su 6 dicono gia' ATTACCANTI, nessuna dice CENTROCAMPISTI."
+    "vero e' un altro).",
+    "",
+    "Non e' un cambio assoluto pero': Peppe si ricorda 2-3 partite in cui ha giocato davvero da",
+    "centrocampista, confermate il 05/09/2026 (contro ÅAMLAR UTD FC il 24/08, HENDEKLÄ°LER il",
+    "26/08, Braia FC il 03/09 - le tre 'midfielder' con minutaggio pieno e senza gia' un'altra",
+    "eccezione; scartata quella contro 3LA JNBB, 21 secondi in campo). Quelle tre restano",
+    "eccezioni_partita a CENTROCAMPISTI: il ruolo di base e' Attaccante, ma partita per partita",
+    "vince sempre la conferma di chi ha visto la partita, come per tutti gli altri."
   ],
   "_etichetta_ea": [
     "'etichetta_ea' e' l'etichetta che EA usa per questo giocatore quando gioca nel suo ruolo",
