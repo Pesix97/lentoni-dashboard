@@ -1345,6 +1345,60 @@
       "quando": "04/09 00:39 RiCOT FC",
       "giocatore": "Jysmu",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1033824902170231",
+      "quando": "04/09 00:17 Almoaqen",
+      "giocatore": "Bagherese_95",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1033824902170231",
+      "quando": "04/09 00:17 Almoaqen",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1033924735440095",
+      "quando": "04/09 00:35 Bacos Bros",
+      "giocatore": "Bagherese_95",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1033924735440095",
+      "quando": "04/09 00:35 Bacos Bros",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1033970662220043",
+      "quando": "04/09 00:53",
+      "giocatore": "Bagherese_95",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1033970662220043",
+      "quando": "04/09 00:53",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1033970662220043",
+      "quando": "04/09 00:53",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1034124333870343",
+      "quando": "04/09 01:12 5erat albasra",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1034146393210193",
+      "quando": "04/09 01:30 Dark Meak",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
     }
   ],
   "_esclusioni_partita": [
@@ -1487,6 +1541,10 @@
     {
       "serata": "2026-09-03T20:58Z",
       "partite": 6
+    },
+    {
+      "serata": "2026-09-04T21:41Z",
+      "partite": 11
     }
   ],
   "_serate_chiuse": [
