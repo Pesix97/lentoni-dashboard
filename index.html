@@ -1078,7 +1078,10 @@ function roleCountsSorted(name){
 
 (DATA.roster || []).forEach(r => {
   const sorted = roleCountsSorted(r.player_name);
-  r.role_counts = sorted.length ? Object.fromEntries(sorted) : null;
+  // role_counts (quante partite per reparto, mostrato nella scheda giocatore) si calcola
+  // piu' sotto con groupCountsSorted(), dopo che i gruppi di roles.json sono caricati: deve
+  // contare il reparto reale (con le correzioni a mano), non l'etichetta EA grezza per
+  // partita. Vedi GROUP_COUNTS_BY_NAME.
   r.role_matches = sorted.reduce((a, [,n]) => a + n, 0);
   r.role_effective = sorted.length ? sorted[0][0] : (r.favorite_position || null);
   r.role_from_matches = sorted.length > 0;
@@ -1124,6 +1127,41 @@ function groupForMatch(name, pos){
   return manual;
 }
 
+// ---- Quante partite per reparto reale, per la scheda giocatore ----
+// Il badge "Attacco N partite / Centrocampo M partite" deve contare le STESSE partite
+// della classifica per reparto (computeGroupScores piu' sotto), non l'etichetta EA
+// grezza per partita: altrimenti i due numeri non tornano mai. Un COC come Pesix_97 ha
+// 122 partite "forward"/"midfielder" secondo EA, ma solo 92 contano davvero come
+// Attaccanti dopo le correzioni a mano di roles.json (eccezioni_partita). Segnalato da
+// Peppe il 05/09/2026: i due numeri devono coincidere.
+const GROUP_COUNTS_BY_NAME = (function(){
+  const m = new Map();
+  (DATA.matches || []).forEach(mt => {
+    (DATA.matchPlayers[mt.match_id] || []).forEach(p => {
+      if(!p.pos) return;
+      const gruppo = ROLE_EXCEPTIONS[mt.match_id + "|" + p.player_name]
+                  || groupForMatch(p.player_name, p.pos);
+      if(!gruppo) return;
+      if(!m.has(p.player_name)) m.set(p.player_name, {});
+      const c = m.get(p.player_name);
+      c[gruppo] = (c[gruppo] || 0) + 1;
+    });
+  });
+  return m;
+})();
+
+function groupCountsSorted(name){
+  const c = GROUP_COUNTS_BY_NAME.get(name);
+  return c ? Object.entries(c).sort((a,b) => b[1] - a[1]) : [];
+}
+
+// Etichette brevi per il badge: stesso stile di ROLE_LABELS ma per reparto reale
+// (ATTACCANTI/CENTROCAMPISTI/...) invece che per etichetta EA grezza (forward/midfielder/...).
+const GROUP_SHORT_LABELS = {
+  ATTACCANTI: "Attacco", CENTROCAMPISTI: "Centrocampo", ESTERNI: "Esterni",
+  DIFENSORI: "Difesa", PORTIERI: "Portiere",
+};
+
 // Il ruolo ufficiale di un giocatore nella dashboard e' il suo gruppo di roles.json.
 // Prima convivevano due nozioni diverse: le classifiche per reparto usavano i gruppi
 // veri, tutto il resto (rosa, indice di forza, scheda giocatore) l'etichetta EA piu'
@@ -1150,6 +1188,10 @@ function gruppoBadge(gruppo, daAssegnare){
 (DATA.roster || []).forEach(r => {
   r.gruppo = gruppoGiocatore(r.player_name, r.role_effective);
   r.gruppo_da_assegnare = !GROUP_OF_PLAYER[r.player_name];
+  // Stesso conteggio della classifica per reparto: il badge nella scheda giocatore e
+  // "Partite nel ruolo" mostrano sempre lo stesso numero.
+  const sortedGruppi = groupCountsSorted(r.player_name);
+  r.role_counts = sortedGruppi.length ? Object.fromEntries(sortedGruppi) : null;
 });
 
 // ---- I pesi dell'Indice di Forza, in un posto solo ----
@@ -4650,7 +4692,9 @@ function schedaDaPartite(name){
     // Senza questi due la scheda scriveva "nessuna partita archiviata" proprio a chi le
     // partite archiviate ce le ha - sono l'unica cosa che ha.
     role_from_matches: true,
-    role_counts: righe.reduce((c, p) => (c[p.pos] = (c[p.pos] || 0) + 1, c), {}),
+    // Stesso criterio della rosa: reparto reale (con le correzioni di roles.json), non
+    // l'etichetta EA grezza per partita. Vedi GROUP_COUNTS_BY_NAME.
+    role_counts: Object.fromEntries(groupCountsSorted(name)),
     favorite_position: null,
   };
 }
@@ -4716,8 +4760,8 @@ function openPlayerCard(name){
             // ROLE_COUNTS_BY_NAME sopra e "righe.reduce" piu' sotto per chi non e' ancora
             // in rosa): l'etichetta diceva "pt" come se fosse un punteggio, ma non lo e'
             // mai stato. Corretto il 04/09/2026 su segnalazione di Peppe.
-            ? Object.entries(r.role_counts).sort((a,b) => b[1]-a[1]).map(([pos, n]) =>
-                `<span class="rs"><b>${ROLE_LABELS[pos] || pos}</b> ${n} ${n === 1 ? "partita" : "partite"}</span>`).join("")
+            ? Object.entries(r.role_counts).sort((a,b) => b[1]-a[1]).map(([gruppo, n]) =>
+                `<span class="rs"><b>${GROUP_SHORT_LABELS[gruppo] || gruppo}</b> ${n} ${n === 1 ? "partita" : "partite"}</span>`).join("")
               + (r.favorite_position && r.favorite_position !== r.role_effective
                   ? `<span class="rs">ruolo EA: ${ROLE_LABELS[r.favorite_position] || r.favorite_position}</span>` : "")
             : `<span class="rs">ruolo EA: ${ROLE_LABELS[r.favorite_position] || r.favorite_position || "-"} · nessuna partita archiviata</span>`}
