@@ -49,7 +49,7 @@
       "etichetta_ea": "midfielder"
     },
     "Bagherese_95": {
-      "gruppo": "CENTROCAMPISTI",
+      "gruppo": "ATTACCANTI",
       "etichetta_ea": "midfielder"
     },
     "Jysmu": {
@@ -1598,10 +1598,15 @@
     "punto interrogativo accanto al ruolo dedotto dall'etichetta EA.",
     "",
     "Bagherese_95 e' stato aggiunto il 24/08/2026, la sera del suo esordio: cinque partite,",
-    "che EA ha etichettato tre volte 'forward' e due 'midfielder'. E' un centrocampista, e",
-    "quelle tre da attaccante contano come fuori ruolo. Il ruolo si assegna subito anche se",
-    "con 5 partite di carriera non compare ancora da nessuna parte - la soglia e' 30 - cosi'",
-    "quando ci arrivera' lo storico sara' gia' classificato bene fin dall'inizio."
+    "che EA ha etichettato tre volte 'forward' e due 'midfielder'. Il ruolo si assegna subito",
+    "anche se con 5 partite di carriera non compare ancora da nessuna parte - la soglia e' 30 -",
+    "cosi' quando ci arrivera' lo storico sara' gia' classificato bene fin dall'inizio.",
+    "",
+    "CORRETTO il 05/09/2026 su decisione di Peppe: non e' un centrocampista, e' un attaccante.",
+    "Da CENTROCAMPISTI ad ATTACCANTI, etichetta_ea invariata a 'midfielder' - stesso schema di",
+    "Pesix_97/ktm-008/domenicocasaburi (COC: EA scrive sempre 'midfielder' per lui, il reparto",
+    "vero e' un altro). Le eccezioni_partita gia' registrate per lui confermano la scelta: 4",
+    "partite manuali su 6 dicono gia' ATTACCANTI, nessuna dice CENTROCAMPISTI."
   ],
   "_etichetta_ea": [
     "'etichetta_ea' e' l'etichetta che EA usa per questo giocatore quando gioca nel suo ruolo",
