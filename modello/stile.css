@@ -504,7 +504,18 @@
       border:1px solid var(--border); border-radius:8px; margin-bottom:10px; padding:8px 0;
       background:var(--panel-2);
     }
-    .table-wrap table.responsive-table tr.match-detail{border:none; background:none; margin:0; padding:0;}
+    /* Le righe di dettaglio (Tecnica, dettaglio partita) partono chiuse ovunque - vedi
+       ".match-detail{display:none;}" piu' sopra - ma la regola generica "tr{display:block}"
+       qui accanto ha piu' specificita' e la batteva, mostrandole SEMPRE aperte su mobile:
+       ogni riga della tabella portava con se' tutto il suo pannello di dettaglio, sempre
+       visibile, sempre lungo. Trovato da Peppe il 07/09/2026 guardando la pagina dal
+       telefono - invisibile a ogni test automatico perche' jsdom non applica il CSS.
+       display:none qui vince di nuovo per specificita' (tre classi contro due), e si
+       riapre solo con .open, esattamente come su schermi larghi. */
+    .table-wrap table.responsive-table tr.match-detail{
+      display:none; border:none; background:none; margin:0; padding:0;
+    }
+    .table-wrap table.responsive-table tr.match-detail.open{display:block;}
     .table-wrap table.responsive-table td{
       display:flex; justify-content:space-between; align-items:center; gap:10px; white-space:normal;
       border-bottom:1px solid var(--border); padding:8px 14px; font-size:13px;

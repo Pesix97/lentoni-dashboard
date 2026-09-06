@@ -614,6 +614,22 @@ lasciato al suo posto, in `modello/pagina.js`.
 
 ## Cose imparate, da non riscoprire
 
+- **jsdom non applica il CSS: un test tutto verde non dice niente sul layout.** Il
+  07/09/2026 Peppe ha visto dal telefono le righe di dettaglio (Tecnica, dettaglio
+  partita) mostrarsi SEMPRE aperte nelle tabelle a schermi stretti, invece che solo al
+  clic. Causa: `.match-detail{display:none;}` e la regola mobile che trasforma le righe
+  in card (`.table-wrap table.responsive-table tr{display:block;}`, dentro
+  `@media(max-width:700px)`) hanno specificita' diversa, e la seconda vinceva su
+  qualunque schermo stretto — invisibile a `test_apertura.js` e a tutti i controlli node,
+  perche' jsdom non ha un motore di layout e non applica le media query. Corretto
+  aggiungendo `display:none` con specificita' piu' alta sulla riga `.match-detail` dentro
+  la stessa media query, verificato **non** con jsdom ma con Playwright (gia' installato
+  nell'ambiente cloud) su viewport 390px reale: 154 righe su "Partite" e 49 su "Reparto
+  per reparto" passavano da altezza reale (36px e 258px, cioe' visibili) a zero. Nessun
+  controllo di questo repository sa fare questo tipo di verifica da solo: da valutare se
+  vale la pena aggiungere Playwright come dipendenza di test per il layout mobile, o se
+  restare a un controllo visivo occasionale come questo basta.
+
 - La **media voto di carriera arriva da EA con un solo decimale** (7.1, non 7.13). Le
   medie a due cifre che si vedono in rosa e nell'Indice di Forza sono quindi un decimale
   vero e uno zero di formattazione. Dove invece la media è calcolata sulle partite
