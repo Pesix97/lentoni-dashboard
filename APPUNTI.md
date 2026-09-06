@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 29/08/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 02/09/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -53,11 +53,6 @@ La riga è stata corretta in README.md, con una nota che dice il segnale vero: *
 un'esecuzione che sta facendo giri?** Si legge nel battito (`esecuzioni` con evento
 `schedule`), non nelle Actions. Nelle Actions serve semmai il contrario: se NON ci sono
 righe affatto, GitHub non sta lanciando.
-
-**Resta da fare:** la skill `lentoni-dashboard` (quella letta a inizio conversazione)
-contiene la stessa tabella con la stessa frase sbagliata — non è un file di questo repo,
-va corretta a parte via proposta di modifica skill.
-
 
 **La riga della salute archivio: risolto il 29/08/2026.** Diceva «108 partite archiviate in
 totale» e sotto «ne abbiamo salvate 98 (74%)» senza spiegare perché i due numeri non
@@ -783,3 +778,10 @@ lasciato al suo posto, in `modello/pagina.js`.
   della dashboard come offset fisso dallo script: i due non condividono più una cartella
   comune, quindi nessun percorso relativo può reggere in entrambi i contesti (Windows di
   Peppe e la sandbox di sessione con cui lo rilancia Claude).
+
+- **Due modi di contare la stessa cosa possono disaccordare senza un errore visibile.**
+  Il badge della scheda giocatore contava le partite per etichetta EA grezza
+  (forward/midfielder), la classifica per reparto contava il reparto reale dopo le
+  correzioni di `roles.json`: per un COC come Pesix_97, 36 contro 92. Corretto il
+  05/09/2026 facendoli passare dalla stessa funzione (`groupForMatch` +
+  `ROLE_EXCEPTIONS`).

@@ -690,7 +690,7 @@ gli avversari:
 - lo **skill rating degli avversari** viene riscaricato solo se più vecchio di 14 giorni, al
   massimo dieci club per giro (`avversari.py`). Un avversario affrontato oggi porta il
   livello che aveva quando è stato interrogato, non quello di stasera;
-- **16 partite su 49 non hanno l'id dell'avversario** nei dati EA, quindi restano fuori da
+- **16 partite su 154 non hanno l'id dell'avversario** nei dati EA, quindi restano fuori da
   ogni confronto per forza dell'avversario. Compaiono in tutto il resto.
 
 ## I pesi dell'Indice di Forza stanno in un posto solo
@@ -1036,7 +1036,7 @@ oltre il primo e l'ultimo con dati.
 
 Un giorno con **due sessioni** (è successo il 18/08: partita nel pomeriggio e poi la sera)
 si distingue **anche visivamente**, non solo nel numero: il pallino col conteggio delle
-partite diventa un quadratino dorato invece che un cerchietto rosso. La regola del
+partite diventa un quadratino verde invece che un cerchietto rosso. La regola del
 raggruppamento — un bottone per giorno di calendario, non per sessione — resta quella
 decisa a suo tempo (vedi il commento in `pagina.js`, funzione `renderSerate`); cambia solo
 come viene mostrata.
