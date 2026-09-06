@@ -186,14 +186,35 @@ Python `test_il_primo_giorno_senza_neanche_una_partita` copre lo stesso caso ma 
 i controlli js. Da sistemare **prima del 18/09 mattina**, quando la pagina di FC 27 uscirà
 davvero vuota per qualche ora.
 
-**Due cose lasciate aperte apposta, da guardare quando `storico` avrà davvero un titolo
-dentro:**
-- `saluteArchivio` calcola le partite attese dal tempo trascorso da `dal` ad oggi: su un
-  titolo chiuso quel tempo continua a crescere per sempre, quindi il numero "attese" di un
-  titolo archiviato si allontanerebbe sempre di più dalla realtà ad ogni giro. Non è un
-  problema finché `storico` è vuoto (oggi), lo diventa il primo giorno dopo il 18/09.
-- le pagine di `archivio/` non hanno ancora un controllo di apertura proprio: solo
-  `index.html` viene passato a `test_apertura.js`/`test_tecnica.js` dentro `giro.sh`.
+**Le due cose segnalate sopra, sistemate il 06/09/2026 su richiesta di Peppe:**
+
+- `test_apertura.js` falliva 4 controlli su 17 su un titolo a zero partite (colonna
+  Tecnica non cliccabile, tabella non riordinabile, `#serateFiltri`) perché quei controlli
+  davano per scontato che ci fosse sempre almeno un giocatore o una serata. Non era un
+  difetto della pagina — la rosa vuota, `#serateFiltri` rimosso quando non c'è niente da
+  filtrare sono scelte grafiche già corrette, verificate a mano — era il test a non saperlo
+  distinguere da un guasto vero. Ora salta quei controlli specifici quando l'archivio è
+  davvero vuoto (con una riga esplicita "salto" invece di sparire in silenzio) e li fa
+  girare normalmente appena c'è almeno un giocatore. Verificato che sappia ancora fallire:
+  rotto apposta `tec-apri` sulla pagina reale, il controllo l'ha preso.
+- **Correzione a un mio errore**: avevo detto a Peppe che `saluteArchivio` calcola le
+  partite attese dal tempo trascorso da `dal` a oggi, e che quindi su un titolo chiuso il
+  numero si sarebbe allontanato dalla realtà per sempre. Non è così — controllato il
+  codice: `calcola_salute_archivio()` legge solo gli snapshot già in `club_stats_history`,
+  e un titolo chiuso non ne riceve più (il fetch di `giro.sh` scarica solo il `club_id`
+  segnato come `attivo`): i numeri restano fissi, non derivano. Il problema vero era un
+  altro, e più sottile: la parte del riquadro sulle "ultime 48 ore" resta congelata
+  all'ultimo valore prima della chiusura e dice comunque «se il numero non scende entro il
+  prossimo aggiornamento, quelle partite sono perse» — un prossimo aggiornamento che per un
+  titolo chiuso non arriverà mai. Corretto con un campo `titoloChiuso` che ogni pagina
+  conosce di sé: se chiuso, il riquadro mostra solo i numeri definitivi (partite
+  archiviate, attese, il divario storico) e toglie la parte sulle ultime 48 ore invece di
+  lasciarla congelata. Coperto da un'asserzione nel test del punto sopra.
+
+**Resta aperto**, non richiesto finora: le pagine di `archivio/` non hanno ancora un
+controllo di apertura proprio — solo `index.html` viene passato a
+`test_apertura.js`/`test_tecnica.js` dentro `giro.sh`. Da guardare prima che ce ne sia
+davvero una da pubblicare, il 18/09.
 
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 

@@ -93,7 +93,11 @@ setTimeout(() => {
   verifica("il menu laterale ha delle voci", voci >= 5, `ne ha ${voci}`);
 
   // 3. Le tabelle che il JavaScript riempie. Se restano vuote, la pagina "c'e'" ma non
-  //    dice niente - ed e' il modo in cui un guasto puo' passare inosservato.
+  //    dice niente - ed e' il modo in cui un guasto puo' passare inosservato. Un archivio
+  //    davvero vuoto (il primo giorno di un titolo nuovo) e' pero' un caso legittimo che va
+  //    distinto da un guasto: la rosa e la classifica in quel caso mostrano una riga
+  //    placeholder ("Nessun giocatore trovato"), quindi "ha delle righe" resta vero anche
+  //    a zero giocatori. E' voluto, non e' cio' che questo controllo deve intercettare.
   const riempite = [
     ["classifica generale", "#powerTable tbody tr"],
     ["rosa", "#rosterTable tbody tr"],
@@ -109,19 +113,39 @@ setTimeout(() => {
 
   // 4. I contenitori che le altre reti gia' controllano nel file, qui verificati DOPO che
   //    il JavaScript li ha riempiti: esistere ed essere pieni sono due cose diverse.
-  const pieni = ["forza", "serateFiltri", "diagnosiTabella", "wrappedGrid"];
+  //
+  //    #serateFiltri fa eccezione: renderSerate() lo RIMUOVE apposta quando non c'e'
+  //    nessuna serata (stessa scelta di "Nessun giocatore trovato" per la rosa, solo che
+  //    qui il contenitore sparisce invece di restare vuoto) - non e' un buco, quindi si
+  //    verifica separatamente invece di pretendere che esista sempre.
+  const pieni = ["forza", "diagnosiTabella", "wrappedGrid"];
   pieni.forEach((id) => {
     const el = d.getElementById(id);
     verifica(`#${id} esiste ed e' stato riempito`,
       !!el && el.innerHTML.trim().length > 0, el ? "vuoto" : "non esiste");
   });
+  const nessunaSerata = !!d.querySelector("#serataDettaglio .empty");
+  if (nessunaSerata) {
+    verifica("#serateFiltri assente perche' non c'e' nessuna serata in archivio (rimosso apposta)", true);
+  } else {
+    const el = d.getElementById("serateFiltri");
+    verifica("#serateFiltri esiste ed e' stato riempito",
+      !!el && el.innerHTML.trim().length > 0, el ? "vuoto" : "non esiste");
+  }
 
-  // 5. Il dettaglio dell'efficienza tecnica, che e' cio' che ha rotto la pagina.
-  const aperture = d.querySelectorAll(".tec-apri").length;
-  const dettagli = d.querySelectorAll("tr.tecnica-detail").length;
-  verifica("i numeri della colonna Tecnica sono cliccabili", aperture > 0, `ne ha ${aperture}`);
-  verifica("ogni numero cliccabile ha la sua riga di dettaglio",
-    dettagli === aperture, `${aperture} cliccabili contro ${dettagli} dettagli`);
+  // 5. Il dettaglio dell'efficienza tecnica, che e' cio' che ha rotto la pagina - ma solo
+  //    se c'e' almeno un giocatore: a zero giocatori non c'e' nessuna colonna Tecnica da
+  //    aprire, e non e' un guasto, e' l'unico stato possibile con zero dati.
+  const haGiocatori = d.querySelectorAll("#rosterTable .player-link").length > 0;
+  if (haGiocatori) {
+    const aperture = d.querySelectorAll(".tec-apri").length;
+    const dettagli = d.querySelectorAll("tr.tecnica-detail").length;
+    verifica("i numeri della colonna Tecnica sono cliccabili", aperture > 0, `ne ha ${aperture}`);
+    verifica("ogni numero cliccabile ha la sua riga di dettaglio",
+      dettagli === aperture, `${aperture} cliccabili contro ${dettagli} dettagli`);
+  } else {
+    verifica("nessun giocatore in questo archivio: salto i controlli sulla colonna Tecnica", true);
+  }
 
   // E i dettagli devono partire CHIUSI: aperti tutti insieme la tabella e' illeggibile.
   const apertiSubito = d.querySelectorAll("tr.tecnica-detail.open").length;
@@ -131,8 +155,11 @@ setTimeout(() => {
   // Il 01/09/2026 sono rimaste mute per un giro: le celle si ricostruiscono da `outerHTML`,
   // che si portava dietro il marcatore "ascoltatore gia' attaccato" senza l'ascoltatore.
   // Esistevano, avevano il data-key giusto, erano perfette a guardarle - e non facevano
-  // niente. Da qui il controllo: si clicca davvero e si guarda se l'ordine cambia.
-  {
+  // niente. Da qui il controllo: si clicca davvero e si guarda se l'ordine cambia. Anche
+  // qui serve almeno un giocatore: con una sola riga placeholder non c'e' niente da
+  // riordinare, e "prima e dopo restano uguali" sarebbe un fallimento del controllo, non
+  // della pagina.
+  if (haGiocatori) {
     const nomePrimo = () => {
       const c = d.querySelector("#rosterTable tbody tr td:nth-child(2)");
       return c ? c.textContent.trim() : null;
@@ -155,6 +182,8 @@ setTimeout(() => {
     verifica("l'intestazione ordinata e' segnalata",
       !!ordinata && ordinata.dataset.key === "games_played" && !!ordinata.dataset.verso,
       ordinata ? `${ordinata.dataset.key} ${ordinata.dataset.verso}` : "nessuna");
+  } else {
+    verifica("nessun giocatore in questo archivio: salto i controlli sull'ordinamento", true);
   }
 
   // 6. Una sezione alla volta. La dashboard e' una pagina sola che ne mostra una per volta:

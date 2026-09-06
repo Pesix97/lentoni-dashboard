@@ -738,6 +738,13 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path):
     data["serateAperte"] = serate_da_confermare(data["matches"])
     data["serate"] = elenco_serate(data["matches"])
     data["titolo"] = club.get("titolo") or ""
+    # Vero per ogni pagina tranne quella del titolo attivo (sempre il primo di `titoli`,
+    # per come lo costruisce elenco_titoli()). Serve a "Salute dell'archivio": quel
+    # riquadro racconta se l'automazione sta tenendo il passo ADESSO, e su un titolo
+    # chiuso l'automazione non lo tocca piu' - dirlo con lo stesso riquadro di un titolo
+    # vivo lascerebbe per sempre in pagina un "se non arriva entro il prossimo
+    # aggiornamento e' persa" su un aggiornamento che non arrivera' mai piu'.
+    data["titoloChiuso"] = corrente_file != titoli[0]["file"]
     # Il nome viene dal database, dove lo scrive il primo scaricamento riuscito. Al
     # passaggio a un titolo nuovo pero' quella riga non esiste ancora: provato il
     # 25/08/2026 simulando il 18 settembre, la pagina usciva intestata "Club" e con

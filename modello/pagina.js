@@ -1974,6 +1974,38 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
   const el = document.getElementById("salutePanel");
   const sa = DATA.saluteArchivio;
   if(!el) return;
+  // Un titolo chiuso non riceve piu' scaricamenti: "salute dell'archivio" e' un
+  // monitoraggio di cio' che succede ADESSO, e su un titolo chiuso non ha piu' senso
+  // dirlo con lo stesso riquadro di uno attivo (vedi titoloChiuso in generate_dashboard.py).
+  // I numeri restano quelli veri e definitivi di quella stagione; sparisce solo la parte
+  // sulle "ultime 48 ore", che qui non vuol dire niente perche' non arrivera' mai un
+  // prossimo giro a smentirla o confermarla.
+  if(DATA.titoloChiuso){
+    if(!sa || sa.attese === null || sa.attese === undefined){
+      el.innerHTML = `<div style="font-size:13px; color:var(--muted);">
+        <strong style="color:var(--text);">${(DATA.matches || []).length} partite archiviate.</strong>
+        Titolo chiuso: non ha ricevuto abbastanza scaricamenti per stimare quante ne siano sfuggite.</div>`;
+      return;
+    }
+    const percChiuso = sa.attese > 0 ? Math.round((sa.archiviateDaPrimoSnapshot / sa.attese) * 100) : 100;
+    const coloreChiuso = percChiuso >= 90 ? "var(--ok,#4ade80)" : (percChiuso >= 60 ? "#facc15" : "var(--accent)");
+    el.innerHTML = `
+      <div style="font-size:13px; line-height:1.6;">
+        <strong style="color:var(--text);">${sa.archiviate} partite archiviate</strong> in totale,
+        su ${sa.giocateEA} giocate dal club secondo EA prima della chiusura di questo titolo.
+        <br>
+        Dal ${new Date(sa.daQuando).toLocaleDateString("it-IT", { day:"2-digit", month:"long" })} il club ha
+        giocato <strong style="color:var(--text);">${sa.attese}</strong> partite e ne abbiamo
+        salvate <strong style="color:${coloreChiuso};">${sa.archiviateDaPrimoSnapshot}</strong> (${percChiuso}%).
+        ${sa.divario > 0 ? `Le altre <strong>${sa.divario}</strong> sono andate perse prima che
+          l'aggiornamento automatico diventasse abbastanza frequente: EA non le espone più.` : ``}
+        <div style="background:var(--panel-2,rgba(255,255,255,.06)); border-radius:4px; height:8px; margin:10px 0;">
+          <div style="width:${Math.min(100, percChiuso)}%; height:8px; border-radius:4px; background:${coloreChiuso};"></div>
+        </div>
+        <span style="color:var(--muted);">Titolo chiuso: l'archivio non riceve più aggiornamenti, questi numeri sono definitivi.</span>
+      </div>`;
+    return;
+  }
   if(!sa || sa.attese === null || sa.attese === undefined){
     el.innerHTML = `<div style="font-size:13px; color:var(--muted);">
       <strong style="color:var(--text);">${(DATA.matches || []).length} partite archiviate.</strong>

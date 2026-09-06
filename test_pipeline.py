@@ -1087,6 +1087,14 @@ class TestPassaggioDiTitolo(BaseConArchivio):
         self.assertIn('<option value="" selected>FC 26</option>', html_vecchio)
         self.assertIn('<option value="../index.html">FC 27</option>', html_vecchio)
 
+        # "Salute dell'archivio" e' un monitoraggio di adesso: sulla pagina chiusa deve
+        # sapere di esserlo, altrimenti resterebbe per sempre un avviso sulle "ultime 48
+        # ore" che non potra' mai piu' essere confermato ne' smentito (06/09/2026).
+        dati_nuovo = self._dati(html_nuovo)
+        dati_vecchio = self._dati(html_vecchio)
+        self.assertFalse(dati_nuovo["titoloChiuso"], "il titolo attivo non e' chiuso")
+        self.assertTrue(dati_vecchio["titoloChiuso"], "il titolo archiviato deve sapere di esserlo")
+
 
 class TestPotatura(unittest.TestCase):
     """La potatura del grezzo, aggiunta il 28/08/2026.
