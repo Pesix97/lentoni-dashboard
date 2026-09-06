@@ -1417,6 +1417,48 @@
       "quando": "04/09 01:30 Dark Meak",
       "giocatore": "ilmille",
       "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1036672263800345",
+      "quando": "05/09 23:47 ARCORE FC",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1036650523730266",
+      "quando": "06/09 00:08 we hate r3gg1n",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1036650523730266",
+      "quando": "06/09 00:08 we hate r3gg1n",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1036748330890240",
+      "quando": "06/09 00:19 panciolle",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1036748330890240",
+      "quando": "06/09 00:19 panciolle",
+      "giocatore": "Maverik_44_",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1036748330890240",
+      "quando": "06/09 00:19 panciolle",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1036682723130097",
+      "quando": "06/09 00:39 TEAM EL7ARAMEYA",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -1563,6 +1605,10 @@
     {
       "serata": "2026-09-04T21:41Z",
       "partite": 11
+    },
+    {
+      "serata": "2026-09-05T21:47Z",
+      "partite": 6
     }
   ],
   "_serate_chiuse": [
