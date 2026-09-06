@@ -3588,21 +3588,21 @@ function computeOutfieldLineup(){
           inner.innerHTML = '<span class="empty">Nessun dettaglio giocatori disponibile</span>';
         } else {
           inner.innerHTML = `
-            <table>
+            <table class="responsive-table">
               <thead><tr><th>Giocatore</th><th>Ruolo</th><th>Gol</th><th>Assist</th><th>Rating</th><th>Tiri</th><th>Passaggi</th><th>Contrasti</th><th>Parate</th><th>Minuti</th></tr></thead>
               <tbody>
                 ${players.map(p => `
                   <tr>
-                    <td>${p.player_name}${p.mom ? " ⭐" : ""}</td>
-                    <td class="pos-badge">${p.pos}</td>
-                    <td>${p.goals}</td>
-                    <td>${p.assists}</td>
-                    <td>${p.rating}</td>
-                    <td>${p.shots}</td>
-                    <td>${p.passes_made}/${p.pass_attempts}</td>
-                    <td>${p.tackles_made}/${p.tackle_attempts}</td>
-                    <td>${p.saves || 0}</td>
-                    <td>${p.seconds_played ? Math.round(p.seconds_played/60) + "'" : "-"}</td>
+                    <td data-label="Giocatore">${p.player_name}${p.mom ? " ⭐" : ""}</td>
+                    <td data-label="Ruolo" class="pos-badge">${p.pos}</td>
+                    <td data-label="Gol">${p.goals}</td>
+                    <td data-label="Assist">${p.assists}</td>
+                    <td data-label="Rating">${p.rating}</td>
+                    <td data-label="Tiri">${p.shots}</td>
+                    <td data-label="Passaggi">${p.passes_made}/${p.pass_attempts}</td>
+                    <td data-label="Contrasti">${p.tackles_made}/${p.tackle_attempts}</td>
+                    <td data-label="Parate">${p.saves || 0}</td>
+                    <td data-label="Minuti">${p.seconds_played ? Math.round(p.seconds_played/60) + "'" : "-"}</td>
                   </tr>
                 `).join("")}
               </tbody>

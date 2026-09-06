@@ -630,6 +630,24 @@ lasciato al suo posto, in `modello/pagina.js`.
   vale la pena aggiungere Playwright come dipendenza di test per il layout mobile, o se
   restare a un controllo visivo occasionale come questo basta.
 
+- **Un `<td>` reso `display:flex` non allarga da solo il proprio unico figlio.** Stessa
+  giornata (07/09/2026), stesso spot: Peppe ha segnalato che il dettaglio di una partita,
+  su telefono, era illeggibile e sprecava spazio in verticale. Causa diversa dalla riga
+  sopra: la tabella nidificata con i 10 valori per giocatore (Ruolo, Gol, Assist, Rating,
+  Tiri, Passaggi, Contrasti, Parate, Minuti) restava una tabella normale a scorrimento
+  orizzontale — le intestazioni sparivano scorrendo, e capire quale numero fosse cosa
+  era impossibile. Prima correzione: darle `class="responsive-table"` come ogni altra
+  tabella, cosi' eredita lo stesso impilamento a card. Non bastava: la card veniva larga
+  meta' schermo. Motivo: il `<td colspan>` che la contiene e' anche lui preso dalla
+  regola generica `display:flex;justify-content:space-between;`, pensata per celle con
+  un'etichetta e un valore affiancati — ma qui dentro c'e' un solo figlio a blocco
+  (`.inner`), e un figlio unico dentro un flex-container in riga NON si allarga da solo
+  alla larghezza disponibile: si dimensiona sul proprio contenuto, non sul contenitore.
+  Corretto tornando quel `<td>` a `display:block` con una regola piu' specifica, cosi'
+  `.inner` si comporta come un div qualunque e si allarga per intero. Verificato con
+  Playwright: card piena larghezza, zero scorrimento orizzontale sulla pagina, apertura e
+  chiusura al clic ancora funzionanti.
+
 - La **media voto di carriera arriva da EA con un solo decimale** (7.1, non 7.13). Le
   medie a due cifre che si vedono in rosa e nell'Indice di Forza sono quindi un decimale
   vero e uno zero di formattazione. Dove invece la media è calcolata sulle partite

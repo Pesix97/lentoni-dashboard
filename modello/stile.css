@@ -516,6 +516,15 @@
       display:none; border:none; background:none; margin:0; padding:0;
     }
     .table-wrap table.responsive-table tr.match-detail.open{display:block;}
+    /* La regola generica qui sopra rende ogni <td> un contenitore flex, pensato per le
+       celle semplici (etichetta a sinistra, valore a destra sulla stessa riga). Il <td
+       colspan> di una riga di dettaglio non ha quella forma: contiene un blocco unico
+       (".inner"), che come UNICO figlio di un flex-container in riga non si allarga da
+       solo alla larghezza disponibile - il suo dimensionamento segue il contenuto, non il
+       contenitore. Con dentro una tabella nidificata (il dettaglio partita) il risultato
+       era una card larga meta' schermo invece che intera. Qui si torna a un <td> normale
+       a blocco, dove ".inner" si allarga come farebbe qualunque div. */
+    .table-wrap table.responsive-table tr.match-detail > td{display:block; width:100%;}
     .table-wrap table.responsive-table td{
       display:flex; justify-content:space-between; align-items:center; gap:10px; white-space:normal;
       border-bottom:1px solid var(--border); padding:8px 14px; font-size:13px;
@@ -527,9 +536,16 @@
     }
     .table-wrap table.responsive-table td:not([data-label])::before{content:none;}
 
-    /* dettaglio partita (tabella annidata) resta leggibile a scorrimento orizzontale */
-    .match-detail .inner{overflow-x:auto;}
-    .match-detail table{width:auto; min-width:100%;}
+    /* La tabella annidata del dettaglio partita (11 giocatori x 10 colonne: Ruolo,
+       Gol, Assist, Rating, Tiri, Passaggi, Contrasti, Parate, Minuti) prima restava una
+       tabella normale a scorrimento orizzontale dentro una card gia' stretta: senza le
+       intestazioni sempre visibili, scorrendo di lato si perdeva il significato di ogni
+       colonna. Segnalato da Peppe il 07/09/2026 ("non capisco cosa sto leggendo").
+       Basta darle class="responsive-table" (vedi modello/pagina.js) perche' erediti lo
+       stesso impilamento a card di ogni altra tabella qui sopra, una riga per giocatore
+       con l'etichetta sempre accanto al valore: non serve altra regola oltre a quella
+       generica poco sopra, che si applica a QUALSIASI table.responsive-table dentro
+       .table-wrap, non solo a quella di primo livello. */
   }
 
   /* ---- Responsive: schermi molto piccoli (≤420px) ---- */

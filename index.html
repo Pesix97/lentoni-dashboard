@@ -523,6 +523,15 @@
       display:none; border:none; background:none; margin:0; padding:0;
     }
     .table-wrap table.responsive-table tr.match-detail.open{display:block;}
+    /* La regola generica qui sopra rende ogni <td> un contenitore flex, pensato per le
+       celle semplici (etichetta a sinistra, valore a destra sulla stessa riga). Il <td
+       colspan> di una riga di dettaglio non ha quella forma: contiene un blocco unico
+       (".inner"), che come UNICO figlio di un flex-container in riga non si allarga da
+       solo alla larghezza disponibile - il suo dimensionamento segue il contenuto, non il
+       contenitore. Con dentro una tabella nidificata (il dettaglio partita) il risultato
+       era una card larga meta' schermo invece che intera. Qui si torna a un <td> normale
+       a blocco, dove ".inner" si allarga come farebbe qualunque div. */
+    .table-wrap table.responsive-table tr.match-detail > td{display:block; width:100%;}
     .table-wrap table.responsive-table td{
       display:flex; justify-content:space-between; align-items:center; gap:10px; white-space:normal;
       border-bottom:1px solid var(--border); padding:8px 14px; font-size:13px;
@@ -534,9 +543,16 @@
     }
     .table-wrap table.responsive-table td:not([data-label])::before{content:none;}
 
-    /* dettaglio partita (tabella annidata) resta leggibile a scorrimento orizzontale */
-    .match-detail .inner{overflow-x:auto;}
-    .match-detail table{width:auto; min-width:100%;}
+    /* La tabella annidata del dettaglio partita (11 giocatori x 10 colonne: Ruolo,
+       Gol, Assist, Rating, Tiri, Passaggi, Contrasti, Parate, Minuti) prima restava una
+       tabella normale a scorrimento orizzontale dentro una card gia' stretta: senza le
+       intestazioni sempre visibili, scorrendo di lato si perdeva il significato di ogni
+       colonna. Segnalato da Peppe il 07/09/2026 ("non capisco cosa sto leggendo").
+       Basta darle class="responsive-table" (vedi modello/pagina.js) perche' erediti lo
+       stesso impilamento a card di ogni altra tabella qui sopra, una riga per giocatore
+       con l'etichetta sempre accanto al valore: non serve altra regola oltre a quella
+       generica poco sopra, che si applica a QUALSIASI table.responsive-table dentro
+       .table-wrap, non solo a quella di primo livello. */
   }
 
   /* ---- Responsive: schermi molto piccoli (≤420px) ---- */
@@ -4649,21 +4665,21 @@ function computeOutfieldLineup(){
           inner.innerHTML = '<span class="empty">Nessun dettaglio giocatori disponibile</span>';
         } else {
           inner.innerHTML = `
-            <table>
+            <table class="responsive-table">
               <thead><tr><th>Giocatore</th><th>Ruolo</th><th>Gol</th><th>Assist</th><th>Rating</th><th>Tiri</th><th>Passaggi</th><th>Contrasti</th><th>Parate</th><th>Minuti</th></tr></thead>
               <tbody>
                 ${players.map(p => `
                   <tr>
-                    <td>${p.player_name}${p.mom ? " ⭐" : ""}</td>
-                    <td class="pos-badge">${p.pos}</td>
-                    <td>${p.goals}</td>
-                    <td>${p.assists}</td>
-                    <td>${p.rating}</td>
-                    <td>${p.shots}</td>
-                    <td>${p.passes_made}/${p.pass_attempts}</td>
-                    <td>${p.tackles_made}/${p.tackle_attempts}</td>
-                    <td>${p.saves || 0}</td>
-                    <td>${p.seconds_played ? Math.round(p.seconds_played/60) + "'" : "-"}</td>
+                    <td data-label="Giocatore">${p.player_name}${p.mom ? " ⭐" : ""}</td>
+                    <td data-label="Ruolo" class="pos-badge">${p.pos}</td>
+                    <td data-label="Gol">${p.goals}</td>
+                    <td data-label="Assist">${p.assists}</td>
+                    <td data-label="Rating">${p.rating}</td>
+                    <td data-label="Tiri">${p.shots}</td>
+                    <td data-label="Passaggi">${p.passes_made}/${p.pass_attempts}</td>
+                    <td data-label="Contrasti">${p.tackles_made}/${p.tackle_attempts}</td>
+                    <td data-label="Parate">${p.saves || 0}</td>
+                    <td data-label="Minuti">${p.seconds_played ? Math.round(p.seconds_played/60) + "'" : "-"}</td>
                   </tr>
                 `).join("")}
               </tbody>
