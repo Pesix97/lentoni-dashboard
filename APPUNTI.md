@@ -166,6 +166,24 @@ non ha senso. Vedi anche il punto 5, che lo dimostra con i numeri.
 Con qualche centinaio si potrà capire se i pesi alternativi producono classifiche sensate
 o solo diverse.
 
+**Decisione presa (06/09/2026): i clean sheet individuali per i difensori si aggiungono al
+passaggio a FC 27**, non prima. Motivo verificato sul database quel giorno, non solo
+sentito: le prestazioni contate come DIFENSORI erano 29 in tutto l'archivio (il reparto
+è già sotto la soglia di 100 partite che la dashboard usa per dire "indice non
+attendibile"), e di quelle 29 solo 9 avevano `goals_conceded` valorizzato — il 31%,
+spalmate su 8 giocatori diversi, nessuno oltre 4 letture valide. Un peso costruito su
+numeri così pochi sarebbe stato lo stesso errore del laboratorio del 25/08: corretto per
+costruzione, incapace di dire qualcosa. Con FC 27 l'archivio riparte completo e cresce più
+in fretta (vedi punto 1): quando avrà abbastanza partite, i pesi dell'efficienza tecnica
+per i DIFENSORI diventano
+
+    passaggi 25%  ·  contrasti 40%  ·  tiro 5%  ·  reti inviolate (clean sheet) 30%
+
+al posto degli attuali 40% / 50% / 10% (vedi `PESI_TECNICA_PER_REPARTO` in
+`modello/pagina.js`). "Reti inviolate" per il singolo va misurata da `goals_conceded`
+per prestazione (== 0), non dal campo `cleansheetsdef` di EA: quello resta sempre a zero
+(vedi "Cose imparate"). Gli altri reparti non cambiano.
+
 ### 3. Riprendere la sezione "Analisi serate"
 
 Era stata costruita e poi rimossa il 21/08 perché il campione era troppo piccolo — sette
