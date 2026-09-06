@@ -406,7 +406,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 94 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 96 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, potatura del grezzo, numeri dichiarati nei testi. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 113 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 9 controlli su una cosa sola: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le tre righe devono sommare alla colonna (180 casi: 12 giocatori × 3 finestre × 5 pesi) e la percentuale scritta in ogni riga deve essere quella che produce i punti a fianco. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
@@ -443,6 +443,15 @@ Dal 25/08/2026 il passaggio non è più una prova a mano ma un test:
 `TestPassaggioDiTitolo` in `test_pipeline.py` lo percorre da capo a fondo — primo giorno
 senza partite e giorni successivi con poche — e verifica che il titolo vecchio non filtri
 in quello nuovo.
+
+**Dal 06/09/2026 il titolo che va in `storico` resta comunque visualizzabile.**
+`generate_dashboard.py` genera `index.html` per l'`attivo` come sempre, e in più una
+pagina identica — stesso generatore, stesse sezioni — per ogni voce di `storico`, in
+`archivio/<titolo>.html` (es. `archivio/fc-26.html`). Ogni pagina porta in alto un menu a
+tendina che passa da un titolo all'altro con un link relativo; se `storico` è vuoto (come
+oggi) il menu non compare, e la pagina pubblicata non cambia di un byte. `giro.sh` pubblica
+`archivio/` insieme a `index.html`, con la stessa condizione: se la pagina attiva non si
+apre, quel giro non pubblica niente di nuovo.
 
 ---
 

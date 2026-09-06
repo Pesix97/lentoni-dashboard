@@ -18,7 +18,10 @@ season recap), costruite interamente dai dati già presenti nel DB
 locale — nessuna chiamata di rete aggiuntiva richiesta.
 """
 import argparse
+import html
 import json
+import posixpath
+import re
 import sqlite3
 from pathlib import Path
 
@@ -63,6 +66,78 @@ def carica_club(script_dir=None):
     except Exception as exc:  # noqa: BLE001 - meglio il predefinito che non pubblicare
         print(f"  attenzione: club.json non interpretabile ({exc.__class__.__name__}), uso il predefinito")
         return dict(DEFAULT_CLUB)
+
+
+def slug_titolo(titolo, club_id):
+    """Un nome di file leggibile per la pagina archiviata di un titolo: 'FC 26' -> 'fc-26'.
+
+    Se il titolo manca (club.json non lo ha ancora scritto per quella riga) si ripiega sul
+    club_id, cosi' il file si crea comunque invece di scontrarsi con quello di un altro
+    titolo senza nome.
+    """
+    base = re.sub(r"[^a-z0-9]+", "-", (titolo or "").strip().lower()).strip("-")
+    return base or f"club-{club_id}"
+
+
+def elenco_titoli(club):
+    """Tutti i titoli conosciuti - quello attivo e quelli archiviati - con il file che
+    li mostra ciascuno. E' la stessa lista per ogni pagina generata: il selettore in alto
+    deve elencare sempre tutti i titoli, qualunque pagina si stia guardando in quel momento.
+
+    Il piu' recente subito dopo l'attivo, perche' e' quello a cui si passa piu' spesso
+    appena scatta un titolo nuovo.
+    """
+    attivo = {
+        "club_id": club["club_id"], "nome": club.get("nome") or "",
+        "titolo": club.get("titolo") or "", "piattaforma": club.get("piattaforma") or "",
+        "file": "index.html",
+    }
+    archiviati = []
+    for e in club.get("storico") or []:
+        if not isinstance(e, dict) or not e.get("club_id"):
+            continue
+        cid = int(e["club_id"])
+        t = e.get("titolo") or ""
+        archiviati.append({
+            "club_id": cid, "nome": e.get("nome") or "", "titolo": t,
+            "piattaforma": e.get("piattaforma") or "",
+            "file": f"archivio/{slug_titolo(t, cid)}.html",
+        })
+    return [attivo] + list(reversed(archiviati))
+
+
+def href_relativo(da_file, a_file):
+    """Il link da mettere in `da_file` per raggiungere `a_file`, entrambi percorsi
+    relativi alla radice del sito (sempre con '/', mai '\\': sono URL, non percorsi del
+    filesystem, e generate_dashboard.py puo' girare anche su Windows).
+    """
+    return posixpath.relpath(a_file, posixpath.dirname(da_file) or ".")
+
+
+def selettore_titoli_html(titoli, corrente_file):
+    """Il menu a tendina in alto che passa da un titolo all'altro.
+
+    Non serve JavaScript oltre a un `location.href` sull'evento onchange: e' la stessa
+    filosofia di tutto il resto di questa funzione, una pagina statica per titolo con lo
+    stesso identico generatore, cosi' le sezioni restano uguali per costruzione invece che
+    per un controllo a parte. Vuoto (nessun menu) quando c'e' un solo titolo: scegliere fra
+    una sola opzione non serve a niente e sarebbe solo un elemento in piu' da spiegare.
+    """
+    if len(titoli) <= 1:
+        return ""
+    opzioni = []
+    for t in titoli:
+        etichetta = html.escape(t["titolo"] or f"Club {t['club_id']}")
+        if t["file"] == corrente_file:
+            opzioni.append(f'<option value="" selected>{etichetta}</option>')
+        else:
+            href = html.escape(href_relativo(corrente_file, t["file"]))
+            opzioni.append(f'<option value="{href}">{etichetta}</option>')
+    return (
+        '<select id="titoloSelect" aria-label="Cambia titolo" '
+        'onchange="if(this.value) location.href=this.value;">'
+        + "".join(opzioni) + "</select>"
+    )
 
 
 PIATTAFORME = {
@@ -642,15 +717,16 @@ def serate_da_confermare(matches):
         return []
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default="lentoni.db")
-    ap.add_argument("--out", default="dashboard.html")
-    args = ap.parse_args()
+def genera_pagina(club, titoli, corrente_file, db_path, out_path):
+    """Costruisce la pagina di UN titolo (quello in `club`) e la scrive in `out_path`.
 
-    club = carica_club()
+    Stessa funzione per il titolo attivo e per ognuno di quelli archiviati: e' il motivo
+    per cui tutte le sezioni restano identiche fra un titolo e l'altro. Non c'e' un
+    controllo a parte che lo garantisce - lo garantisce il fatto che il codice che le
+    produce e' letteralmente lo stesso.
+    """
     ruoli = load_role_groups()
-    data = build_data(args.db, club_id=club["club_id"],
+    data = build_data(db_path, club_id=club["club_id"],
                       esclusi=ruoli.get("exPlayers"),
                       righe_escluse=ruoli.get("excludedRows"),
                       voto_sentinella=ruoli.get("sentinelRating"))
@@ -678,18 +754,21 @@ def main():
     division = data["latest"].get("best_division") or "-"
     updated_at = data["history"][-1]["fetched_at"] if data["history"] else "-"
 
-    html = (
+    pagina_html = (
         HTML_TEMPLATE
         .replace("__CLUB_NAME__", club_name)
         .replace("__PLATFORM__", str(platform))
         .replace("__DIVISION__", str(division))
         .replace("__UPDATED_AT__", str(updated_at))
         .replace("__MIN_GAMES__", str(MIN_GAMES))
+        .replace("__SELETTORE_TITOLI__", selettore_titoli_html(titoli, corrente_file))
         .replace("__DATA_JSON__", json.dumps(data, ensure_ascii=False))
     )
 
-    Path(args.out).write_text(html, encoding="utf-8")
-    print(f"Dashboard generata: {args.out}")
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(pagina_html, encoding="utf-8")
+    print(f"Dashboard generata: {out_path}")
     print(f"  club: {club_name} ({club['club_id']}, {club.get('titolo') or 'titolo non indicato'}) | snapshot storico: {len(data['history'])} | roster: {len(data['roster'])} | partite: {len(data['matches'])}")
 
     sa = data.get("saluteArchivio") or {}
@@ -699,6 +778,28 @@ def main():
         if sa.get("divarioRecente"):
             print(f"  ATTENZIONE: {sa['divarioRecente']} partite delle ultime 48 ore non sono in archivio. "
                   f"Se il numero non scende entro il prossimo giro, sono andate perse.")
+    return data
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--db", default="lentoni.db")
+    ap.add_argument("--out", default="dashboard.html")
+    args = ap.parse_args()
+
+    club = carica_club()
+    titoli = elenco_titoli(club)
+
+    # Il titolo attivo va sempre nel file chiesto con --out (di norma index.html): e'
+    # l'unico comportamento che il resto del progetto conosce e su cui gira il pubblicato.
+    genera_pagina(titoli[0], titoli, titoli[0]["file"], args.db, args.out)
+
+    # Ogni titolo archiviato accanto, nella stessa cartella di --out. Se non ce n'e'
+    # ancora nessuno (caso di oggi, prima del 18/09/2026) questo giro non fa nulla:
+    # elenco_titoli() restituisce solo l'attivo e il ciclo e' vuoto.
+    cartella = Path(args.out).resolve().parent
+    for t in titoli[1:]:
+        genera_pagina(t, titoli, t["file"], args.db, cartella / t["file"])
 
 
 if __name__ == "__main__":

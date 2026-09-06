@@ -195,6 +195,11 @@ if [ -n "$SOLO_DATABASE" ]; then
   git add lentoni.db
 else
   git add index.html lentoni.db
+  # Dal 06/09/2026 generate_dashboard.py scrive anche una pagina per ogni titolo
+  # archiviato (archivio/<titolo>.html, vedi elenco_titoli() e selettore_titoli_html()).
+  # Prima del 18/09/2026 questa cartella non esiste ancora: il controllo evita che 'git
+  # add' fallisca su un percorso assente.
+  [ -d archivio ] && git add archivio
 fi
 if git diff --staged --quiet; then
   echo "  nessuna modifica"

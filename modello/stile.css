@@ -27,6 +27,15 @@
   #hamburgerBtn:hover{border-color:var(--accent-2); color:var(--accent-2);}
   #topNav .brand{font-weight:700; font-size:14px; white-space:nowrap;}
 
+  /* Selettore titolo (FC 26 / FC 27 / ...): appare solo quando esiste piu' di un
+     titolo archiviato, vedi selettore_titoli_html() in generate_dashboard.py. */
+  #titoloSelect{
+    margin-left:auto; background:var(--panel); color:var(--text);
+    border:1px solid var(--border); border-radius:8px; padding:6px 10px;
+    font-size:12.5px; font-family:inherit; cursor:pointer; max-width:40vw;
+  }
+  #titoloSelect:hover{border-color:var(--accent-2);}
+
   #drawerOverlay{
     position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:290;
     opacity:0; pointer-events:none; transition:opacity .2s;

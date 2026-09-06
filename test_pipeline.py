@@ -1048,6 +1048,45 @@ class TestPassaggioDiTitolo(BaseConArchivio):
         self.assertLessEqual(len(dati.get("serate", [])), 1,
                              "le serate del titolo vecchio sono finite in quello nuovo")
 
+    def test_zero_titoli_archiviati_niente_selettore(self):
+        """Oggi (storico vuoto): nessun menu, non c'e' niente fra cui scegliere."""
+        cartella = self.tmp / "senza_storico"
+        cartella.mkdir()
+        for nome in ("generate_dashboard.py", "ruoli.py", "roles.json", "club.json"):
+            shutil.copy(QUI / nome, cartella / nome)
+        shutil.copytree(QUI / "modello", cartella / "modello")
+        _, html = self._genera_in(cartella, self.tmp / "senzastorico.html")
+        self.assertNotIn('id="titoloSelect"', html,
+                         "con un solo titolo conosciuto non deve comparire nessun selettore")
+
+    def test_il_selettore_elenca_tutti_i_titoli_con_i_link_giusti(self):
+        """Dal 06/09/2026: un titolo archiviato prende una pagina propria in archivio/,
+        e ogni pagina porta un menu che passa dall'una all'altra. I link sono relativi
+        (la pagina attiva sta alla radice, quella archiviata una cartella sotto), quindi
+        vanno verificati nelle due direzioni: sbagliarli e' invisibile finche' non si
+        clicca.
+        """
+        cartella = self.tmp / "passaggio3"
+        cartella.mkdir()
+        self._prepara(cartella, self.NUOVO)
+        sito = self.tmp / "sito3"
+        sito.mkdir()
+        _, html_nuovo = self._genera_in(cartella, sito / "index.html")
+
+        archivio = sito / "archivio" / "fc-26.html"
+        self.assertTrue(archivio.exists(),
+                        "la pagina del titolo archiviato non e' stata generata in archivio/")
+        html_vecchio = archivio.read_text(encoding="utf-8")
+
+        # Pagina attiva (FC 27): se stessa selezionata, il link al vecchio scende in archivio/.
+        self.assertIn('<option value="" selected>FC 27</option>', html_nuovo)
+        self.assertIn('<option value="archivio/fc-26.html">FC 26</option>', html_nuovo)
+
+        # Pagina archiviata (FC 26): se stessa selezionata, il link al nuovo risale di una
+        # cartella - il difetto tipico di un link relativo scritto guardando solo un verso.
+        self.assertIn('<option value="" selected>FC 26</option>', html_vecchio)
+        self.assertIn('<option value="../index.html">FC 27</option>', html_vecchio)
+
 
 class TestPotatura(unittest.TestCase):
     """La potatura del grezzo, aggiunta il 28/08/2026.

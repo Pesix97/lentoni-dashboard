@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 02/09/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 06/09/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -150,9 +150,50 @@ FC 27 arriva il 18/09/2026. Database e script sono già pronti a contenere più
 titoli insieme (vedi `club.json`), e ogni query filtra per club attivo — verificato
 iniettando un secondo club finto e controllando che i numeri non cambiassero.
 
-Manca il modo di passare da una stagione all'altra guardando la pagina. Va costruito
-**prima** dell'uscita, ma non prima di settembre: con due mesi di partite si può simulare
-il secondo titolo con dati veri invece che copiati.
+**Costruito il 06/09/2026, scelta B fra due discusse con Peppe.** A: un'unica pagina con
+tutti i titoli dentro e uno switch via JavaScript — scartata, avrebbe richiesto riscrivere
+buona parte delle 4000 righe di `pagina.js` (oggi calcola tutto una volta sola su un unico
+`DATA` caricato all'apertura) a due settimane dalla scadenza, e la pagina sarebbe cresciuta
+per sempre a ogni titolo nuovo. B, quella fatta: **una pagina statica per titolo**, stesso
+generatore, stesso identico codice — le sezioni restano uguali per costruzione, non da
+verificare a parte.
+
+Come funziona: `generate_dashboard.py` genera sempre `index.html` per il titolo `attivo`
+di `club.json`, e in più una pagina per ognuno di quelli in `storico`, dentro
+`archivio/<titolo-in-minuscolo>.html` (es. `archivio/fc-26.html`). Ogni pagina porta in
+alto un menu a tendina (`#titoloSelect`) con tutti i titoli conosciuti e i link relativi
+per passare dall'uno all'altro; se c'è un solo titolo — la situazione di oggi, `storico` è
+ancora vuoto — il menu non compare affatto, e la pagina pubblicata non cambia di un byte
+per questo. Coperto da due test nuovi in `TestPassaggioDiTitolo`: uno verifica che senza
+`storico` il menu non ci sia, l'altro che i link tornino giusti in entrambe le direzioni
+(la pagina attiva sta alla radice, quella archiviata una cartella sotto — un link relativo
+scritto guardando un verso solo è il tipo di errore che si scopre solo cliccando).
+
+`giro.sh` ora aggiunge anche `archivio/` al commit quando la pagina attiva pubblica
+regolarmente (stessa condizione di `index.html`: se la pagina non si apre, niente di nuovo
+viene pubblicato, archivio compreso).
+
+**Provato con una simulazione il 06/09/2026** (non sui dati veri: il vero passaggio è
+ancora il 18/09): copia del progetto, `club.json` con FC 26 spostato in `storico` e un FC
+27 finto attivo (club_id inesistente, quindi 0 partite). `archivio/fc-26.html` è uscita
+identica a un `index.html` normale, con tutti i 154 dati veri di FC 26 dentro e il menu che
+riporta al titolo nuovo. La pagina del titolo nuovo, con zero partite, ha fatto emergere
+un buco NON di questa funzione ma preesistente: `test_apertura.js` assume che ci sia
+sempre almeno una riga in tabella (4 controlli su 17 falliscono su un club vuoto: colonna
+Tecnica non cliccabile, intestazioni non ordinabili, `#serateFiltri` vuoto). Non è mai
+successo perché non era mai stato generato un titolo a zero partite fino ad oggi — il test
+Python `test_il_primo_giorno_senza_neanche_una_partita` copre lo stesso caso ma non lancia
+i controlli js. Da sistemare **prima del 18/09 mattina**, quando la pagina di FC 27 uscirà
+davvero vuota per qualche ora.
+
+**Due cose lasciate aperte apposta, da guardare quando `storico` avrà davvero un titolo
+dentro:**
+- `saluteArchivio` calcola le partite attese dal tempo trascorso da `dal` ad oggi: su un
+  titolo chiuso quel tempo continua a crescere per sempre, quindi il numero "attese" di un
+  titolo archiviato si allontanerebbe sempre di più dalla realtà ad ogni giro. Non è un
+  problema finché `storico` è vuoto (oggi), lo diventa il primo giorno dopo il 18/09.
+- le pagine di `archivio/` non hanno ancora un controllo di apertura proprio: solo
+  `index.html` viene passato a `test_apertura.js`/`test_tecnica.js` dentro `giro.sh`.
 
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
