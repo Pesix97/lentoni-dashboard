@@ -1095,6 +1095,11 @@ class TestPassaggioDiTitolo(BaseConArchivio):
         self.assertFalse(dati_nuovo["titoloChiuso"], "il titolo attivo non e' chiuso")
         self.assertTrue(dati_vecchio["titoloChiuso"], "il titolo archiviato deve sapere di esserlo")
 
+        # Cambiare titolo da dentro una sezione (es. "#giocatori") deve restarci, non
+        # riportare alla home dell'altro titolo - segnalato da Peppe il 06/09/2026.
+        self.assertIn("location.href=this.value+location.hash", html_nuovo,
+                      "il link del selettore non porta con se' la sezione aperta")
+
 
 class TestPotatura(unittest.TestCase):
     """La potatura del grezzo, aggiunta il 28/08/2026.

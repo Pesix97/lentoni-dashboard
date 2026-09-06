@@ -122,6 +122,12 @@ def selettore_titoli_html(titoli, corrente_file):
     stesso identico generatore, cosi' le sezioni restano uguali per costruzione invece che
     per un controllo a parte. Vuoto (nessun menu) quando c'e' un solo titolo: scegliere fra
     una sola opzione non serve a niente e sarebbe solo un elemento in piu' da spiegare.
+
+    Il link porta anche l'ancora della sezione aperta (`location.hash`, es. "#giocatori"):
+    la pagina la sa gia' leggere da sola all'apertura (vedi showPage() in pagina.js, usata
+    per ogni link di navigazione interno). Senza, cambiare titolo da dentro una sezione
+    riportava sempre alla home dell'altro titolo — segnalato da Peppe il 06/09/2026 provando
+    la demo.
     """
     if len(titoli) <= 1:
         return ""
@@ -135,7 +141,7 @@ def selettore_titoli_html(titoli, corrente_file):
             opzioni.append(f'<option value="{href}">{etichetta}</option>')
     return (
         '<select id="titoloSelect" aria-label="Cambia titolo" '
-        'onchange="if(this.value) location.href=this.value;">'
+        'onchange="if(this.value) location.href=this.value+location.hash;">'
         + "".join(opzioni) + "</select>"
     )
 
