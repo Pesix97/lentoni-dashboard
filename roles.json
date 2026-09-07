@@ -1459,6 +1459,108 @@
       "quando": "06/09 00:39 TEAM EL7ARAMEYA",
       "giocatore": "ktm-008",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1039138852500219",
+      "quando": "06/09 23:20 anubisdet",
+      "giocatore": "FFLI_Adriano",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1039138852500219",
+      "quando": "06/09 23:20 anubisdet",
+      "giocatore": "ilmille",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1039138852500219",
+      "quando": "06/09 23:20 anubisdet",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1039138852500219",
+      "quando": "06/09 23:20 anubisdet",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1039172772440401",
+      "quando": "06/09 23:38 MORFANYA",
+      "giocatore": "FFLI_Adriano",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1039172772440401",
+      "quando": "06/09 23:38 MORFANYA",
+      "giocatore": "ilmille",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1039172772440401",
+      "quando": "06/09 23:38 MORFANYA",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1039172772440401",
+      "quando": "06/09 23:38 MORFANYA",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1039180928160236",
+      "quando": "06/09 23:58 100 Bezoo",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1039384276160408",
+      "quando": "07/09 00:18 AS MOKA",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1039384276160408",
+      "quando": "07/09 00:18 AS MOKA",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1039360508270157",
+      "quando": "07/09 00:36 TBOX Masia",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1039360508270157",
+      "quando": "07/09 00:36 TBOX Masia",
+      "giocatore": "Bagherese_95",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1039316803950130",
+      "quando": "07/09 00:55 aaaaaaaaaahhhhh",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1039316803950130",
+      "quando": "07/09 00:55 aaaaaaaaaahhhhh",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1039396710930287",
+      "quando": "07/09 01:20 EL Brayzz FC",
+      "giocatore": "gio05596",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1039538262040056",
+      "quando": "07/09 01:38 SechsMitDerEx",
+      "giocatore": "gio05596",
+      "gruppo": "ESTERNI"
     }
   ],
   "_esclusioni_partita": [
@@ -1609,6 +1711,10 @@
     {
       "serata": "2026-09-05T21:47Z",
       "partite": 6
+    },
+    {
+      "serata": "2026-09-06T21:20Z",
+      "partite": 8
     }
   ],
   "_serate_chiuse": [
