@@ -1561,6 +1561,108 @@
       "quando": "07/09 01:38 SechsMitDerEx",
       "giocatore": "gio05596",
       "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1041470426510413",
+      "quando": "07/09 22:11 Kaladjics As",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1041470426510413",
+      "quando": "07/09 22:11 Kaladjics As",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1041470426510413",
+      "quando": "07/09 22:11 Kaladjics As",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1041376997670022",
+      "quando": "07/09 22:22 HAGLA 5 LETTRES",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1041376997670022",
+      "quando": "07/09 22:22 HAGLA 5 LETTRES",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1041376997670022",
+      "quando": "07/09 22:22 HAGLA 5 LETTRES",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1041690109410472",
+      "quando": "07/09 22:58 asdffsdffgh",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1041690109410472",
+      "quando": "07/09 22:58 asdffsdffgh",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1041690109410472",
+      "quando": "07/09 22:58 asdffsdffgh",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1041690109410472",
+      "quando": "07/09 22:58 asdffsdffgh",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1041762023960248",
+      "quando": "07/09 23:20 onlythefriends",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1041762023960248",
+      "quando": "07/09 23:20 onlythefriends",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1041762023960248",
+      "quando": "07/09 23:20 onlythefriends",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1041762023960248",
+      "quando": "07/09 23:20 onlythefriends",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1041688659910134",
+      "quando": "07/09 23:54 La Legnata",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1041734699690452",
+      "quando": "08/09 00:20 IRQW FC",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1041734854450133",
+      "quando": "08/09 00:39 LesgosKy",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
     }
   ],
   "_esclusioni_partita": [
@@ -1714,6 +1816,10 @@
     },
     {
       "serata": "2026-09-06T21:20Z",
+      "partite": 8
+    },
+    {
+      "serata": "2026-09-07T20:11Z",
       "partite": 8
     }
   ],
