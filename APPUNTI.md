@@ -394,6 +394,23 @@ massimo 1,7 punti) ma richiede di cambiare anche la normalizzazione dello storic
 usa un intervallo calcolato per conto suo. Farne metà è peggio di non farne: le due metà
 dell'indice finirebbero su scale diverse. Se un giorno si riprende, vanno cambiate insieme.
 
+**Aggiunta una riga di sola carriera sotto ogni voce (08/09/2026).** Peppe ha notato che la
+scheda di un giocatore (media di carriera pura) e il testa a testa (mescolata con la forma)
+mostrano due numeri diversi per la stessa voce — su Bagherese_95, 7,4 contro 7,55 — e ha
+chiesto perché il testa a testa non usa semplicemente la carriera, dato che la forma si vede
+già nell'Indice. La regola tre righe sopra spiega perché non si può fare così com'era
+chiesto: i punti restano per forza mescolati (spiegano il distacco vero in classifica), e se
+i valori sotto tornassero di sola carriera si ricreerebbe esattamente la riga assurda già
+scartata il 24/08 — con Bagherese_95 contro domenicocasaburi capita davvero: stessa media di
+carriera (7,40 e 7,40) ma +0,5 punti, perché il vantaggio è tutto nella forma recente.
+
+Invece di cambiare il numero, sotto ogni voce compare ora una seconda riga più piccola "di
+sola carriera" — SOLO quando differisce da quella mescolata (stessi valori formattati =
+riga nascosta, per non ripetere due volte lo stesso numero quando nessuno dei due ha
+abbastanza partite recenti). Risponde alla domanda senza rompere la promessa che i punti
+sommino al distacco. Il dato viene da un nuovo campo `grezziCarriera` su ogni punteggio di
+`computeBlendedScores`, mai mescolato con la forma.
+
 ### La percentuale di contrasti misura in parte la selettività (24/08/2026)
 
 Chi tenta più contrasti ha la percentuale più bassa: **correlazione −0,78**. Non è un caso —

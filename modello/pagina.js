@@ -882,6 +882,10 @@ function computeBlendedScores(windowSize, weight){
       ...s,
       vociMescolate: voci,
       grezziMescolati: grezzi,
+      // La sola carriera, MAI mescolata con la forma: serve al testa a testa per mostrare
+      // da dove parte il mescolamento, cosi' un +13 punti con una media diversa da quella
+      // della card del giocatore non sembra un numero spuntato dal nulla.
+      grezziCarriera: carriera,
       tecnica,
       historicScore: s.score,
       formScore: hasForm ? f.score : null,
@@ -2414,7 +2418,8 @@ function computeOutfieldLineup(){
     const righe = VOCI.map(v => {
       const punti = k => 100 * PESI_INDICE[v.k] * (k.vociMescolate[v.k] || 0) * (v.k === "disc" ? -1 : 1);
       return { v, diff: punti(alto) - punti(basso),
-               grezzoA: alto.grezziMescolati[v.k], grezzoB: basso.grezziMescolati[v.k] };
+               grezzoA: alto.grezziMescolati[v.k], grezzoB: basso.grezziMescolati[v.k],
+               carrieraA: alto.grezziCarriera[v.k], carrieraB: basso.grezziCarriera[v.k] };
     }).sort((x,y) => y.diff - x.diff);
 
     const somma = righe.reduce((t,r) => t + r.diff, 0);
@@ -2450,6 +2455,12 @@ function computeOutfieldLineup(){
       </div>` + righe.map(r => {
       const s = scale[r.v.k];
       const f = r.v.fmt;
+      // Il numero sopra e' mescolato con la forma recente, quello di carriera no: se
+      // coincidono (nessuno dei due ha abbastanza partite recenti, o la forma non li ha
+      // spostati) mostrarli entrambi sarebbe solo rumore, percio' la riga in piu' compare
+      // solo quando dicono davvero cose diverse. Risponde alla domanda "perche' qui la media
+      // non e' quella della scheda del giocatore", che senza questo non aveva risposta.
+      const mostraCarriera = f(r.carrieraA) !== f(r.grezzoA) || f(r.carrieraB) !== f(r.grezzoB);
       return `
       <div style="padding:10px 0; border-bottom:1px solid var(--panel-2,rgba(255,255,255,.06));">
         <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
@@ -2462,6 +2473,10 @@ function computeOutfieldLineup(){
           contro ${f(r.grezzoB)}
           <span style="opacity:.75;"> · nella rosa da ${f(s.min)} a ${f(s.max)}, mediana ${f(s.med)}</span>
         </div>
+        ${mostraCarriera ? `
+        <div style="font-size:10px; color:var(--muted); opacity:.65; margin-top:2px;">
+          di sola carriera (senza la forma recente): ${f(r.carrieraA)} contro ${f(r.carrieraB)}
+        </div>` : ""}
         ${r.v.k === "tech" ? pezziTecnica(alto, basso, scale, r.diff) : ""}
       </div>`;
     }).join("");
