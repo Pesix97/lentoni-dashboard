@@ -1663,6 +1663,66 @@
       "quando": "08/09 00:39 LesgosKy",
       "giocatore": "Smilzo_87",
       "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1043908496720263",
+      "quando": "09/09 00:13 Carbonari",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1043908496720263",
+      "quando": "09/09 00:13 Carbonari",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1043862823080259",
+      "quando": "09/09 00:31 Schyzophrénie",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1043862823080259",
+      "quando": "09/09 00:31 Schyzophrénie",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1043982480670058",
+      "quando": "09/09 00:36 Popis2013",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1043982480670058",
+      "quando": "09/09 00:36 Popis2013",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1044000442890383",
+      "quando": "09/09 00:54 SechsMitDerEx",
+      "giocatore": "ilmille",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1044000442890383",
+      "quando": "09/09 00:54 SechsMitDerEx",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1043940801470164",
+      "quando": "09/09 01:12 SechsMitDerEx",
+      "giocatore": "gio05596",
+      "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "1043940801470164",
+      "quando": "09/09 01:12 SechsMitDerEx",
+      "giocatore": "ilmille",
+      "gruppo": "ESTERNI"
     }
   ],
   "_esclusioni_partita": [
@@ -1857,6 +1917,10 @@
     {
       "serata": "2026-09-07T20:11Z",
       "partite": 8
+    },
+    {
+      "serata": "2026-09-08T22:13Z",
+      "partite": 5
     }
   ],
   "_serate_chiuse": [
