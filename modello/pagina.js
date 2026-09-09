@@ -59,7 +59,7 @@ const GROUP_OF_PLAYER = ROLE_CFG.players || {};
 const EA_LABEL_OF_PLAYER = ROLE_CFG.eaLabels || {};
 const MACRO_TO_GROUP = ROLE_CFG.macro || {};
 const ROLE_EXCEPTIONS = ROLE_CFG.exceptions || {};
-const GROUP_ICONS = { DIFENSORI: "🛡️", CENTROCAMPISTI: "🎛️", ESTERNI: "🏃", ATTACCANTI: "🎯", COC: "🧠", PORTIERI: "🧤" };
+const GROUP_ICONS = { DIFENSORI: "🛡️", CENTROCAMPISTI: "🎛️", ESTERNI: "🏃", ATTACCANTI: "🎯", TREQUARTISTA: "🧠", PORTIERI: "🧤" };
 
 function mainPosOf(name){
   const sorted = roleCountsSorted(name);
@@ -119,7 +119,7 @@ function groupCountsSorted(name){
 // (ATTACCANTI/CENTROCAMPISTI/...) invece che per etichetta EA grezza (forward/midfielder/...).
 const GROUP_SHORT_LABELS = {
   ATTACCANTI: "Attacco", CENTROCAMPISTI: "Centrocampo", ESTERNI: "Esterni",
-  DIFENSORI: "Difesa", COC: "COC", PORTIERI: "Portiere",
+  DIFENSORI: "Difesa", TREQUARTISTA: "Trequartista", PORTIERI: "Portiere",
 };
 
 // Il ruolo ufficiale di un giocatore nella dashboard e' il suo gruppo di roles.json.
@@ -134,7 +134,7 @@ function gruppoGiocatore(nome, ripiego){
 
 const GRUPPO_CSS = {
   DIFENSORI: "defender", CENTROCAMPISTI: "midfielder", ESTERNI: "esterni",
-  ATTACCANTI: "forward", COC: "coc", PORTIERI: "goalkeeper",
+  ATTACCANTI: "forward", TREQUARTISTA: "trequartista", PORTIERI: "goalkeeper",
 };
 
 function gruppoBadge(gruppo, daAssegnare){
@@ -264,17 +264,19 @@ function suScala(valore, chiave){
 //   ESTERNI              40%      20%      40%
 //   ATTACCANTI           45%      10%      45%
 //
-// Il COC sta fra gli attaccanti, per decisione del club presa a suo tempo e non rifatta qui.
+// Il trequartista (il COC, in gergo calcistico: EA lo etichetta "midfielder" come un
+// centrocampista puro, ma il suo mestiere e' un altro) ha condiviso questi pesi con gli
+// attaccanti fino all'8/09/2026. Da allora e' un reparto a se', vedi sotto.
 const PESI_TECNICA_PER_REPARTO = {
   DIFENSORI:      { passaggi: 0.40, contrasti: 0.50, tiro: 0.10 },
   CENTROCAMPISTI: { passaggi: 0.40, contrasti: 0.30, tiro: 0.30 },
   ESTERNI:        { passaggi: 0.40, contrasti: 0.20, tiro: 0.40 },
   ATTACCANTI:     { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 },
-  // Deciso da Peppe l'8/09/2026, quando il COC e' diventato un reparto vero (prima
-  // ne condivideva i pesi con gli attaccanti): passaggi ancora piu' centrali del
-  // reparto attacco (il COC fa girare la squadra), contrasti allo stesso minimo,
-  // tiro sacrificato di conseguenza.
-  COC:            { passaggi: 0.50, contrasti: 0.10, tiro: 0.40 },
+  // Deciso da Peppe l'8/09/2026, quando il trequartista (il COC, per chi mastica di
+  // calcio) e' diventato un reparto vero (prima ne condivideva i pesi con gli
+  // attaccanti): passaggi ancora piu' centrali del reparto attacco (fa girare la
+  // squadra), contrasti allo stesso minimo, tiro sacrificato di conseguenza.
+  TREQUARTISTA:   { passaggi: 0.50, contrasti: 0.10, tiro: 0.40 },
 };
 
 // Quando il reparto non si conosce si usa quello dell'attacco, che e' il piu' comune in

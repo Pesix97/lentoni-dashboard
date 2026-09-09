@@ -593,12 +593,13 @@ descrivere come si gioca invece di premiare chi sta davanti.
 
 **L'archetipo di EA non si usa mai**, per decisione esplicita del club.
 
-**Il COC e' un reparto vero, non piu' un sottoinsieme degli attaccanti (dal 09/09/2026).**
-Fino all'8/09/2026 valeva la regola opposta, tenuta ferma qui apposta: "il COC conta fra
-gli attaccanti, sempre". Peppe ha chiesto di renderlo un ruolo a se' - vedi la sezione
-"Il COC diventa un reparto vero" piu' sotto per la decisione intera. Chi legge questo
-file per la lista delle decisioni da non toccare: quella riga non vale piu', questa la
-sostituisce.
+**Il Trequartista e' un reparto vero, non piu' un sottoinsieme degli attaccanti (dal
+09/09/2026).** Fino all'8/09/2026 valeva la regola opposta, tenuta ferma qui apposta: "il
+COC conta fra gli attaccanti, sempre". Peppe ha chiesto di renderlo un ruolo a se' - vedi
+la sezione "Il trequartista diventa un reparto vero" piu' sotto per la decisione intera
+(il nome del reparto era COC nella prima versione, rinominato Trequartista lo stesso
+giorno su richiesta di Peppe - vedi in fondo alla sezione). Chi legge questo file per la
+lista delle decisioni da non toccare: quella riga non vale piu', questa la sostituisce.
 
 **La soglia per entrare in classifica nei reparti è 3**, scelta sapendo il compromesso.
 Va rialzata solo se il club lo chiede.
@@ -923,7 +924,7 @@ lasciato al suo posto, in `modello/pagina.js`.
   `ROLE_EXCEPTIONS`).
 
 
-### Il COC diventa un reparto vero (09/09/2026)
+### Il trequartista diventa un reparto vero (09/09/2026)
 
 Peppe ha chiesto di rendere il COC retroattivo: ogni volta che una partita l'ha segnata a
 mano come COC (o che il ruolo abituale di un giocatore lo prevede), quella prestazione deve
@@ -998,3 +999,15 @@ e non e' stata modificata - toccarla senza chiederlo e' vietato da una decisione
 (vedi sopra, "la formazione tipo resta com'e'"). Se Peppe vuole che anche li' compaia "COC"
 (per esempio rinominando lo slot "trequartista", che di fatto e' gia' il migliore per
 contributo offensivo nel pool centrocampisti), va deciso a parte.
+
+**Il nome del reparto era "COC", cambiato in "Trequartista" lo stesso giorno.** Prima
+versione di questo lavoro chiamava il reparto "COC" ovunque - chiave in `roles.json`
+(`ordine`, `etichette`, `gruppo` dei tre giocatori, le 55 eccezioni_partita convertite),
+icona, etichetta breve, classe CSS, peso tecnica. Peppe ha chiesto di scrivere sempre
+"Trequartista" invece: rinominata la chiave stessa da `COC` a `TREQUARTISTA` in tutti quei
+punti (non solo l'etichetta visibile), cosi' chi legge `roles.json` a mano vede lo stesso
+nome che vede sulla pagina. Lasciato "COC" solo nella prosa che spiega il problema di
+fondo (EA non distingue un COC da un CC) - li' e' terminologia calcistica, non
+un'etichetta della dashboard. Nota a margine: il nome coincide ora con lo slot
+"trequartista" gia' esistente nella formazione tipo (vedi sopra) - stesso concetto
+calcistico, due sistemi ancora separati, non unificati qui.

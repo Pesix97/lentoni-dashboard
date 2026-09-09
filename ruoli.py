@@ -127,12 +127,12 @@ def carica(percorso=None):
         "confermate": _conteggi(raw.get("serate_confermate")),
         "verificate": _conteggi(raw.get("serate_confermate")),
         "chiuse": [s for s in (raw.get("serate_chiuse") or []) if isinstance(s, dict)],
-        # Prima dell'8/09/2026 il COC non era un valore a se': si dedeva un giocatore
-        # "ATTACCANTI" con etichetta abituale "midfielder". Ora "COC" e' un gruppo
-        # vero (vedi giocatori.gruppo e eccezioni_partita.gruppo), quindi qui basta
-        # leggerlo, non piu' indovinarlo.
+        # Prima dell'8/09/2026 il trequartista (COC per chi mastica di calcio) non era
+        # un valore a se': si deduceva un giocatore "ATTACCANTI" con etichetta abituale
+        # "midfielder". Ora "TREQUARTISTA" e' un gruppo vero (vedi giocatori.gruppo e
+        # eccezioni_partita.gruppo), quindi qui basta leggerlo, non piu' indovinarlo.
         "coc": {n for n, d in giocatori.items()
-                if isinstance(d, dict) and d.get("gruppo") == "COC"},
+                if isinstance(d, dict) and d.get("gruppo") == "TREQUARTISTA"},
     }
 
 
@@ -185,6 +185,6 @@ SIGLE = {
     "CENTROCAMPISTI": "CC",
     "ESTERNI": "EST",
     "ATTACCANTI": "ATT",
-    "COC": "COC",
+    "TREQUARTISTA": "TRQ",
     "PORTIERI": "POR",
 }

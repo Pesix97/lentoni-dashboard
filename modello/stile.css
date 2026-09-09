@@ -271,7 +271,7 @@
   .role-badge.defender{background:rgba(60,190,150,.18); color:#5fd6b0;}
   .role-badge.goalkeeper{background:rgba(240,185,11,.18); color:var(--accent-2);}
   .role-badge.esterni{background:rgba(168,120,230,.18); color:#c4a0f0;}
-  .role-badge.coc{background:rgba(255,159,67,.18); color:#ffb37a;}
+  .role-badge.trequartista{background:rgba(255,159,67,.18); color:#ffb37a;}
   .role-badge.unknown{background:var(--panel-2); color:var(--muted);}
   .match-row{cursor:pointer;}
   .match-detail{display:none; background:var(--panel-2);}

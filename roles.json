@@ -19,7 +19,7 @@
     "CENTROCAMPISTI",
     "ESTERNI",
     "ATTACCANTI",
-    "COC",
+    "TREQUARTISTA",
     "PORTIERI"
   ],
   "etichette": {
@@ -28,7 +28,7 @@
     "ESTERNI": "Esterni",
     "ATTACCANTI": "Attaccanti",
     "PORTIERI": "Portieri",
-    "COC": "COC"
+    "TREQUARTISTA": "Trequartista"
   },
   "_macro_ea": "Come tradurre l'etichetta EA di una singola partita quando differisce dal ruolo abituale.",
   "macro_ea": {
@@ -67,11 +67,11 @@
       "etichetta_ea": "midfielder"
     },
     "Pesix_97": {
-      "gruppo": "COC",
+      "gruppo": "TREQUARTISTA",
       "etichetta_ea": "midfielder"
     },
     "ktm-008": {
-      "gruppo": "COC",
+      "gruppo": "TREQUARTISTA",
       "etichetta_ea": "midfielder"
     },
     "FFLI_Adriano": {
@@ -83,7 +83,7 @@
       "etichetta_ea": "forward"
     },
     "domenicocasaburi": {
-      "gruppo": "COC",
+      "gruppo": "TREQUARTISTA",
       "etichetta_ea": "midfielder"
     },
     "eredes": {
@@ -146,7 +146,7 @@
       "match_id": "1021210557950240",
       "quando": "31/08 00:25 Brabonjak FC",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1021312487870040",
@@ -158,7 +158,7 @@
       "match_id": "1021312487870040",
       "quando": "31/08 00:48 TBOX Masia",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1021484083600169",
@@ -248,7 +248,7 @@
       "match_id": "996794471780472",
       "quando": "23/08 01:21 GAFFAR OKAN",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "996794471780472",
@@ -266,7 +266,7 @@
       "match_id": "996732773950056",
       "quando": "23/08 01:39 Baharya",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "996732773950056",
@@ -284,7 +284,7 @@
       "match_id": "996934090960287",
       "quando": "23/08 01:55 loubardusecteur",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "996934090960287",
@@ -302,7 +302,7 @@
       "match_id": "997080048210305",
       "quando": "23/08 02:30 Palazzine",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "997080048210305",
@@ -320,7 +320,7 @@
       "match_id": "997056333240186",
       "quando": "23/08 02:54 213 SQUAD",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "997056333240186",
@@ -338,7 +338,7 @@
       "match_id": "997018553770103",
       "quando": "23/08 03:11 213 SQUAD",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "997018553770103",
@@ -356,7 +356,7 @@
       "match_id": "997002734950333",
       "quando": "23/08 03:30 L mkhaakh",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "997002734950333",
@@ -404,7 +404,7 @@
       "match_id": "999592875340206",
       "quando": "23/08 23:27 DFS United",
       "giocatore": "domenicocasaburi",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "999744416310030",
@@ -446,7 +446,7 @@
       "match_id": "999744416310030",
       "quando": "23/08 23:45 obur land fc",
       "giocatore": "domenicocasaburi",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "999744416310030",
@@ -500,7 +500,7 @@
       "match_id": "999664896370240",
       "quando": "24/08 00:02 Turo Goat",
       "giocatore": "domenicocasaburi",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "999664896370240",
@@ -554,7 +554,7 @@
       "match_id": "999718994120363",
       "quando": "24/08 00:28 jive fc",
       "giocatore": "Pesix_97",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "999718994120363",
@@ -608,7 +608,7 @@
       "match_id": "999826885430147",
       "quando": "24/08 00:49 bzarmed",
       "giocatore": "Pesix_97",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "999826885430147",
@@ -662,13 +662,13 @@
       "match_id": "999934504130061",
       "quando": "24/08 01:09 Kings of Cyprus",
       "giocatore": "domenicocasaburi",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "999934504130061",
       "quando": "24/08 01:09 Kings of Cyprus",
       "giocatore": "ktm-008",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "999934504130061",
@@ -692,7 +692,7 @@
       "match_id": "1000034455630444",
       "quando": "24/08 01:17 UGOISTI",
       "giocatore": "Pesix_97",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1000034455630444",
@@ -740,7 +740,7 @@
       "match_id": "999940829600157",
       "quando": "24/08 01:42 5wajat",
       "giocatore": "Pesix_97",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "999940829600157",
@@ -776,7 +776,7 @@
       "match_id": "1000026788560161",
       "quando": "24/08 01:59 beirutlb",
       "giocatore": "Pesix_97",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1000026788560161",
@@ -812,7 +812,7 @@
       "match_id": "1000016956010247",
       "quando": "24/08 02:17 beirutlb",
       "giocatore": "Pesix_97",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1000016956010247",
@@ -902,7 +902,7 @@
       "match_id": "1002730790700275",
       "quando": "25/08 01:25 GhostLock",
       "giocatore": "Ironman-6-6",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1002730790700275",
@@ -920,7 +920,7 @@
       "match_id": "1005150488170408",
       "quando": "25/08 22:46 AstuziaÂ§Zuctutt",
       "giocatore": "gio05596",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1005234487840394",
@@ -932,7 +932,7 @@
       "match_id": "1005234487840394",
       "quando": "25/08 23:05 Bombastic SK",
       "giocatore": "gio05596",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1005480049660392",
@@ -962,7 +962,7 @@
       "match_id": "1005304962050376",
       "quando": "26/08 00:13 baaaaer",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1005304962050376",
@@ -992,7 +992,7 @@
       "match_id": "1005522405770394",
       "quando": "26/08 00:34 FORTA SHAORMA",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1005390953270488",
@@ -1010,13 +1010,13 @@
       "match_id": "1005390953270488",
       "quando": "26/08 00:53 DrÄ±FTT",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1008056570840426",
       "quando": "26/08 23:24 Allegrentus",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1008104764290082",
@@ -1118,7 +1118,7 @@
       "match_id": "1014308549890426",
       "quando": "28/08 22:45 GARGA FC",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1014276766200288",
@@ -1136,13 +1136,13 @@
       "match_id": "1014276766200288",
       "quando": "28/08 23:02 Fc TentaCulä",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1014520014710389",
       "quando": "28/08 23:21 AlAhly22",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1014520014710389",
@@ -1154,7 +1154,7 @@
       "match_id": "1014534299880330",
       "quando": "28/08 23:46 Gang 187",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1014534299880330",
@@ -1214,7 +1214,7 @@
       "match_id": "1023908145900165",
       "quando": "31/08 23:26 MAGNETO FC",
       "giocatore": "Jysmu",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1023868406480333",
@@ -1238,7 +1238,7 @@
       "match_id": "1024168186400318",
       "quando": "01/09 01:08 Sorry For Us",
       "giocatore": "Jysmu",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1024168186400318",
@@ -1286,43 +1286,43 @@
       "match_id": "1028714793180197",
       "quando": "02/09 23:32 Vittuone Goat",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1028828658310052",
       "quando": "02/09 23:52 essekler fc",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1028796914500291",
       "quando": "03/09 00:11 Ludopatici team",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1028960418550468",
       "quando": "03/09 00:30 Patates Spor",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1028888880570052",
       "quando": "03/09 00:47 Habo  Wabo",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1029176258900254",
       "quando": "03/09 01:07 anubisdet",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1031230817080225",
       "quando": "03/09 23:36 Braia FC",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1031230817080225",
@@ -1346,7 +1346,7 @@
       "match_id": "1031500204170179",
       "quando": "04/09 00:17 Real stempiati",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1031500204170179",
@@ -1358,7 +1358,7 @@
       "match_id": "1031518347960267",
       "quando": "04/09 00:39 RiCOT FC",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1031518347960267",
@@ -1412,13 +1412,13 @@
       "match_id": "1034124333870343",
       "quando": "04/09 01:12 5erat albasra",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1034146393210193",
       "quando": "04/09 01:30 Dark Meak",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1036672263800345",
@@ -1466,7 +1466,7 @@
       "match_id": "1039138852500219",
       "quando": "06/09 23:20 anubisdet",
       "giocatore": "FFLI_Adriano",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1039138852500219",
@@ -1490,7 +1490,7 @@
       "match_id": "1039172772440401",
       "quando": "06/09 23:38 MORFANYA",
       "giocatore": "FFLI_Adriano",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1039172772440401",
@@ -1580,7 +1580,7 @@
       "match_id": "1041470426510413",
       "quando": "07/09 22:11 Kaladjics As",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1041376997670022",
@@ -1598,13 +1598,13 @@
       "match_id": "1041376997670022",
       "quando": "07/09 22:22 HAGLA 5 LETTRES",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1041690109410472",
       "quando": "07/09 22:58 asdffsdffgh",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1041690109410472",
@@ -1646,7 +1646,7 @@
       "match_id": "1041762023960248",
       "quando": "07/09 23:20 onlythefriends",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1041688659910134",
@@ -1670,7 +1670,7 @@
       "match_id": "1043908496720263",
       "quando": "09/09 00:13 Carbonari",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1043908496720263",
@@ -1682,7 +1682,7 @@
       "match_id": "1043862823080259",
       "quando": "09/09 00:31 Schyzophrénie",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1043862823080259",
@@ -1694,7 +1694,7 @@
       "match_id": "1043982480670058",
       "quando": "09/09 00:36 Popis2013",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1043982480670058",
@@ -1706,7 +1706,7 @@
       "match_id": "1044000442890383",
       "quando": "09/09 00:54 SechsMitDerEx",
       "giocatore": "ilmille",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1044000442890383",
@@ -1718,7 +1718,7 @@
       "match_id": "1043940801470164",
       "quando": "09/09 01:12 SechsMitDerEx",
       "giocatore": "gio05596",
-      "gruppo": "COC"
+      "gruppo": "TREQUARTISTA"
     },
     {
       "match_id": "1043940801470164",
