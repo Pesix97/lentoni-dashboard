@@ -59,7 +59,7 @@ const GROUP_OF_PLAYER = ROLE_CFG.players || {};
 const EA_LABEL_OF_PLAYER = ROLE_CFG.eaLabels || {};
 const MACRO_TO_GROUP = ROLE_CFG.macro || {};
 const ROLE_EXCEPTIONS = ROLE_CFG.exceptions || {};
-const GROUP_ICONS = { DIFENSORI: "🛡️", CENTROCAMPISTI: "🎛️", ESTERNI: "🏃", ATTACCANTI: "🎯", PORTIERI: "🧤" };
+const GROUP_ICONS = { DIFENSORI: "🛡️", CENTROCAMPISTI: "🎛️", ESTERNI: "🏃", ATTACCANTI: "🎯", COC: "🧠", PORTIERI: "🧤" };
 
 function mainPosOf(name){
   const sorted = roleCountsSorted(name);
@@ -119,7 +119,7 @@ function groupCountsSorted(name){
 // (ATTACCANTI/CENTROCAMPISTI/...) invece che per etichetta EA grezza (forward/midfielder/...).
 const GROUP_SHORT_LABELS = {
   ATTACCANTI: "Attacco", CENTROCAMPISTI: "Centrocampo", ESTERNI: "Esterni",
-  DIFENSORI: "Difesa", PORTIERI: "Portiere",
+  DIFENSORI: "Difesa", COC: "COC", PORTIERI: "Portiere",
 };
 
 // Il ruolo ufficiale di un giocatore nella dashboard e' il suo gruppo di roles.json.
@@ -134,7 +134,7 @@ function gruppoGiocatore(nome, ripiego){
 
 const GRUPPO_CSS = {
   DIFENSORI: "defender", CENTROCAMPISTI: "midfielder", ESTERNI: "esterni",
-  ATTACCANTI: "forward", PORTIERI: "goalkeeper",
+  ATTACCANTI: "forward", COC: "coc", PORTIERI: "goalkeeper",
 };
 
 function gruppoBadge(gruppo, daAssegnare){
@@ -270,6 +270,11 @@ const PESI_TECNICA_PER_REPARTO = {
   CENTROCAMPISTI: { passaggi: 0.40, contrasti: 0.30, tiro: 0.30 },
   ESTERNI:        { passaggi: 0.40, contrasti: 0.20, tiro: 0.40 },
   ATTACCANTI:     { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 },
+  // Deciso da Peppe l'8/09/2026, quando il COC e' diventato un reparto vero (prima
+  // ne condivideva i pesi con gli attaccanti): passaggi ancora piu' centrali del
+  // reparto attacco (il COC fa girare la squadra), contrasti allo stesso minimo,
+  // tiro sacrificato di conseguenza.
+  COC:            { passaggi: 0.50, contrasti: 0.10, tiro: 0.40 },
 };
 
 // Quando il reparto non si conosce si usa quello dell'attacco, che e' il piu' comune in

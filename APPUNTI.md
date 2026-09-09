@@ -593,7 +593,12 @@ descrivere come si gioca invece di premiare chi sta davanti.
 
 **L'archetipo di EA non si usa mai**, per decisione esplicita del club.
 
-**Il COC conta fra gli attaccanti**, sempre, anche se EA lo etichetta `midfielder`.
+**Il COC e' un reparto vero, non piu' un sottoinsieme degli attaccanti (dal 09/09/2026).**
+Fino all'8/09/2026 valeva la regola opposta, tenuta ferma qui apposta: "il COC conta fra
+gli attaccanti, sempre". Peppe ha chiesto di renderlo un ruolo a se' - vedi la sezione
+"Il COC diventa un reparto vero" piu' sotto per la decisione intera. Chi legge questo
+file per la lista delle decisioni da non toccare: quella riga non vale piu', questa la
+sostituisce.
 
 **La soglia per entrare in classifica nei reparti è 3**, scelta sapendo il compromesso.
 Va rialzata solo se il club lo chiede.
@@ -916,3 +921,80 @@ lasciato al suo posto, in `modello/pagina.js`.
   correzioni di `roles.json`: per un COC come Pesix_97, 36 contro 92. Corretto il
   05/09/2026 facendoli passare dalla stessa funzione (`groupForMatch` +
   `ROLE_EXCEPTIONS`).
+
+
+### Il COC diventa un reparto vero (09/09/2026)
+
+Peppe ha chiesto di rendere il COC retroattivo: ogni volta che una partita l'ha segnata a
+mano come COC (o che il ruolo abituale di un giocatore lo prevede), quella prestazione deve
+comparire come COC ovunque - scheda giocatore, tabella rosa, formazione tipo, indice di
+forza reparto per reparto - non piu' nascosta dentro "Attaccanti".
+
+**Cosa c'era gia', misurato prima di scrivere codice.** Il meccanismo per marcare "questa
+partita e' COC" esisteva da tempo: e' `eccezioni_partita` con `gruppo: "ATTACCANTI"` su una
+partita etichettata `midfielder` da EA (o, per i quattro giocatori dichiarati COC di
+carriera, il ruolo di default quando l'etichetta coincide). Scansionando tutto l'archivio
+(13 giocatori) sono uscite 157 partite cosi', 151 delle quali contano nelle statistiche:
+
+| Giocatore | Partite COC | Di cui contano |
+|---|---|---|
+| Pesix_97 | 67 | 63 |
+| domenicocasaburi | 40 | 39 |
+| ilmille | 36 | 36 |
+| ktm-008 | 9 | 5 |
+| Bagherese_95 | 6 | 6 (non convertite, vedi sotto) |
+| gio05596 | 3 | 3 |
+| FFLI_Adriano | 2 | 2 |
+| Jysmu | 2 | 2 |
+| Ironman-6-6 | 1 | 1 |
+
+Ben sopra i 100 che il codice stesso chiede per dire "reparto attendibile" (vedi
+`SOGLIA_REPARTO_ATTENDIBILE` in pagina.js), quindi non e' il "laboratorio con pochi dati"
+del 25/08 - un reparto COC vero regge fin da subito.
+
+Per ktm-008, Peppe ha rivisto a mente le 13 partite `midfielder` gia' spostate a mano fuori
+da ATTACCANTI (7 a centrocampo, 6 esterno): confermate giuste cosi', non erano COC. Restano
+li'.
+
+**Cosa e' cambiato in `roles.json`.** "COC" e' un valore vero adesso, non piu' una deduzione
+(gruppo=ATTACCANTI + etichetta abituale=midfielder). Due modi di assegnarlo, stessi di
+sempre:
+
+- **di carriera**, in `giocatori`: Pesix_97, domenicocasaburi e ktm-008 hanno il campo
+  `gruppo` cambiato da `"ATTACCANTI"` a `"COC"` - sono i tre "COC abituali" secondo Peppe.
+- **per singola partita**, in `eccezioni_partita`: tutte le voci con `gruppo: "ATTACCANTI"`
+  sui giocatori sopra (il mille, gio05596, FFLI_Adriano, Jysmu, Ironman-6-6, e le eccezioni
+  ridondanti di ktm-008/Pesix_97/domenicocasaburi) sono state riscritte a `"COC"`, ma SOLO
+  dove la partita era davvero etichettata `midfielder` da EA - le eccezioni ATTACCANTI su
+  partite gia' `forward` (vera punta, 21 casi) sono rimaste tali.
+
+**Bagherese_95 e' stata lasciata fuori apposta.** Peppe, alla domanda su chi fossero i "COC
+abituali", ha risposto "io, domenico e ktm" - non lei, pur essendo nel vecchio insieme
+dedotto. La sua indicazione esplicita: "continualo a registrare come attaccante, se giocherà
+COC lo metteremo come eccezione". Le sue 6 partite gia' marcate ATTACCANTI da `midfielder`
+NON sono state convertite: restano Attaccante. Una futura eccezione con `gruppo: "COC"` su
+una sua partita la marchera' COC da quel momento, non prima.
+
+**"COC" e' entrato nell'elenco dei reparti validi** (`ordine` in roles.json,
+`DEFAULT_ROLE_GROUPS["order"]` in generate_dashboard.py come ripiego): senza, il caricatore
+di roles.json avrebbe scartato in silenzio ogni `gruppo: "COC"` con un
+"attenzione: gruppi non validi, ignorati" - lo stesso genere di guasto silenzioso gia' visto
+con `genera-documenti.py` il 02/09. Da li' in poi tutto il resto e' arrivato gratis, perche'
+il codice che legge il reparto (`groupForMatch` + `ROLE_EXCEPTIONS`, `computeGroupScores`,
+`GROUP_ORDER.filter(...)` di "Reparto per reparto") non ha MAI il nome dei reparti scritto a
+mano nella logica - solo nelle liste di stile (icone, colori, etichette brevi), aggiornate a
+parte.
+
+**Tecnica ad hoc per il COC**, decisa da Peppe dopo aver visto la misura reale sulle 157
+partite (passaggi/tentativi, contrasti/tentativi, tiri/tentativi confrontati con
+centrocampisti e attaccanti veri): **passaggi 50% / tiro 40% / contrasti 10%** - piu'
+sbilanciato sui passaggi persino degli attaccanti (45/10/45), a fare da regista. Prima il
+COC prendeva in prestito i pesi degli attaccanti perche' non esisteva come reparto proprio.
+
+**Cosa NON e' stato toccato.** La formazione tipo (`FORMATION_SLOTS`,
+`computeOutfieldLineup`) lavora sull'etichetta EA grezza per partita (`defender` /
+`midfielder` / `forward`), non sul reparto di `roles.json`: non ha percepito il cambiamento,
+e non e' stata modificata - toccarla senza chiederlo e' vietato da una decisione precedente
+(vedi sopra, "la formazione tipo resta com'e'"). Se Peppe vuole che anche li' compaia "COC"
+(per esempio rinominando lo slot "trequartista", che di fatto e' gia' il migliore per
+contributo offensivo nel pool centrocampisti), va deciso a parte.
