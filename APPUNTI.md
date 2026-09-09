@@ -976,6 +976,15 @@ COC lo metteremo come eccezione". Le sue 6 partite gia' marcate ATTACCANTI da `m
 NON sono state convertite: restano Attaccante. Una futura eccezione con `gruppo: "COC"` su
 una sua partita la marchera' COC da quel momento, non prima.
 
+**Corretto il 09/09/2026: Bagherese_95 aveva gia' 4 partite segnate a mano.** Chiedendo
+perche' non comparisse in Trequartista, si e' visto che 4 delle sue 6 partite ATTACCANTI-da-
+`midfielder` non erano un default, ma un'eccezione esplicita - lo stesso identico modo in
+cui il mille, ktm-008 eccetera erano stati segnati COC prima che il reparto esistesse
+come valore. Le altre 2 restano di puro default (nessuna eccezione), quindi restano
+Attaccante. Convertite le 4 segnate a mano in Trequartista, con lo stesso criterio gia'
+usato per tutti gli altri: eccezione esplicita = segnato a mano = conta. Verificato che non
+ne restassero altre cosi' combinate in tutto l'archivio (zero trovate).
+
 **"COC" e' entrato nell'elenco dei reparti validi** (`ordine` in roles.json,
 `DEFAULT_ROLE_GROUPS["order"]` in generate_dashboard.py come ripiego): senza, il caricatore
 di roles.json avrebbe scartato in silenzio ogni `gruppo: "COC"` con un
