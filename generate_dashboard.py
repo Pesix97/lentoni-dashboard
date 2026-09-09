@@ -517,7 +517,7 @@ HTML_TEMPLATE = carica_modello()
 
 
 DEFAULT_ROLE_GROUPS = {
-    "order": ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI", "TREQUARTISTA", "PORTIERI"],
+    "order": ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "TREQUARTISTA", "ATTACCANTI", "PORTIERI"],
     "labels": {"DIFENSORI": "Difensori", "CENTROCAMPISTI": "Centrocampisti",
                "ESTERNI": "Esterni", "ATTACCANTI": "Attaccanti", "TREQUARTISTA": "Trequartista",
                "PORTIERI": "Portieri"},
