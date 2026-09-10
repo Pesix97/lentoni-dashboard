@@ -1725,6 +1725,48 @@
       "quando": "09/09 01:12 SechsMitDerEx",
       "giocatore": "ilmille",
       "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1045774913460255",
+      "quando": "09/09 23:17 tonymon",
+      "giocatore": "Ocirne_1197",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1045994370030252",
+      "quando": "09/09 23:38 MAGNETO FC",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1045944724960146",
+      "quando": "09/09 23:57 EssE Prime",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1046014693530498",
+      "quando": "10/09 00:25 Carbonari",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "1046014693530498",
+      "quando": "10/09 00:25 Carbonari",
+      "giocatore": "Ocirne_1197",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "1046254009360219",
+      "quando": "10/09 00:46 BINGILDAYANLAR",
+      "giocatore": "ktm-008",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "1046254009360219",
+      "quando": "10/09 00:46 BINGILDAYANLAR",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
     }
   ],
   "_esclusioni_partita": [
@@ -1922,6 +1964,10 @@
     },
     {
       "serata": "2026-09-08T22:13Z",
+      "partite": 5
+    },
+    {
+      "serata": "2026-09-09T21:17Z",
       "partite": 5
     }
   ],
