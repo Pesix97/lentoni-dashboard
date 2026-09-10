@@ -127,7 +127,7 @@ scrivi('club_info.json',        j['clubInfoData'])
 scrivi('matches_league.json',   j['matches']['league'])
 scrivi('matches_playoff.json',  j['matches']['playoff'])
 scrivi('matches_friendly.json', j['matches']['friendly'])
-print(f"  skillRating {j['overallStats']['skillRating']} | partite nel feed {len(j['matches']['league'])}")
+print(f"  skillRating {(j.get('overallStats') or {}).get('skillRating', '?')} | partite nel feed {len(j['matches']['league'])}")
 PY
 
 python3 ingest.py --raw-dir raw --db lentoni.db || { echo "  ingest fallito, salto"; scrivi_battito ok "ingest fallito"; exit 0; }
