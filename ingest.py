@@ -377,6 +377,7 @@ def ingest_overall_stats(cur, overall_stats, club_id, fetched_at):
     if not overall_stats:
         return
     s = overall_stats[0]
+    if not s: return
 
     last_matches_compact = json.dumps({
         "results": [s.get(f"lastMatch{i}") for i in range(10)],
