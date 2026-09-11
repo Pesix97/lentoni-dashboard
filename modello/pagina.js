@@ -3843,6 +3843,266 @@ document.addEventListener("keydown", (e) => {
   if(e.key === "Escape") closePlayerCard();
 });
 
+// ==== Pagelle di fine anno =====================================================
+// Voto e lettura per ogni giocatore, richiesti da Peppe l'11/09/2026 a fine stagione
+// FC 26, prima del passaggio a FC 27 del 18/09. Non e' un ritorno di "Premi e Stats
+// divertenti" (tolti il 23/08/2026 perche' erano intrattenimento copiato da un altro
+// sito): qui ogni voce, voto e premi, ha un criterio misurabile scritto accanto -
+// stessa regola dell'Indice di Forza, che e' anche da dove arrivano i pesi validati
+// che si possono riusare cosi' come sono (efficienza tecnica, scala del voto).
+//
+// Due fonti di dati, tenute separate invece di mescolate in una cifra sola:
+//   - CARRIERA: i totali che EA riporta per il giocatore (fino a centinaia di
+//     partite, molte precedenti l'inizio dell'archivio del 03/08/2026);
+//   - STAGIONE TRACCIATA: le partite nel nostro archivio, con il dettaglio
+//     partita per partita - l'unica fonte che permette di misurare costanza,
+//     rendimento nei momenti tirati e crescita nel tempo.
+const PESI_PAGELLA = {
+  ratingCarriera: 0.30, contribCarriera: 0.25,
+  tech: 0.20, costanza: 0.15, decisivita: 0.10,
+  disc: 0.05,   // penalita' a parte, sottrae invece di sommare - come nell'Indice di Forza
+};
+
+// Soglie minime di campione, sotto le quali una voce non si stima: si ridistribuisce
+// il suo peso sulle altre, e lo si dichiara in scheda invece di mostrare un numero
+// che sembra una misura e non lo e'.
+const PAGELLA_MIN_OSCILLAZIONE = 5;   // partite tracciate per calcolare la costanza
+const PAGELLA_MIN_STRETTE = 5;        // partite equilibrate (scarto <=1 gol) per la decisivita'
+const PAGELLA_MIN_CRESCITA = 10;      // partite tracciate per confrontare prima e seconda meta'
+
+(function renderPagelle(){
+  const premiEl = document.getElementById("premiGrid");
+  const gridEl = document.getElementById("pagelleGrid");
+  if(!gridEl) return;
+
+  const rosterNames = new Set((DATA.roster || []).map(r => r.player_name));
+
+  // Partite tracciate per giocatore, in ordine cronologico: serve per costanza,
+  // decisivita' e crescita, che a differenza dei totali di carriera esistono solo
+  // qui dentro.
+  const tracciate = {};
+  (DATA.matches || []).slice().sort((a, b) => (a.ts || 0) - (b.ts || 0)).forEach(m => {
+    (DATA.matchPlayers[m.match_id] || []).forEach(p => {
+      if(!rosterNames.has(p.player_name)) return;
+      const arr = tracciate[p.player_name] = tracciate[p.player_name] || [];
+      const gruppo = ROLE_EXCEPTIONS[m.match_id + "|" + p.player_name] || groupForMatch(p.player_name, p.pos);
+      arr.push({ ...p, ts: m.ts, goalsFor: m.goals_for, goalsAgainst: m.goals_against, win: m.win, gruppo });
+    });
+  });
+
+  // Gli estremi di costanza non sono a occhio: vengono da quanto si osserva davvero
+  // nell'archivio (chi ha almeno la soglia minima di partite tracciate). Calcolati
+  // qui sotto, PRIMA di assegnare i punti, cosi' 0 significa "il piu' costante mai
+  // visto" e 100 "il piu' incostante mai visto" - non un limite immaginato a tavolino.
+  const oscillazioniOsservate = [];
+  Object.entries(tracciate).forEach(([nome, righe]) => {
+    if(righe.length < PAGELLA_MIN_OSCILLAZIONE) return;
+    const voti = righe.map(x => x.rating || 0);
+    const media = voti.reduce((a, b) => a + b, 0) / voti.length;
+    const varianza = voti.reduce((t, v) => t + (v - media) ** 2, 0) / voti.length;
+    oscillazioniOsservate.push(Math.sqrt(varianza));
+  });
+  const OSCILLAZIONE_MIN = oscillazioniOsservate.length ? Math.min(...oscillazioniOsservate) : 0;
+  const OSCILLAZIONE_MAX = oscillazioniOsservate.length ? Math.max(...oscillazioniOsservate) : 1;
+
+  function puntiCostanzaDa(oscillazione){
+    if(OSCILLAZIONE_MAX === OSCILLAZIONE_MIN) return 50;
+    const frazione = (oscillazione - OSCILLAZIONE_MIN) / (OSCILLAZIONE_MAX - OSCILLAZIONE_MIN);
+    return 100 * (1 - Math.max(0, Math.min(1, frazione)));  // meno oscilla, piu' punti
+  }
+
+  const pagelle = (DATA.roster || []).map(r => {
+    const righe = tracciate[r.player_name] || [];
+    const n = righe.length;
+    const gruppoAbituale = (groupCountsSorted(r.player_name)[0] || [])[0]
+                          || gruppoGiocatore(r.player_name, r.favorite_position);
+
+    let oscillazione = null, puntiCostanza = null;
+    if(n >= PAGELLA_MIN_OSCILLAZIONE){
+      const voti = righe.map(x => x.rating || 0);
+      const media = voti.reduce((a, b) => a + b, 0) / n;
+      const varianza = voti.reduce((t, v) => t + (v - media) ** 2, 0) / n;
+      oscillazione = Math.sqrt(varianza);
+      puntiCostanza = puntiCostanzaDa(oscillazione);
+    }
+
+    const strette = righe.filter(x => Math.abs((x.goalsFor || 0) - (x.goalsAgainst || 0)) <= 1);
+    let decisivita = null, puntiDecisivita = null;
+    if(strette.length >= PAGELLA_MIN_STRETTE){
+      decisivita = strette.reduce((t, x) => t + (x.rating || 0), 0) / strette.length;
+      puntiDecisivita = 100 * suScala(decisivita, "rating");
+    }
+
+    let crescita = null;
+    if(n >= PAGELLA_MIN_CRESCITA){
+      const meta = Math.floor(n / 2);
+      const prima = righe.slice(0, meta), dopo = righe.slice(meta);
+      const m1 = prima.reduce((t, x) => t + (x.rating || 0), 0) / prima.length;
+      const m2 = dopo.reduce((t, x) => t + (x.rating || 0), 0) / dopo.length;
+      crescita = m2 - m1;
+    }
+
+    let techEff = null;
+    if(n > 0){
+      const sPA = righe.reduce((t, x) => t + (x.pass_attempts || 0), 0);
+      const sPM = righe.reduce((t, x) => t + (x.passes_made || 0), 0);
+      const sTA = righe.reduce((t, x) => t + (x.tackle_attempts || 0), 0);
+      const sTM = righe.reduce((t, x) => t + (x.tackles_made || 0), 0);
+      const sSH = righe.reduce((t, x) => t + (x.shots || 0), 0);
+      const sGO = righe.reduce((t, x) => t + (x.goals || 0), 0);
+      const passSuccess = sPA ? 100 * sPM / sPA : 0;
+      const tackleSuccess = sTA ? 100 * sTM / sTA : 0;
+      const shotSuccess = sSH ? 100 * sGO / sSH : 0;
+      techEff = efficienzaTecnica(passSuccess, tackleSuccess, shotSuccess, gruppoAbituale,
+                  { passaggi: sPA, contrasti: sTA, tiro: sSH });
+    }
+
+    const contribCarriera = r.games_played ? (r.goals + r.assists) / r.games_played : 0;
+    const discRate = r.games_played ? (r.red_cards || 0) / r.games_played : 0;
+
+    const puntiRating = 100 * suScala(r.rating_ave || 0, "rating");
+    const puntiContrib = 100 * suScala(contribCarriera, "contrib");
+    const penalita = PESI_PAGELLA.disc * 100 * suScala(discRate, "disc");
+
+    // Le voci che esistono sempre (carriera) pesano sempre. Le tre voci di stagione
+    // tracciata, quando mancano per campione insufficiente, escono dalla somma E dal
+    // totale dei pesi: non prendono un valore a caso, il loro peso si ridistribuisce
+    // su quelle disponibili. Stessa logica delle "metriche ignorate" nelle classifiche
+    // per reparto.
+    let pesoDisponibile = PESI_PAGELLA.ratingCarriera + PESI_PAGELLA.contribCarriera;
+    let somma = PESI_PAGELLA.ratingCarriera * puntiRating + PESI_PAGELLA.contribCarriera * puntiContrib;
+    const mancanti = [];
+    if(techEff != null){ somma += PESI_PAGELLA.tech * techEff; pesoDisponibile += PESI_PAGELLA.tech; }
+    else mancanti.push("efficienza tecnica");
+    if(puntiCostanza != null){ somma += PESI_PAGELLA.costanza * puntiCostanza; pesoDisponibile += PESI_PAGELLA.costanza; }
+    else mancanti.push("costanza");
+    if(puntiDecisivita != null){ somma += PESI_PAGELLA.decisivita * puntiDecisivita; pesoDisponibile += PESI_PAGELLA.decisivita; }
+    else mancanti.push("rendimento nelle partite tirate");
+
+    const punti100 = Math.max(0, Math.min(100, somma / pesoDisponibile - penalita));
+    const voto = 5 + (punti100 / 100) * 5;
+
+    return {
+      r, n, gruppoAbituale, oscillazione, decisivita, crescita, techEff, contribCarriera, discRate,
+      puntiRating, puntiContrib, puntiCostanza, puntiDecisivita, penalita, punti100, voto, mancanti,
+    };
+  }).sort((a, b) => b.voto - a.voto);
+
+  // ---- Motivazione testuale: generata dai numeri, non scritta a mano ----
+  // Due frasi: la prima ancora il voto a carriera e stagione tracciata, la seconda
+  // segnala il punto piu' forte e quello piu' debole fra le voci disponibili, cosi'
+  // che due giocatori con lo stesso voto non abbiano la stessa descrizione se i
+  // numeri dietro sono diversi.
+  function motivazione(p){
+    const r = p.r;
+    const frasi = [];
+    frasi.push(`In carriera media voto ${r.rating_ave.toFixed(2)} e ${p.contribCarriera.toFixed(2)} `
+      + `gol+assist a partita su ${r.games_played} presenze.`);
+    if(p.n > 0){
+      const partVoce = p.n === 1 ? "partita tracciata" : "partite tracciate";
+      let frase = `Nelle ${p.n} ${partVoce} di quest'anno`;
+      const dettagli = [];
+      if(p.oscillazione != null) dettagli.push(`il voto oscilla di ±${p.oscillazione.toFixed(2)}`);
+      if(p.decisivita != null) dettagli.push(`sale a ${p.decisivita.toFixed(2)} nelle partite equilibrate`);
+      if(p.techEff != null) dettagli.push(`efficienza tecnica ${p.techEff.toFixed(0)}/100`);
+      frase += dettagli.length ? ": " + dettagli.join(", ") + "." : ".";
+      frasi.push(frase);
+    } else {
+      frasi.push(`Nessuna partita nell'archivio tracciato: il voto viene solo dai totali di carriera.`);
+    }
+    if(p.crescita != null && Math.abs(p.crescita) >= 0.15){
+      frasi.push(p.crescita > 0
+        ? `In crescita: +${p.crescita.toFixed(2)} di media voto nella seconda metà delle partite tracciate rispetto alla prima.`
+        : `In calo: ${p.crescita.toFixed(2)} di media voto nella seconda metà delle partite tracciate rispetto alla prima.`);
+    }
+    if(r.red_cards > 0){
+      frasi.push(`${r.red_cards} cartellin${r.red_cards === 1 ? "o" : "i"} ross${r.red_cards === 1 ? "o" : "i"} in carriera `
+        + `(${(p.discRate).toFixed(3)} a partita).`);
+    }
+    if(p.mancanti.length){
+      frasi.push(`Non calcolabili per poche partite tracciate: ${p.mancanti.join(", ")}. `
+        + `Il loro peso è stato ridistribuito sulle altre voci.`);
+    }
+    return frasi.join(" ");
+  }
+
+  // ---- Premi: un solo criterio numerico dichiarato, nessun giudizio a sensazione ----
+  // Ogni "fmt" riceve sempre l'intera pagella del vincitore, non il valore grezzo:
+  // una firma sola per tutti i premi, cosi' un premio come Muro (che deve mostrare un
+  // numero diverso da quello con cui si confrontano i concorrenti) non ha bisogno di
+  // un caso speciale nel codice che li disegna - che altrimenti funzionerebbe per
+  // caso finche' nessun difensore raggiunge la soglia, e si romperebbe in silenzio il
+  // giorno in cui qualcuno la raggiunge.
+  const PREMI = [
+    { titolo: "Bomber della stagione", icon: "⚽", criterio: "più gol di carriera",
+      valore: p => p.r.goals, fmt: p => `${p.r.goals} gol`, minimo: p => p.r.goals > 0 },
+    { titolo: "Miglior assistman", icon: "🎯", criterio: "più assist di carriera",
+      valore: p => p.r.assists, fmt: p => `${p.r.assists} assist`, minimo: p => p.r.assists > 0 },
+    { titolo: "Muro", icon: "🧱", criterio: "meno gol subiti a partita fra chi gioca prevalentemente in difesa (stagione tracciata, minimo 10 presenze in difesa)",
+      valore: p => -(p.mediaGolSubiti ?? Infinity),
+      fmt: p => `${p.mediaGolSubiti.toFixed(2)} gol subiti/partita`,
+      minimo: p => (p.gruppoAbituale === "DIFENSORI" || p.gruppoAbituale === "PORTIERI") && p.presenzeDifesa >= 10 },
+    { titolo: "Sorpresa dell'anno", icon: "📈", criterio: "maggior crescita di voto fra prima e seconda metà delle partite tracciate (minimo 10 presenze)",
+      valore: p => p.crescita, fmt: p => `${p.crescita > 0 ? "+" : ""}${p.crescita.toFixed(2)} di media voto`,
+      minimo: p => p.crescita != null },
+    { titolo: "Il più freddo", icon: "🧊", criterio: "miglior media voto nelle partite equilibrate, scarto di un gol o meno (stagione tracciata, minimo 5 presenze così)",
+      valore: p => p.decisivita, fmt: p => `${p.decisivita.toFixed(2)} di media`, minimo: p => p.decisivita != null },
+    { titolo: "Insostituibile", icon: "🎽", criterio: "più partite giocate nella stagione tracciata",
+      valore: p => p.n, fmt: p => `${p.n} partite`, minimo: p => p.n > 0 },
+    { titolo: "Cartellino nero", icon: "🟥", criterio: "più cartellini rossi di carriera",
+      valore: p => p.r.red_cards || 0,
+      fmt: p => `${p.r.red_cards} ross${p.r.red_cards === 1 ? "o" : "i"}`,
+      minimo: p => (p.r.red_cards || 0) > 0 },
+  ];
+
+  // Media gol subiti/partita e presenze in difesa, per il premio Muro: serve solo li',
+  // quindi si calcola qui invece di allargare l'oggetto pagella per tutti.
+  pagelle.forEach(p => {
+    const righeDifesa = (tracciate[p.r.player_name] || []).filter(x => x.gruppo === "DIFENSORI" || x.gruppo === "PORTIERI");
+    p.presenzeDifesa = righeDifesa.length;
+    p.mediaGolSubiti = righeDifesa.length
+      ? righeDifesa.reduce((t, x) => t + (x.goalsAgainst || 0), 0) / righeDifesa.length
+      : null;
+  });
+
+  if(premiEl){
+    const vincitori = PREMI.map(premio => {
+      const eleggibili = pagelle.filter(premio.minimo);
+      if(!eleggibili.length) return null;
+      const vincitore = eleggibili.reduce((best, p) =>
+        (premio.valore(p) > premio.valore(best)) ? p : best);
+      return { premio, vincitore };
+    }).filter(Boolean);
+
+    premiEl.innerHTML = vincitori.map(({ premio, vincitore }) => `
+      <div class="panel" style="text-align:center;">
+        <div style="font-size:26px;">${premio.icon}</div>
+        <div style="font-weight:700; margin:6px 0 2px;">${premio.titolo}</div>
+        <div class="player-link" data-player="${vincitore.r.player_name}"
+             style="font-size:15px; color:var(--accent); cursor:pointer;">${vincitore.r.player_name}</div>
+        <div style="font-size:13px; color:var(--muted); margin-top:4px;">
+          ${premio.fmt(vincitore)}
+        </div>
+        <div style="font-size:10.5px; color:var(--muted); opacity:.75; margin-top:6px;">${premio.criterio}</div>
+      </div>`).join("");
+  }
+
+  gridEl.innerHTML = pagelle.map((p, i) => `
+    <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+        <div class="player-link" data-player="${p.r.player_name}"
+             style="font-size:16px; font-weight:700; color:var(--accent); cursor:pointer;">
+          ${i + 1}. ${p.r.player_name}
+        </div>
+        <div style="font-size:24px; font-weight:800;">${p.voto.toFixed(1)}</div>
+      </div>
+      <div style="font-size:11px; color:var(--muted); margin:2px 0 8px;">
+        ${GROUP_ICONS[p.gruppoAbituale] || "•"} ${GROUP_LABELS[p.gruppoAbituale] || p.gruppoAbituale || "ruolo da assegnare"}
+      </div>
+      <div style="font-size:12.5px; line-height:1.55;">${motivazione(p)}</div>
+    </div>`).join("");
+})();
+
 // ---- Crest header ----
 (function renderCrest(){
   const el = document.getElementById("crestBadge");
@@ -3860,12 +4120,11 @@ document.addEventListener("keydown", (e) => {
 const PAGE_MAP = {
   overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
   giocatori: "giocatori",
-  forza: "forza", formazione: "formazione",
+  forza: "forza", pagelle: "pagelle", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
   osservatore: "osservatore", serate: "serate", partite: "partite",
 };
-
-// Le pagine tolte il 01/09/2026. Un link vecchio - salvato nei preferiti, mandato nel gruppo
+  // Le pagine tolte il 01/09/2026. Un link vecchio - salvato nei preferiti, mandato nel gruppo
 // - deve portare dove il contenuto e' finito, non alla home senza spiegazioni.
 const PAGINE_TRASLOCATE = {
   rosa: "giocatori", classifiche: "giocatori", h2h: "giocatori",
@@ -3876,6 +4135,7 @@ const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
   { key: "giocatori", icon: "🧑‍🤝‍🧑", label: "Giocatori" },
   { key: "forza", icon: "💪", label: "Indice di Forza" },
+  { key: "pagelle", icon: "📋", label: "Pagelle di fine anno" },
   { key: "formazione", icon: "⚽", label: "Formazione" },
   { key: "riepilogo", icon: "🎁", label: "Riepilogo" },
   { key: "avversari", icon: "🆚", label: "Avversari" },
