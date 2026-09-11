@@ -323,6 +323,50 @@
   <div id="roleBoards"></div>
 </section>
 
+<section id="pagelle">
+  <h2>Pagelle di fine anno <span class="h2-sub">— un voto e una lettura per ogni giocatore, calcolati dai dati · solo chi ha almeno __MIN_GAMES__ partite di carriera</span></h2>
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px; border-left:3px solid var(--accent);">
+      <div style="font-size:12px; color:var(--muted); line-height:1.6;">
+        <strong style="color:var(--text);">Non è un ritorno di "Premi e Stats divertenti"</strong> (tolti il
+        23/08/2026 perché erano intrattenimento copiato da un altro sito). Qui ogni voce — voto e premi —
+        ha un criterio misurabile scritto accanto, come l'Indice di Forza: nessun giudizio a sensazione.
+        <br><br>
+        <strong style="color:var(--text);">Due fonti di dati, usate per cose diverse.</strong> La
+        <strong style="color:var(--text);">carriera</strong> (fino a centinaia di partite EA) dà i totali —
+        quanto ha inciso nell'intera storia del club. La <strong style="color:var(--text);">stagione
+        tracciata</strong> (le partite nel nostro archivio, con il dettaglio partita per partita) dà la forma
+        — quanto è stato costante, decisivo, in crescita di recente. Non si mescolano nella stessa cifra:
+        ogni voce della tabella qui sotto dichiara da quale delle due viene.
+        <br><br>
+        <span style="display:block; font-family:ui-monospace,monospace; color:var(--text); line-height:1.9;">
+          media voto di carriera&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30%&nbsp;&nbsp;(carriera)<br>
+          gol+assist a partita di carriera&nbsp;25%&nbsp;&nbsp;(carriera)<br>
+          efficienza tecnica&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;20%&nbsp;&nbsp;(stagione tracciata)<br>
+          costanza del voto&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;15%&nbsp;&nbsp;(stagione tracciata)<br>
+          rendimento nelle partite tirate&nbsp;10%&nbsp;&nbsp;(stagione tracciata)<br>
+          cartellini rossi&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fino a −5&nbsp;&nbsp;(carriera, penalità a parte)
+        </span>
+        <br>
+        <strong style="color:var(--text);">Voto finale su scala 5–10</strong>, come il resto della dashboard.
+        L'efficienza tecnica è la stessa formula già in uso nell'Indice di Forza (pesata per reparto).
+        La <strong style="color:var(--text);">costanza</strong> guarda quanto oscilla il voto fra le partite
+        tracciate: meno oscilla, più punti. Il <strong style="color:var(--text);">rendimento nelle partite
+        tirate</strong> è il voto medio nelle partite decise da uno scarto di un gol o meno. Se una voce non
+        ha abbastanza partite tracciate per essere misurata, non viene stimata a caso: il suo peso si
+        ridistribuisce sulle altre, e la scheda del giocatore lo dice.
+        <br><br>
+        <strong style="color:var(--text);">I premi</strong> hanno ciascuno un solo criterio numerico,
+        scritto sotto il titolo. Nessun premio viene assegnato se nessuno raggiunge la soglia minima di
+        dati richiesta.
+      </div>
+    </div>
+  </details>
+  <div class="grid-cards" id="premiGrid" style="margin-bottom:20px;"></div>
+  <div class="grid-cards" id="pagelleGrid"></div>
+</section>
+
 <section id="formazione">
   <h2>Formazione tipo <span class="h2-sub">— modulo 3-4-1-2, i migliori disponibili per ruolo secondo i dati reali</span></h2>
   <details class="spiega">
