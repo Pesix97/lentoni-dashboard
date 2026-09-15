@@ -438,6 +438,29 @@
   .power-bar-track{background:var(--panel-2); border-radius:4px; height:6px; overflow:hidden; margin-top:4px;}
   .power-bar-fill{background:var(--accent); height:100%; border-radius:4px;}
 
+  .pagellone-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px;}
+  .pagellone-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:16px 16px 18px; display:flex; flex-direction:column; gap:10px;
+  }
+  .pagellone-card .pc-riga1{display:flex; align-items:flex-start; gap:12px;}
+  .pagellone-card .pc-voto{
+    font-size:30px; font-weight:800; color:var(--accent-2); line-height:1;
+    flex:0 0 auto; font-variant-numeric:tabular-nums; min-width:2.1ch; text-align:right;
+  }
+  .pagellone-card .pc-chi{flex:1 1 auto; min-width:0;}
+  .pagellone-card .pc-rank{font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;}
+  .pagellone-card h3{font-size:16px; margin:2px 0 4px; word-break:break-word;}
+  .pagellone-card .pc-ruolo{
+    display:inline-block; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--muted); border:1px solid var(--border); border-radius:99px; padding:2px 9px;
+  }
+  .pagellone-card .pc-stat{
+    font-size:12px; color:var(--muted); letter-spacing:.01em; font-variant-numeric:tabular-nums;
+    border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding-block:7px;
+  }
+  .pagellone-card p{font-size:13px; line-height:1.55; margin:0; color:var(--text);}
+
   .pitch-wrap{display:flex; justify-content:center;}
   .pitch{
     position:relative; width:100%; max-width:420px; margin:0 auto;

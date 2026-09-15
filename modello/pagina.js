@@ -3316,6 +3316,50 @@ function computeOutfieldLineup(){
   disegna();
 })();
 
+// ---- Pagellone FC26 ----
+// Congelato il 15/09/2026: DATA.pagelloneFC26 arriva da un JSON scritto a mano
+// (pagellone_fc26.json), non da un calcolo su questa pagina. Non ricalcola niente e non
+// legge il roster: se lo facesse, dopo il passaggio a FC 27 i contatori di carriera dei
+// giocatori ripartirebbero a mescolare i due titoli sotto lo stesso nome. Vedi
+// carica_pagellone_fc26() in generate_dashboard.py per il motivo per cui resta cosi'.
+(function renderPagelloneFC26(){
+  const p = DATA.pagelloneFC26;
+  const verdettoEl = document.getElementById("pagelloneVerdetto");
+  const gridEl = document.getElementById("pagelloneGrid");
+  if(!verdettoEl || !gridEl || !p) return;
+
+  verdettoEl.innerHTML = `
+    <div style="font-family:inherit; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent-2); font-weight:700; margin-bottom:10px;">
+      Il verdetto della stagione
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px;">
+      ${p.verdetto.map(v => `
+        <div style="background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px;">
+          <div style="font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;">${v.titolo}</div>
+          <div style="font-size:13.5px; margin-top:3px;"><strong class="player-link" data-player="${v.chi}">${v.chi}</strong> — ${v.valore}</div>
+        </div>`).join("")}
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:12px;">
+      ${p.stagione.partite} partite di club dall'inizio della stagione FC26 · ${p.stagione.vittorie}V
+      ${p.stagione.pareggi}N ${p.stagione.sconfitte}P · ${p.stagione.golFatti} gol fatti, ${p.stagione.golSubiti} subiti ·
+      fermo al ${p.finoAl.split("-").reverse().join("/")}
+    </div>`;
+
+  gridEl.innerHTML = p.giocatori.map(g => `
+    <div class="pagellone-card">
+      <div class="pc-riga1">
+        <div class="pc-voto">${g.voto.toFixed(1)}</div>
+        <div class="pc-chi">
+          <div class="pc-rank">${g.rank}° della rosa</div>
+          <h3 class="player-link" data-player="${g.nome}">${g.nome}</h3>
+          <span class="pc-ruolo">${g.ruolo}</span>
+        </div>
+      </div>
+      <div class="pc-stat">${g.stat}</div>
+      <p>${g.testo}</p>
+    </div>`).join("");
+})();
+
 // ---- Serate ----
 // Le serate arrivano gia' raggruppate da Python (stessa regola di serata.py); qui si
 // ricostruisce il resto dai dati che la pagina ha comunque, senza duplicare niente.
@@ -3863,6 +3907,7 @@ const PAGE_MAP = {
   forza: "forza", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
   osservatore: "osservatore", serate: "serate", partite: "partite",
+  pagellone: "pagellone",
 };
   // Le pagine tolte il 01/09/2026. Un link vecchio - salvato nei preferiti, mandato nel gruppo
 // - deve portare dove il contenuto e' finito, non alla home senza spiegazioni.
@@ -3882,7 +3927,12 @@ const PAGES = [
   { key: "osservatore", icon: "🗒️", label: "Scheda osservatore" },
   { key: "serate", icon: "🌙", label: "Serate" },
   { key: "partite", icon: "📅", label: "Partite" },
-].filter(p => Object.values(PAGE_MAP).includes(p.key));
+  // Solo sulla pagina FC26: è un pagellone congelato a fine stagione, non una sezione che
+  // ha senso su un titolo diverso (FC27 compreso). Niente da mostrare, niente voce di menu -
+  // altrimenti sarebbe un link che porta a una pagina vuota, esattamente quello che
+  // PAGINE_TRASLOCATE esiste per evitare dall'altro lato.
+  { key: "pagellone", icon: "📰", label: "Pagellone FC26" },
+].filter(p => Object.values(PAGE_MAP).includes(p.key) && (p.key !== "pagellone" || DATA.pagelloneFC26));
 
 function showPage(pageKey){
   if(PAGINE_TRASLOCATE[pageKey]) pageKey = PAGINE_TRASLOCATE[pageKey];

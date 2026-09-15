@@ -597,6 +597,14 @@ storia di git, commit `e9f0b6c` per il ripristino. Non va rifatta senza chiederl
 copiato dalle funzioni di proclubstracker, e il progetto ha preso la direzione opposta:
 descrivere come si gioca invece di premiare chi sta davanti.
 
+**Eccezione datata: il Pagellone FC26 (15/09/2026).** Peppe ha chiesto esplicitamente un
+pagellone di fine stagione, con voti e commenti in tono scherzoso — la stessa cosa
+allontanata dalla dashboard il 23/08. Non è un ripensamento della regola sopra: è una
+sezione a parte, **una tantum e congelata** (`pagellone_fc26.json`, agganciata solo al
+titolo "FC 26", vedi README.md), non uno stile che torni ad applicarsi al resto della
+dashboard. Richiesta di nuovo, andrebbe rifatta uguale — non riaperta come discussione
+generale sui premi.
+
 **L'archetipo di EA non si usa mai**, per decisione esplicita del club.
 
 **Il Trequartista e' un reparto vero, non piu' un sottoinsieme degli attaccanti (dal
@@ -642,17 +650,6 @@ lasciato al suo posto, in `modello/pagina.js`.
 ---
 
 ## Cose imparate, da non riscoprire
-
-- **`overallStats: null` puo' bloccare l'intero giro, non solo la stampa di stato.** Dal
-  10/09/2026, ore 17:09 UTC, proclubstracker ha iniziato a restituire a tratti
-  `overallStats: null`. La riga di stato di `giro.sh` andava in crash su quel campo
-  mancante, e l'intero giro veniva scartato come "json inatteso" — comprese le partite
-  gia' scaricate nella stessa chiamata. Il battito restava "ok": il fallimento non tocca
-  il ciclo, solo la pipeline a valle. Per circa 7 ore (16:00-23:17 UTC) zero commit
-  automatici. Nessuna partita persa quella sera solo perche' il club non stava giocando
-  in quella finestra (`games_played` fermo dal 09/09 23:20, verificato su
-  `club_stats_history`). Corretto rendendo `overallStats` tollerante al `null` in
-  `giro.sh` e `ingest.py` (`432a40f`, `a245719`).
 
 - **jsdom non applica il CSS: un test tutto verde non dice niente sul layout.** Il
   07/09/2026 Peppe ha visto dal telefono le righe di dettaglio (Tecnica, dettaglio

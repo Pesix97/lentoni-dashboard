@@ -405,8 +405,9 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `serata.py` | La griglia di una serata da confermare, con le osservazioni su cosa non torna. |
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
+| `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 100 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi. |
+| `test_pipeline.py` | 102 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo). |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 113 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 9 controlli su una cosa sola: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le tre righe devono sommare alla colonna (180 casi: 12 giocatori × 3 finestre × 5 pesi) e la percentuale scritta in ogni riga deve essere quella che produce i punti a fianco. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
@@ -459,6 +460,37 @@ da pubblicare (18/09). Ora `test_apertura.js` e `test_tecnica.js` girano su ogni
 `archivio/<titolo>.html` singolarmente: una pagina che non si apre non si pubblica (torna
 alla versione precedente, o resta assente se non ne esisteva una), le altre sì — index.html
 compreso, che segue la sua stessa regola indipendentemente dall'esito dell'archivio.
+
+---
+
+## pagellone_fc26.json — il pagellone di fine stagione, congelato
+
+Richiesto da Peppe il 15/09/2026, appena finita la stagione FC26: voto e commento in tono
+scherzoso (elogi e frecciate) per tutti e tredici i giocatori. È un'eccezione datata alla
+regola "niente premi, niente intrattenimento" del 23/08 — vedi `APPUNTI.md`, sezione
+"Decisioni prese, da non rifare" — non un ripensamento di quella regola.
+
+**I numeri contano l'intera carriera, non le sole partite in archivio.** La prima versione
+usava le 180 partite archiviate, poi le 205 ricostruite dai contatori di carriera nella
+sola finestra di tracciamento: Peppe ha chiesto di contare **tutte le partite di club**
+(800), perché il club non ha giocato altro prima di FC26 — la carriera di ogni giocatore in
+`member_stats_history` coincide quindi con la sua intera stagione. I numeri vengono
+dall'ultimo snapshot di `member_stats_history` (per giocatore) e `club_stats_history` (per
+il record di squadra), presi il 9 settembre 2026 alle 23:20 UTC, l'ultimo istante in cui il
+club ha giocato.
+
+**La pagina è congelata apposta.** `pagellone_fc26.json` è scritto a mano una volta, non
+generato da una query: se lo fosse, dopo il passaggio a FC 27 (18/09) i contatori di
+carriera degli stessi `player_name` ripartirebbero ad accumulare le partite del titolo
+nuovo, e il pagellone di FC26 finirebbe silenziosamente a mescolare due stagioni sotto lo
+stesso numero. `generate_dashboard.py` (`carica_pagellone_fc26()`) lo aggancia solo quando
+`club["titolo"] == "FC 26"` — compare quindi sia sulla pagina attiva di oggi sia su
+`archivio/fc-26.html` dopo il 18/09, e mai su un titolo diverso. Una correzione, se dovesse
+servire, si fa editando il JSON a mano — non rilanciando uno script.
+
+C'è anche una versione più curata, pubblicata come pagina condivisibile fuori dalla
+dashboard (stesso testo, stessi numeri, veste grafica diversa): non fa parte del
+repository, perché è un contenuto una tantum, non un pezzo della pipeline.
 
 ---
 
@@ -946,7 +978,7 @@ si può smorzare — quindi restituiva il valore grezzo. **Lo smorzamento lì no
 applicato, senza un errore, senza un test rosso, senza niente.** Corretto: la formazione tipo
 scelta non cambia, cambiano solo i punteggi interni.
 
-### I pesi della tecnica sono cinque, uno per reparto
+### I pesi della tecnica sono quattro, uno per reparto
 
 Fino al 29/08/2026 le tarature erano **due**: i difensori e "tutti gli altri". Ma quel
 secondo gruppo metteva insieme un centrocampista e un attaccante, che con la palla fanno
@@ -956,14 +988,12 @@ mestieri diversi — il primo la fa girare e recupera, il secondo la mette dentr
 | --- | ---: | ---: | ---: |
 | Difensori | 40% | **50%** | 10% |
 | Centrocampisti | 40% | 30% | 30% |
-| Trequartista | **50%** | 10% | 40% |
 | Esterni | 40% | 20% | 40% |
-| Attaccanti | 45% | **10%** | 45% |
+| Attaccanti *(COC compreso)* | 45% | **10%** | 45% |
 
-La regola del club: **i contrasti hanno il peso minimo per attaccanti e trequartista**, e
-crescono scendendo verso la difesa. I passaggi restano il mestiere più condiviso, con il
-trequartista al massimo (fa girare la squadra più di tutti); a scambiarsi il posto sono
-contrasti e tiro.
+La regola del club: **i contrasti hanno il peso minimo solo per gli attaccanti**, e crescono
+scendendo verso la difesa. I passaggi sono il mestiere comune a tutti, quindi il loro peso
+quasi non cambia; a scambiarsi il posto sono contrasti e tiro.
 
 Il reparto usato è quello **abituale** (`roles.json`) nella classifica generale, e quello
 **della singola partita** nelle classifiche per reparto, dove il ruolo si conosce volta per

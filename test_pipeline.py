@@ -288,6 +288,21 @@ class TestDashboard(BaseConArchivio):
                                 "archiviate piu' partite di quelle giocate: conteggio incoerente")
         self.assertGreaterEqual(sa["divario"], 0)
 
+    def test_pagellone_fc26_compare_sulla_pagina_attiva(self):
+        """Il pagellone congelato deve arrivare in DATA quando il titolo attivo e' FC 26.
+
+        Nato il 15/09/2026: pagellone_fc26.json e' scritto a mano e non tocca il database,
+        ma deve comunque comparire nella pagina generata oggi (titolo attivo "FC 26") con
+        tutti e tredici i giocatori, non un sottoinsieme.
+        """
+        dati = self._dati(self._genera(self.tmp / "pagellone.html"))
+        p = dati.get("pagelloneFC26")
+        self.assertIsNotNone(p, "il pagellone non compare sulla pagina attiva di FC 26")
+        self.assertEqual(len(p["giocatori"]), 13,
+                         "il pagellone deve coprire tutti e tredici i giocatori della stagione")
+        nomi = [g["nome"] for g in p["giocatori"]]
+        self.assertEqual(len(nomi), len(set(nomi)), "un giocatore compare due volte nel pagellone")
+
 
 class TestQualitaDati(BaseConArchivio):
 
@@ -774,6 +789,31 @@ class TestConfigurazione(unittest.TestCase):
                 self.assertIn("giocatore", e)
                 self.assertTrue((e.get("motivo") or "").strip(), "manca il motivo")
 
+    def test_pagellone_fc26_json_valido(self):
+        """pagellone_fc26.json e' scritto a mano, non generato: una struttura sbagliata
+        non la scoprirebbe nessuno script, solo la pagina rotta a occhio.
+        """
+        if not (QUI / "pagellone_fc26.json").exists():
+            self.skipTest("pagellone_fc26.json non presente")
+        p = json.loads((QUI / "pagellone_fc26.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(p["giocatori"]), 13)
+        for g in p["giocatori"]:
+            with self.subTest(giocatore=g.get("nome")):
+                for chiave in ("rank", "nome", "ruolo", "voto", "stat", "testo"):
+                    self.assertIn(chiave, g)
+                self.assertGreaterEqual(g["voto"], 0)
+                self.assertLessEqual(g["voto"], 10)
+                self.assertTrue(g["testo"].strip())
+        rank_attesi = list(range(1, 14))
+        self.assertEqual(sorted(g["rank"] for g in p["giocatori"]), rank_attesi,
+                         "le posizioni in classifica devono coprire 1..13 senza buchi ne' doppioni")
+        self.assertTrue(p.get("verdetto"), "manca il verdetto della stagione")
+        for v in p["verdetto"]:
+            with self.subTest(verdetto=v.get("titolo")):
+                self.assertIn("titolo", v)
+                self.assertIn("chi", v)
+                self.assertIn("valore", v)
+
 
 class TestEsclusioni(BaseConArchivio):
     """Le prestazioni escluse non devono comparire nella pagina pubblicata.
@@ -979,6 +1019,10 @@ class TestPassaggioDiTitolo(BaseConArchivio):
         """Una copia del progetto con club.json già passato al titolo nuovo."""
         for nome in ("generate_dashboard.py", "ruoli.py", "roles.json"):
             shutil.copy(QUI / nome, cartella / nome)
+        # pagellone_fc26.json resta al suo posto anche dopo il passaggio: la copia serve a
+        # dimostrare che a tenerlo fuori dalla pagina e' il titolo, non la sua assenza.
+        if (QUI / "pagellone_fc26.json").exists():
+            shutil.copy(QUI / "pagellone_fc26.json", cartella / "pagellone_fc26.json")
         shutil.copytree(QUI / "modello", cartella / "modello")
         conf = json.loads((QUI / "club.json").read_text(encoding="utf-8"))
         conf["storico"] = [conf["attivo"]]
@@ -1018,6 +1062,10 @@ class TestPassaggioDiTitolo(BaseConArchivio):
         self.assertNotIn("0 su 3 elencate", stdout)
         self.assertIn("titoli precedenti", stdout,
                       "le esclusioni di un titolo passato vanno dichiarate tali, non contate come errori")
+        # Il pagellone e' congelato su FC 26: su un titolo nuovo non deve comparire, anche
+        # se pagellone_fc26.json e' ancora li' sul disco (vedi carica_pagellone_fc26()).
+        self.assertIsNone(dati.get("pagelloneFC26"),
+                          "il pagellone di FC26 e' rimasto agganciato anche al titolo nuovo")
 
     def test_con_qualche_partita_non_arriva_niente_dal_titolo_vecchio(self):
         con = sqlite3.connect(self.db)

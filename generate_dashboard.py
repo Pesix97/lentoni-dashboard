@@ -724,6 +724,26 @@ def serate_da_confermare(matches):
         return []
 
 
+def carica_pagellone_fc26():
+    """Il pagellone di fine stagione FC26: una fotografia scritta a mano il 15/09/2026,
+    non una vista sul database.
+
+    Volutamente NON si ricalcola a ogni giro: dal 18/09/2026 club.json passa a FC 27, e i
+    contatori di carriera dei giocatori (member_stats_history) ripartirebbero a mescolare
+    numeri di titoli diversi sotto lo stesso player_name. Il file resta congelato per
+    sempre sulla pagina FC26 - vedi carica_pagellone_fc26() e la sua chiamata in
+    genera_pagina(), che la aggancia solo quando club["titolo"] == "FC 26".
+    """
+    path = QUI / "pagellone_fc26.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"  attenzione: pagellone_fc26.json non leggibile, sezione omessa ({exc})")
+        return None
+
+
 def genera_pagina(club, titoli, corrente_file, db_path, out_path):
     """Costruisce la pagina di UN titolo (quello in `club`) e la scrive in `out_path`.
 
@@ -745,6 +765,11 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path):
     data["serateAperte"] = serate_da_confermare(data["matches"])
     data["serate"] = elenco_serate(data["matches"])
     data["titolo"] = club.get("titolo") or ""
+    # Il pagellone resta legato al titolo, non al file: compare sia sulla pagina attiva sia
+    # su quella archiviata di FC26, perche' entrambe passano di qui con lo stesso titolo -
+    # e mai su un titolo diverso, FC27 compreso.
+    if data["titolo"] == "FC 26":
+        data["pagelloneFC26"] = carica_pagellone_fc26()
     # Vero per ogni pagina tranne quella del titolo attivo (sempre il primo di `titoli`,
     # per come lo costruisce elenco_titoli()). Serve a "Salute dell'archivio": quel
     # riquadro racconta se l'automazione sta tenendo il passo ADESSO, e su un titolo
