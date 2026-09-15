@@ -211,10 +211,16 @@ davvero vuota per qualche ora.
   archiviate, attese, il divario storico) e toglie la parte sulle ultime 48 ore invece di
   lasciarla congelata. Coperto da un'asserzione nel test del punto sopra.
 
-**Resta aperto**, non richiesto finora: le pagine di `archivio/` non hanno ancora un
-controllo di apertura proprio — solo `index.html` viene passato a
-`test_apertura.js`/`test_tecnica.js` dentro `giro.sh`. Da guardare prima che ce ne sia
-davvero una da pubblicare, il 18/09.
+**Sistemato il 15/09/2026:** le pagine di `archivio/` non avevano ancora un controllo di
+apertura proprio — solo `index.html` veniva passato a `test_apertura.js`/`test_tecnica.js`
+dentro `giro.sh`, e `git add archivio` pubblicava il resto in blocco, legato solo
+all'esito di `index.html`. Ora ogni pagina in `archivio/*.html` passa dagli stessi due
+controlli per conto suo, indipendentemente da come va `index.html`: se una non si apre non
+si pubblica (torna alla versione precedente se ce n'era una online, altrimenti resta
+assente finché non ne esce una buona), le altre proseguono lo stesso, e il guasto finisce
+nel campo `problema` del battito insieme al nome della pagina. Verificato a mano simulando
+tre casi — pagina sana, pagina già pubblicata che si rompe, pagina nuova che nasce rotta —
+e coperto da quattro test nuovi in `TestBattito`.
 
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 

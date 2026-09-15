@@ -1400,15 +1400,71 @@ class TestBattito(unittest.TestCase):
 
     def test_il_battito_dichiara_la_pagina_non_apribile(self):
         # Senza, il guasto sarebbe silenzioso: la dashboard resta vecchia e nessuno lo sa.
+        #
+        # Dal 15/09/2026 il messaggio si costruisce in PROBLEMA_PIPELINE invece che inline
+        # nella chiamata a scrivi_battito: la stessa variabile porta anche l'esito dei
+        # controlli sulle pagine d'archivio (vedi la sezione sotto), e infilare i due pezzi
+        # in un'unica riga sarebbe stato illeggibile.
         g = Path("giro.sh").read_text(encoding="utf-8")
-        self.assertRegex(g, r'scrivi_battito ok "\$\{SOLO_DATABASE:\+',
+        self.assertRegex(g, r'PROBLEMA_PIPELINE="\$\{SOLO_DATABASE:\+',
                          "il battito non segnala che la pagina non si apriva")
+        self.assertIn('scrivi_battito ok "$PROBLEMA_PIPELINE"', g,
+                      "il messaggio costruito non arriva al battito")
 
     def test_giro_sh_usa_battito_py(self):
         # Se qualcuno reinfilasse il calcolo dentro lo script, tornerebbe non collaudabile.
         testo = Path("giro.sh").read_text(encoding="utf-8")
         self.assertIn("python3 battito.py", testo)
         self.assertNotIn("PYSTATO", testo)
+
+    # ---- Il controllo di apertura per le pagine d'archivio --------------------------
+    # Aggiunti il 15/09/2026. Le pagine d'archivio (archivio/<titolo>.html, da FC 27 in
+    # poi) corrono lo stesso rischio di index.html - una pagina rotta finita online - ma
+    # fino a questa data non avevano NESSUN controllo proprio: 'git add archivio' le
+    # pubblicava tutte, a patto solo che index.html si aprisse. Segnalato in APPUNTI il
+    # 06/09/2026 come "da guardare prima del 18/09", e rimasto cosi' per nove giorni.
+
+    def test_ogni_pagina_d_archivio_viene_aperta_per_conto_suo(self):
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        blocco = g[g.index('ARCHIVIO_GUASTI=""'):g.index("if git diff --staged --quiet")]
+        self.assertIn("for pagina in archivio/*.html", blocco,
+                      "le pagine d'archivio non vengono elencate una per una")
+        self.assertIn('node test_apertura.js "$pagina"', blocco,
+                      "una pagina d'archivio non passa dal controllo di apertura")
+        self.assertIn('node test_tecnica.js "$pagina"', blocco,
+                      "una pagina d'archivio non passa dal controllo sulla tecnica")
+
+    def test_una_pagina_d_archivio_rotta_non_si_pubblica_ma_le_altre_si(self):
+        # Lo stesso principio di index.html, ma per pagina: un guasto sull'una non deve
+        # bloccare le altre, ne' index.html, ne' il database - sono generate dagli stessi
+        # dati ma con contenuti diversi, e confrontarle sarebbe l'errore che il resto di
+        # questo file impara a non fare altrove.
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        blocco = g[g.index('ARCHIVIO_GUASTI=""'):g.index("if git diff --staged --quiet")]
+        self.assertIn('git checkout -- "$pagina" 2>/dev/null || rm -f "$pagina"', blocco,
+                      "una pagina d'archivio rotta non torna alla versione precedente "
+                      "(o non viene tolta, se non ne esisteva una)")
+        self.assertNotIn("exit 0", blocco,
+                         "un guasto su una pagina d'archivio ferma tutto il giro")
+
+    def test_il_controllo_sull_archivio_non_dipende_dall_esito_di_index_html(self):
+        # Il guasto opposto: se index.html non si apre, l'intero blocco 'else' che faceva
+        # 'git add archivio' spariva con lui, quindi un titolo chiuso restava indietro
+        # ogni volta che capitava un giro storto su index.html - due cose senza nessun
+        # legame vero fra loro.
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        prima_di_solo_database = g.index('if [ -n "$SOLO_DATABASE" ]; then')
+        dopo_solo_database = g.index('fi', g.index("git add index.html lentoni.db"))
+        blocco_solo_database = g[prima_di_solo_database:dopo_solo_database]
+        self.assertNotIn("archivio", blocco_solo_database,
+                         "il controllo sull'archivio e' ancora dentro il ramo di index.html")
+
+    def test_un_guasto_d_archivio_finisce_nel_battito(self):
+        g = Path("giro.sh").read_text(encoding="utf-8")
+        self.assertIn(
+            'PROBLEMA_PIPELINE="${PROBLEMA_PIPELINE:+$PROBLEMA_PIPELINE; }'
+            'pagine archivio non apribili: $ARCHIVIO_GUASTI"', g,
+            "un guasto su una pagina d'archivio non arriva al campo 'problema' del battito")
 
     # ---- Il segno di avvio ---------------------------------------------------------
     # Aggiunti il 27/08/2026. Il caso che restava scoperto: un'esecuzione che parte e muore

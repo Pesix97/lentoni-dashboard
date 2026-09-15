@@ -173,7 +173,9 @@ done
 # Se jsdom non c'e' il controllo non blocca niente: meglio pubblicare senza questa rete che
 # fermare l'archiviazione perche' manca una dipendenza.
 SOLO_DATABASE=""
+JSDOM_OK=""
 if [ -d node_modules/jsdom ] || node -e "require('jsdom')" 2>/dev/null; then
+  JSDOM_OK="si"
   if ! node test_apertura.js index.html; then
     echo "  la pagina non si apre: pubblico solo il database, non la pagina"
     SOLO_DATABASE="si"
@@ -195,12 +197,44 @@ if [ -n "$SOLO_DATABASE" ]; then
   git add lentoni.db
 else
   git add index.html lentoni.db
-  # Dal 06/09/2026 generate_dashboard.py scrive anche una pagina per ogni titolo
-  # archiviato (archivio/<titolo>.html, vedi elenco_titoli() e selettore_titoli_html()).
-  # Prima del 18/09/2026 questa cartella non esiste ancora: il controllo evita che 'git
-  # add' fallisca su un percorso assente.
-  [ -d archivio ] && git add archivio
 fi
+
+# Le pagine d'archivio (archivio/<titolo>.html, da FC 27 in poi - vedi elenco_titoli() e
+# selettore_titoli_html() in generate_dashboard.py) corrono lo stesso rischio di index.html,
+# una pagina rotta finita online, ma fino al 15/09/2026 non avevano NESSUN controllo proprio:
+# 'git add archivio' le pubblicava tutte, qualunque cosa contenessero, a patto solo che
+# index.html si aprisse. Segnalato in APPUNTI il 06/09/2026 come "da guardare prima del
+# 18/09" - risolto qui, prima che ce ne sia davvero una da pubblicare.
+#
+# Ogni pagina si controlla per conto suo, indipendentemente dall'esito di index.html: stesso
+# generatore ma dati diversi (partite, giocatori; un titolo chiuso smette di cambiare), un
+# guasto sull'una non dice niente sull'altra - confrontarle sarebbe lo stesso errore che
+# altrove in questo script si e' imparato a non fare. Una pagina che non si apre non si
+# pubblica: torna alla versione precedente se ce n'era una online, altrimenti resta assente
+# finche' non ne esce una buona. Il resto del commit (database, index.html, le altre pagine
+# d'archivio) prosegue lo stesso.
+ARCHIVIO_GUASTI=""
+if [ -d archivio ]; then
+  if [ -n "$JSDOM_OK" ]; then
+    for pagina in archivio/*.html; do
+      [ -e "$pagina" ] || continue
+      apre="si"
+      node test_apertura.js "$pagina" || apre=""
+      node test_tecnica.js "$pagina" || apre=""
+      if [ -z "$apre" ]; then
+        echo "  $pagina non si apre: non lo pubblico"
+        git checkout -- "$pagina" 2>/dev/null || rm -f "$pagina"
+        ARCHIVIO_GUASTI="${ARCHIVIO_GUASTI:+$ARCHIVIO_GUASTI, }$(basename "$pagina")"
+      else
+        git add "$pagina"
+      fi
+    done
+  else
+    # Stessa scelta di index.html: senza jsdom il controllo non blocca niente.
+    git add archivio
+  fi
+fi
+
 if git diff --staged --quiet; then
   echo "  nessuna modifica"
 else
@@ -210,7 +244,7 @@ else
   # ogni giro significherebbe un commit ogni venti minuti anche senza aver giocato.
   python3 -c "import sqlite3; c=sqlite3.connect('lentoni.db'); c.execute('VACUUM'); c.close()" || true
   git add lentoni.db
-  git commit -q -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC${SOLO_DATABASE:+ (solo database: la pagina non si apriva)}"
+  git commit -q -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC${SOLO_DATABASE:+ (solo database: la pagina non si apriva)}${ARCHIVIO_GUASTI:+ (archivio escluso: $ARCHIVIO_GUASTI)}"
   if ! git push -q origin HEAD:main 2>/dev/null; then
     echo "  push respinto, riprovo dopo un rebase"
     git pull -q --rebase origin main && git push -q origin HEAD:main && echo "  pubblicato al secondo tentativo"
@@ -219,9 +253,13 @@ else
   fi
 fi
 
-# Se la pagina non si apriva, il battito lo dice: e' un guasto della pipeline a valle,
-# esattamente il caso per cui il campo `problema` esiste. I controlli delle 23:45, 01:10 e
-# 09:45 lo leggono e lo segnalano.
-scrivi_battito ok "${SOLO_DATABASE:+pagina non apribile: pubblicato solo il database}"
+# Se la pagina (o una pagina d'archivio) non si apriva, il battito lo dice: e' un guasto
+# della pipeline a valle, esattamente il caso per cui il campo `problema` esiste. I
+# controlli delle 23:45, 01:10 e 09:45 lo leggono e lo segnalano.
+PROBLEMA_PIPELINE="${SOLO_DATABASE:+pagina non apribile: pubblicato solo il database}"
+if [ -n "$ARCHIVIO_GUASTI" ]; then
+  PROBLEMA_PIPELINE="${PROBLEMA_PIPELINE:+$PROBLEMA_PIPELINE; }pagine archivio non apribili: $ARCHIVIO_GUASTI"
+fi
+scrivi_battito ok "$PROBLEMA_PIPELINE"
 
 exit 0
