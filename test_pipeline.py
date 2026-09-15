@@ -293,13 +293,14 @@ class TestDashboard(BaseConArchivio):
 
         Nato il 15/09/2026: pagellone_fc26.json e' scritto a mano e non tocca il database,
         ma deve comunque comparire nella pagina generata oggi (titolo attivo "FC 26") con
-        tutti e tredici i giocatori, non un sottoinsieme.
+        tutti i giocatori previsti (i 13 del roster ufficiale piu' m4tt1asgn8, tenuto per
+        scelta di Peppe pur non essendo in roles.json), non un sottoinsieme.
         """
         dati = self._dati(self._genera(self.tmp / "pagellone.html"))
         p = dati.get("pagelloneFC26")
         self.assertIsNotNone(p, "il pagellone non compare sulla pagina attiva di FC 26")
-        self.assertEqual(len(p["giocatori"]), 13,
-                         "il pagellone deve coprire tutti e tredici i giocatori della stagione")
+        self.assertEqual(len(p["giocatori"]), 14,
+                         "il pagellone deve coprire tutti i quattordici nomi della stagione")
         nomi = [g["nome"] for g in p["giocatori"]]
         self.assertEqual(len(nomi), len(set(nomi)), "un giocatore compare due volte nel pagellone")
 
@@ -796,7 +797,7 @@ class TestConfigurazione(unittest.TestCase):
         if not (QUI / "pagellone_fc26.json").exists():
             self.skipTest("pagellone_fc26.json non presente")
         p = json.loads((QUI / "pagellone_fc26.json").read_text(encoding="utf-8"))
-        self.assertEqual(len(p["giocatori"]), 13)
+        self.assertEqual(len(p["giocatori"]), 14)
         for g in p["giocatori"]:
             with self.subTest(giocatore=g.get("nome")):
                 for chiave in ("rank", "nome", "ruolo", "voto", "stat", "testo"):
@@ -804,7 +805,7 @@ class TestConfigurazione(unittest.TestCase):
                 self.assertGreaterEqual(g["voto"], 0)
                 self.assertLessEqual(g["voto"], 10)
                 self.assertTrue(g["testo"].strip())
-        rank_attesi = list(range(1, 14))
+        rank_attesi = list(range(1, 15))
         self.assertEqual(sorted(g["rank"] for g in p["giocatori"]), rank_attesi,
                          "le posizioni in classifica devono coprire 1..13 senza buchi ne' doppioni")
         self.assertTrue(p.get("verdetto"), "manca il verdetto della stagione")

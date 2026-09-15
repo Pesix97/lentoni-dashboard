@@ -466,9 +466,24 @@ compreso, che segue la sua stessa regola indipendentemente dall'esito dell'archi
 ## pagellone_fc26.json — il pagellone di fine stagione, congelato
 
 Richiesto da Peppe il 15/09/2026, appena finita la stagione FC26: voto e commento in tono
-scherzoso (elogi e frecciate) per tutti e tredici i giocatori. È un'eccezione datata alla
+scherzoso (elogi e frecciate) per la rosa della stagione. È un'eccezione datata alla
 regola "niente premi, niente intrattenimento" del 23/08 — vedi `APPUNTI.md`, sezione
 "Decisioni prese, da non rifare" — non un ripensamento di quella regola.
+
+**Sono 14 schede, non 13.** Il roster ufficiale (`roles.json`, `giocatori`) ne conta 13, ma
+`m4tt1asgn8` — che non ci compare, ne' fra gli attivi ne' fra gli ex — è stato tenuto lo
+stesso su richiesta esplicita di Peppe. Il primo giro, prima della correzione del 15/09, era
+partito dai partecipanti alle partite d'archivio invece che dal roster: risultato, escludeva
+`eredes` (in `roles.json`, ma senza partite dopo l'inizio dell'archivio) e includeva
+`m4tt1asgn8` al suo posto.
+
+**`eredes` è in classifica ma fuori dalla numerazione.** Il suo voto medio (7.6, terzo più
+alto della rosa) viene dallo stesso snapshot di `member_stats_history` di tutti gli altri,
+quindi è un numero vero — ma è congelato da prima che l'archivio cominciasse a tracciare
+(nessuna partita nelle ultime sei settimane di stagione): premiarlo come terzo giocatore
+dell'anno su un dato così vecchio sarebbe fuorviante. La sua scheda porta `"rank": 14` e
+`"rankLabel": "fuori classifica"` invece del solito `N° della rosa` — l'unico giocatore con
+questa etichetta.
 
 **I numeri contano l'intera carriera, non le sole partite in archivio.** La prima versione
 usava le 180 partite archiviate, poi le 205 ricostruite dai contatori di carriera nella

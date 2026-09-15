@@ -3350,7 +3350,7 @@ function computeOutfieldLineup(){
       <div class="pc-riga1">
         <div class="pc-voto">${g.voto.toFixed(1)}</div>
         <div class="pc-chi">
-          <div class="pc-rank">${g.rank}° della rosa</div>
+          <div class="pc-rank">${g.rankLabel || (g.rank + "° della rosa")}</div>
           <h3 class="player-link" data-player="${g.nome}">${g.nome}</h3>
           <span class="pc-ruolo">${g.ruolo}</span>
         </div>

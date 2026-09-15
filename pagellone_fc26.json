@@ -15,7 +15,13 @@
     "",
     "I commenti sono testo scritto a mano, in tono scherzoso apposta (positivo e negativo):",
     "e' la sezione 'Pagelle di fine anno' voluta di nuovo da Peppe il 15/09/2026, dopo che",
-    "una versione precedente era stata rimossa. Vedi APPUNTI.md per la decisione."
+    "una versione precedente era stata rimossa. Vedi APPUNTI.md per la decisione.",
+    "",
+    "Sono 14, non 13: il roster ufficiale (roles.json) ne conta 13, ma tra i partecipanti",
+    "compare anche m4tt1asgn8, che Peppe ha chiesto di tenere pur non essendo in roles.json.",
+    "eredes e' nel roster ma il suo voto (7.6) e' congelato da prima che l'archivio iniziasse",
+    "a tracciare (nessuna partita nelle ultime sei settimane): per questo e' l'unico 'rank': 14",
+    "con 'rankLabel': 'fuori classifica', invece di essere contato per posizione come gli altri."
   ],
   "generato": "2026-09-15",
   "finoAl": "2026-09-09",
@@ -68,6 +74,9 @@
       "testo": "Il centrocampista più pulito nei numeri e il più anonimo nei risultati: 82% di precisione nei passaggi e 50% di contrasti riusciti sono dati da manuale, secondi solo a gio05596 in tutta la rosa. Zero cartellini rossi in centottantasette presenze completano il ritratto di un giocatore ordinato e mai fuori controllo. Il conto alla fine, però, non torna del tutto: ventidue gol e venti assist in quasi duecento partite sono un contributo offensivo modesto per chi occupa così tanto la metà campo. Gioca bene, gioca pulito, e raramente cambia il risultato di una partita — il paradosso del giocatore tecnicamente solido ma statisticamente silenzioso." },
     { "rank": 13, "nome": "Maverik_44_", "ruolo": "Esterno", "voto": 6.8,
       "stat": "381 presenze · 136 gol · 93 assist · 2 rossi",
-      "testo": "Trecentottantuno presenze e un bottino di 136 gol e 93 assist tutt'altro che disprezzabile — eppure il voto medio più basso della rosa. Nessun numero clamoroso, nessun disastro isolato: solo una carriera lunghissima fatta di prestazioni oneste che, messe una via l'altra, non hanno mai davvero convinto la giuria interna del club. Nove premi da migliore in campo in tutta la carriera sono un bottino modesto per un giocatore così presente. Il classico caso di \"gioca sempre, si nota poco\": la spina dorsale silenziosa di una squadra che, a fine stagione, fatica a ricordarsi una sua giocata specifica." }
+      "testo": "Trecentottantuno presenze e un bottino di 136 gol e 93 assist tutt'altro che disprezzabile — eppure il voto medio più basso della rosa. Nessun numero clamoroso, nessun disastro isolato: solo una carriera lunghissima fatta di prestazioni oneste che, messe una via l'altra, non hanno mai davvero convinto la giuria interna del club. Nove premi da migliore in campo in tutta la carriera sono un bottino modesto per un giocatore così presente. Il classico caso di \"gioca sempre, si nota poco\": la spina dorsale silenziosa di una squadra che, a fine stagione, fatica a ricordarsi una sua giocata specifica." },
+    { "rank": 14, "rankLabel": "fuori classifica", "nome": "eredes", "ruolo": "Attaccante", "voto": 7.6,
+      "stat": "96 presenze · 63 gol · 68 assist · MVP 13 volte (14%) · 0 rossi · fermo dal 5 agosto (nessuna partita in archivio)",
+      "testo": "Sessantatré gol e sessantotto assist in novantasei presenze, voto medio 7.6: sulla carta il terzo più alto della rosa, dietro solo a FFLI_Adriano e Pesix_97. Sulla carta, appunto — perché da quando esiste l'archivio (5 agosto) i suoi numeri non si sono mossi di un millimetro: zero partite, zero minuti, zero prove nelle ultime sei settimane di stagione. Il voto è vero, il curriculum pure, ma spacciarlo per il terzo miglior giocatore dell'anno sarebbe come dare la maglia da MVP a chi si è ritirato a Ferragosto. Resta comunque, sulla carta, uno che segnava e serviva più di quanto sbagliasse, e con zero cartellini rossi non ha mai litigato con nessuno — semplicemente perché a un certo punto ha smesso di presentarsi. Fuori classifica non per demerito, ma perché non si può premiare chi non si è visto giocare quando contava." }
   ]
 }
