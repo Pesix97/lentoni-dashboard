@@ -643,6 +643,17 @@ lasciato al suo posto, in `modello/pagina.js`.
 
 ## Cose imparate, da non riscoprire
 
+- **`overallStats: null` puo' bloccare l'intero giro, non solo la stampa di stato.** Dal
+  10/09/2026, ore 17:09 UTC, proclubstracker ha iniziato a restituire a tratti
+  `overallStats: null`. La riga di stato di `giro.sh` andava in crash su quel campo
+  mancante, e l'intero giro veniva scartato come "json inatteso" — comprese le partite
+  gia' scaricate nella stessa chiamata. Il battito restava "ok": il fallimento non tocca
+  il ciclo, solo la pipeline a valle. Per circa 7 ore (16:00-23:17 UTC) zero commit
+  automatici. Nessuna partita persa quella sera solo perche' il club non stava giocando
+  in quella finestra (`games_played` fermo dal 09/09 23:20, verificato su
+  `club_stats_history`). Corretto rendendo `overallStats` tollerante al `null` in
+  `giro.sh` e `ingest.py` (`432a40f`, `a245719`).
+
 - **jsdom non applica il CSS: un test tutto verde non dice niente sul layout.** Il
   07/09/2026 Peppe ha visto dal telefono le righe di dettaglio (Tecnica, dettaglio
   partita) mostrarsi SEMPRE aperte nelle tabelle a schermi stretti, invece che solo al

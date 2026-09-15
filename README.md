@@ -946,7 +946,7 @@ si può smorzare — quindi restituiva il valore grezzo. **Lo smorzamento lì no
 applicato, senza un errore, senza un test rosso, senza niente.** Corretto: la formazione tipo
 scelta non cambia, cambiano solo i punteggi interni.
 
-### I pesi della tecnica sono quattro, uno per reparto
+### I pesi della tecnica sono cinque, uno per reparto
 
 Fino al 29/08/2026 le tarature erano **due**: i difensori e "tutti gli altri". Ma quel
 secondo gruppo metteva insieme un centrocampista e un attaccante, che con la palla fanno
@@ -956,12 +956,14 @@ mestieri diversi — il primo la fa girare e recupera, il secondo la mette dentr
 | --- | ---: | ---: | ---: |
 | Difensori | 40% | **50%** | 10% |
 | Centrocampisti | 40% | 30% | 30% |
+| Trequartista | **50%** | 10% | 40% |
 | Esterni | 40% | 20% | 40% |
-| Attaccanti *(COC compreso)* | 45% | **10%** | 45% |
+| Attaccanti | 45% | **10%** | 45% |
 
-La regola del club: **i contrasti hanno il peso minimo solo per gli attaccanti**, e crescono
-scendendo verso la difesa. I passaggi sono il mestiere comune a tutti, quindi il loro peso
-quasi non cambia; a scambiarsi il posto sono contrasti e tiro.
+La regola del club: **i contrasti hanno il peso minimo per attaccanti e trequartista**, e
+crescono scendendo verso la difesa. I passaggi restano il mestiere più condiviso, con il
+trequartista al massimo (fa girare la squadra più di tutti); a scambiarsi il posto sono
+contrasti e tiro.
 
 Il reparto usato è quello **abituale** (`roles.json`) nella classifica generale, e quello
 **della singola partita** nelle classifiche per reparto, dove il ruolo si conosce volta per
