@@ -222,6 +222,21 @@ nel campo `problema` del battito insieme al nome della pagina. Verificato a mano
 tre casi — pagina sana, pagina già pubblicata che si rompe, pagina nuova che nasce rotta —
 e coperto da quattro test nuovi in `TestBattito`.
 
+**Sistemato il 17/09/2026, un giorno prima della scadenza:** il 06/09 era stato corretto
+solo `test_apertura.js` per il caso "titolo a zero partite", ma `giro.sh` blocca la
+pubblicazione anche su `test_tecnica.js`, che sullo stesso caso falliva per davvero (non
+un salto, un FAIL: "qualcuno ha davvero una forma recente da mescolare" e "il riquadro del
+dettaglio esiste nella pagina" — a zero giocatori non esiste nessuna forma né nessuna riga
+da aprire, non è un guasto). Scoperto rigenerando con codice di oggi una simulazione del
+passaggio (non quella statica del 06/09, che è ferma da prima che esistesse il pagellone).
+Senza questa correzione, la pagina di FC 27 a zero partite avrebbe segnato "problema:
+pagina non apribile" nel battito per tutte le ore fino alla prima partita archiviata — un
+falso allarme, non una perdita di dati, ma comunque il tipo di rumore che il punto 1 di
+questo appunto voleva evitare. Stesso pattern del 06/09: salta i due controlli con una riga
+esplicita quando `#rosterTable .player-link` è vuoto, li fa girare normalmente altrimenti.
+Verificato su entrambi i casi: la pagina FC 27 simulata a zero partite passa con i salti,
+`archivio/fc-26.html` (dati veri) passa identico a prima, `test_pipeline` resta 102/102.
+
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un

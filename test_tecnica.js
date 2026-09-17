@@ -132,16 +132,24 @@ setTimeout(() => {
   // 2. I due lati esistono e portano le PROPRIE prove. E' l'altra meta' del difetto: il
   //    dettaglio mostrava i tentativi di carriera accanto a percentuali di forma, quindi
   //    non smorzava niente proprio dove il campione era piccolo.
-  const conForma = T.computeBlendedScores(30, 0.5).filter((s) => s.formAvailable);
-  verifica("qualcuno ha davvero una forma recente da mescolare", conForma.length > 0,
-    `ne ha ${conForma.length}`);
-  const tentativiDistinti = conForma.every((s) =>
-    ["passaggi", "contrasti", "tiro"].every((k) => {
-      const d = s.tecnica.pezzi[k];
-      return d.formaTent !== null && d.formaTent !== undefined && d.formaTent <= d.carTent;
-    }));
-  verifica("ogni lato porta i propri tentativi, e quelli della finestra non superano la carriera",
-    tentativiDistinti);
+  // A zero giocatori (titolo appena passato, nessuna partita ancora) non c'e' nessuna
+  // forma da mescolare: e' l'unico stato possibile con zero dati, non un guasto. Stessa
+  // distinzione di haGiocatori in test_apertura.js.
+  const haGiocatori = w.document.querySelectorAll("#rosterTable .player-link").length > 0;
+  if (haGiocatori) {
+    const conForma = T.computeBlendedScores(30, 0.5).filter((s) => s.formAvailable);
+    verifica("qualcuno ha davvero una forma recente da mescolare", conForma.length > 0,
+      `ne ha ${conForma.length}`);
+    const tentativiDistinti = conForma.every((s) =>
+      ["passaggi", "contrasti", "tiro"].every((k) => {
+        const d = s.tecnica.pezzi[k];
+        return d.formaTent !== null && d.formaTent !== undefined && d.formaTent <= d.carTent;
+      }));
+    verifica("ogni lato porta i propri tentativi, e quelli della finestra non superano la carriera",
+      tentativiDistinti);
+  } else {
+    verifica("nessun giocatore in questo archivio: salto i controlli sulla forma recente", true);
+  }
 
   // 3. A peso zero il miscuglio sparisce e deve restare esattamente la carriera: e' il caso
   //    in cui il vecchio dettaglio era gia' giusto, e deve restare tale.
@@ -159,6 +167,7 @@ setTimeout(() => {
   // 5. Il riquadro nella pagina vera: tre righe piu' il totale, e il totale mostrato deve
   //    essere quello della colonna arrotondato. Guardare l'HTML e non solo le funzioni e'
   //    il motivo per cui il guasto del 29/08 era passato.
+  if (haGiocatori) {
   const primo = w.document.querySelector("#powerTable tbody tr.tecnica-detail");
   verifica("il riquadro del dettaglio esiste nella pagina", !!primo);
   if (primo) {
@@ -195,6 +204,9 @@ setTimeout(() => {
     verifica("il totale del riquadro e' il numero della colonna",
       totale && cella && totale.textContent.trim() === cella.textContent.trim(),
       totale && cella ? `riquadro ${totale.textContent.trim()}, colonna ${cella.textContent.trim()}` : "");
+  }
+  } else {
+    verifica("nessun giocatore in questo archivio: salto i controlli sul riquadro del dettaglio", true);
   }
 
   console.log(falliti === 0
