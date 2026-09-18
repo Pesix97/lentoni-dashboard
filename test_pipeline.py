@@ -187,6 +187,34 @@ class TestIngest(BaseConArchivio):
         con.close()
         self.assertEqual(dopo, 1, "la guardia non ha rimosso la riga ricostruita")
 
+    def test_club_search_di_un_altro_club_non_scavalca_quello_vero(self):
+        """Un club_search.json fermo su un club diverso non deve dettare il club_id.
+
+        Il primo giro dopo il passaggio a FC 27 (18/09/2026) ha preso il club_id da
+        club_search.json - una fotografia presa a mano il 27/08/2026 per il club di FC 26,
+        che non si aggiorna da sola - invece che dal club_id_atteso indicato dalla risposta
+        fresca di overall_stats.json per il club nuovo. Il risultato: dati freschi
+        etichettati con il club_id sbagliato, scartati in silenzio a valle (guardia sugli
+        scatti all'indietro e lookup delle partite per club_id). Qui si isola la funzione
+        che decide il club_id, senza rifare l'intero giro.
+        """
+        sys.path.insert(0, str(QUI))
+        import ingest
+
+        con = sqlite3.connect(":memory:")
+        cur = con.cursor()
+        cur.executescript(ingest.SCHEMA)
+
+        club_search_vecchio = [{"clubInfo": {"clubId": "2703620", "name": "Lentoni"},
+                                "platform": "common-gen5"}]
+        club_id_atteso = 18510  # il club di overall_stats.json in QUESTO giro
+
+        ottenuto = ingest.ingest_club_info(cur, club_search_vecchio, {}, club_id_atteso)
+
+        self.assertEqual(ottenuto, club_id_atteso,
+                         "club_search.json di un altro club ha dettato il club_id")
+        con.close()
+
 
 class TestDashboard(BaseConArchivio):
 

@@ -284,6 +284,32 @@ silenzio (o del crash, per "novita' dall'ultima serata") quando non ce n'e' abba
 Verificato su entrambe le pagine: `index.html` (0 partite) e `archivio/fc-26.html` (180,
 dati veri) passano puliti.
 
+**La prima partita vera di FC 27 non compariva sull'app - trovata la causa, non indovinata.**
+Peppe ha segnalato che proclubstracker.com registrava una partita giocata e l'app no.
+Guardando i log della corsa di `giro.sh` su GitHub Actions (non tirando a indovinare) si
+vedeva: `Scatto ignorato: EA dice 1 partite ma ne avevamo gia' viste 800` e
+`Nuove partite inserite in questa run: 0`. La causa era in `ingest_club_info()`: il
+`club_id` veniva letto per primo da `raw/club_search.json`, l'unico file di `raw/` sotto
+controllo di versione - una fotografia presa a mano il 27/08/2026, per il club di FC 26
+(`clubId: 2703620`), che non si aggiorna da sola. La risposta fresca del giro (`clubId:
+18510`, quella vera) arrivava solo dopo, e la riga `club_id = club_id or as_int(...)` non
+scavalca mai un valore gia' scritto. Risultato: la partita e le statistiche nuove venivano
+etichettate con il club_id sbagliato (`2703620`), la guardia sugli scatti all'indietro le
+scartava perche' sembravano un crollo da ~800 partite a 1, e la partita veniva saltata in
+silenzio in `ingest_matches()` perche' non compariva fra i partecipanti di quel club_id nel
+JSON della partita. Zero righe scritte, nessun errore in output: esattamente il tipo di
+guasto silenzioso che questo progetto cerca di non lasciarsi sfuggire.
+
+Corretto facendo decidere per primo `overall_stats.json`, che e' sempre la risposta fresca
+alla chiamata fatta con il club_id di `club.json` (mai una fotografia vecchia): il suo
+`clubId` diventa `club_id_atteso` e viene passato a `ingest_club_info()`, che ora scarta
+`club_search.json` quando il suo `clubId` non coincide con quello atteso, invece di
+fidarsene sempre. Aggiunto un test mirato in `test_pipeline.py`
+(`test_club_search_di_un_altro_club_non_scavalca_quello_vero`, in `TestIngest`) che isola
+`ingest_club_info()` con un `club_search` fermo su un club diverso e verifica che vinca
+`club_id_atteso`, cosi' la prossima volta che un file statico di `raw/` invecchia rispetto a
+un titolo nuovo il test lo dice subito invece di scoprirlo su una partita vera persa. 103/103.
+
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un

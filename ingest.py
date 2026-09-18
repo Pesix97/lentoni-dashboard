@@ -282,7 +282,22 @@ def as_float(v, default=0.0):
         return default
 
 
-def ingest_club_info(cur, club_search, club_info_resp):
+def ingest_club_info(cur, club_search, club_info_resp, club_id_atteso=None):
+    """Scrive nome, piattaforma e stemma del club in club_info, e ne restituisce il club_id.
+
+    club_id_atteso, quando c'e', e' il club_id di QUESTO giro: viene da overall_stats.json,
+    che e' sempre la risposta fresca alla chiamata fatta con il club_id di club.json, mai una
+    fotografia vecchia. Decide se fidarsi di club_search.json.
+
+    Senza questo controllo, il primo giro dopo il passaggio a FC 27 (18/09/2026) ha preso il
+    club_id da club_search.json - una fotografia presa a mano il 27/08/2026 per il club di FC
+    26, che non si aggiorna da sola - invece che dalla risposta live per il club nuovo. I dati
+    freschi (skill rating 1500, 1 partita) sono finiti etichettati con il club_id vecchio, la
+    guardia sugli scatti all'indietro li ha scartati perche' sembravano un crollo da ~800 a 1
+    partite, e la partita e' stata saltata in silenzio perche' non compariva fra i partecipanti
+    di quel club_id. Zero righe scritte, nessun errore: il tipo di guasto che questo progetto
+    esiste per non lasciarsi sfuggire.
+    """
     club_id = None
     name = platform = None
     region_id = team_id = None
@@ -293,16 +308,20 @@ def ingest_club_info(cur, club_search, club_info_resp):
     if club_search:
         entry = club_search[0]
         info = entry.get("clubInfo", {})
-        club_id = as_int(info.get("clubId", entry.get("clubId")), None)
-        name = info.get("name")
-        platform = entry.get("platform")
-        region_id = info.get("regionId")
-        team_id = info.get("teamId")
-        kit = info.get("customKit", {})
-        crest_asset_id = kit.get("crestAssetId")
-        crest_color = kit.get("crestColor")
-        kit_colors = [kit.get(f"kitColor{i}") for i in range(1, 5)]
-        stad_name = kit.get("stadName")
+        cid_search = as_int(info.get("clubId", entry.get("clubId")), None)
+        # Se sappiamo gia' quale club_id ha davvero risposto oggi, una fotografia di un
+        # club diverso non ci dice niente su questo: si scarta invece di scavalcarlo.
+        if club_id_atteso is None or cid_search == club_id_atteso:
+            club_id = cid_search
+            name = info.get("name")
+            platform = entry.get("platform")
+            region_id = info.get("regionId")
+            team_id = info.get("teamId")
+            kit = info.get("customKit", {})
+            crest_asset_id = kit.get("crestAssetId")
+            crest_color = kit.get("crestColor")
+            kit_colors = [kit.get(f"kitColor{i}") for i in range(1, 5)]
+            stad_name = kit.get("stadName")
 
     # club_info.json (clubs/info) puo' avere dati piu' freschi/completi sul kit
     if club_info_resp:
@@ -321,6 +340,11 @@ def ingest_club_info(cur, club_search, club_info_resp):
             if not any(kit_colors):
                 kit_colors = [kit.get(f"kitColor{i}") for i in range(1, 5)]
             stad_name = stad_name or kit.get("stadName")
+
+    # Ultima rete: ne' club_search.json ne' club_info.json hanno dato un club_id (per
+    # esempio al primissimo giorno, prima che EA scriva quella riga) ma sappiamo comunque
+    # da overall_stats.json a quale club appartiene questo giro.
+    club_id = club_id or club_id_atteso
 
     if club_id is None:
         return None
@@ -721,17 +745,21 @@ def main():
     if "match_player_stats.goals_conceded" in migra(cur):
         recupera_dal_grezzo(cur, "goals_conceded", "goalsconceded")
 
+    # overall_stats.json e' la risposta di QUESTO giro alla chiamata fatta con il club_id
+    # di club.json: mai una fotografia vecchia, a differenza di club_search.json (presa a
+    # mano, non si aggiorna da sola). E' quindi la fonte piu' affidabile per sapere a quale
+    # club appartengono i dati di oggi, e decide se fidarsi delle altre due.
+    overall_stats = load_json(raw_dir / "overall_stats.json")
+    club_id_atteso = as_int(overall_stats[0].get("clubId"), None) if overall_stats else None
+
     club_search = load_json(raw_dir / "club_search.json")
     club_info_resp = load_json(raw_dir / "club_info.json")
-    club_id = ingest_club_info(cur, club_search, club_info_resp)
+    club_id = ingest_club_info(cur, club_search, club_info_resp, club_id_atteso)
     if club_id is None:
-        overall = load_json(raw_dir / "overall_stats.json")
-        if overall:
-            club_id = as_int(overall[0].get("clubId"), None)
+        club_id = club_id_atteso
     if club_id is None:
         raise SystemExit("Impossibile determinare club_id: manca club_search.json o overall_stats.json")
 
-    overall_stats = load_json(raw_dir / "overall_stats.json")
     nuovo_club = ingest_overall_stats(cur, overall_stats, club_id, fetched_at)
 
     members_stats = load_json(raw_dir / "members_stats.json")
