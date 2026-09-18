@@ -38,15 +38,22 @@ def fetch_all(cur, sql, params=()):
 DEFAULT_CLUB = {"club_id": 2703620, "titolo": "FC 26", "piattaforma": "common-gen5"}
 
 
-def carica_club(script_dir=None):
+def carica_club(script_dir=None, club_json_path=None):
     """Quale club mostrare. Vedi club.json per il perche'.
 
     Ogni titolo EA crea un club nuovo: l'archivio li tiene tutti, ma la dashboard ne
     mostra uno alla volta. Senza questo filtro due titoli finirebbero sommati nella
     stessa rosa e nelle stesse classifiche, in silenzio.
+
+    club_json_path scavalca la ricerca accanto allo script: serve ai test, che devono
+    generare la pagina per il club di una copia di lentoni.db senza leggere il club.json
+    vero del repository (che dal passaggio del 18/09/2026 ha un altro club attivo).
     """
-    base = Path(script_dir) if script_dir else Path(__file__).resolve().parent
-    path = base / "club.json"
+    if club_json_path:
+        path = Path(club_json_path)
+    else:
+        base = Path(script_dir) if script_dir else Path(__file__).resolve().parent
+        path = base / "club.json"
     if not path.exists():
         print(f"  attenzione: {path.name} non trovato, uso il club predefinito")
         return dict(DEFAULT_CLUB)
@@ -824,9 +831,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default="lentoni.db")
     ap.add_argument("--out", default="dashboard.html")
+    ap.add_argument("--club-json", default=None,
+                    help="club.json da usare al posto di quello accanto allo script "
+                         "(serve a isolare i test dal club.json vero del repository)")
     args = ap.parse_args()
 
-    club = carica_club()
+    club = carica_club(club_json_path=args.club_json)
     titoli = elenco_titoli(club)
 
     # Il titolo attivo va sempre nel file chiesto con --out (di norma index.html): e'

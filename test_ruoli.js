@@ -164,24 +164,28 @@ console.log("\nPesi dell'Indice di Forza");
 console.log("\nDettaglio dell'efficienza tecnica");
 {
   const ALL = computeGroupScores();
-  let controllate = 0, sbagliate = 0, peggiore = 0;
-  for (const gruppo of GROUP_ORDER) {
-    for (const a of ALL.filter(x => x.group === gruppo)) {
-      const tent = { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots };
-      const html = dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10, tent);
-      const punti = [...html.matchAll(/tecq-punti">([\d.]+)</g)].map(m => parseFloat(m[1]));
-      if (punti.length !== 4) { sbagliate++; continue; }   // tre pezzi + totale
-      const somma = punti[0] + punti[1] + punti[2];
-      const scarto = Math.abs(somma - a.techEff);
-      if (scarto > peggiore) peggiore = scarto;
-      if (scarto > 0.15) sbagliate++;
-      // e il totale stampato deve essere quello della tabella, non un terzo numero
-      if (Math.abs(punti[3] - a.techEff) > 0.5) sbagliate++;
-      controllate++;
+  if (ALL.length === 0) {
+    verifica("nessun giocatore in questo archivio: salto la verifica del dettaglio dell'efficienza tecnica", true);
+  } else {
+    let controllate = 0, sbagliate = 0, peggiore = 0;
+    for (const gruppo of GROUP_ORDER) {
+      for (const a of ALL.filter(x => x.group === gruppo)) {
+        const tent = { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots };
+        const html = dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10, tent);
+        const punti = [...html.matchAll(/tecq-punti">([\d.]+)</g)].map(m => parseFloat(m[1]));
+        if (punti.length !== 4) { sbagliate++; continue; }   // tre pezzi + totale
+        const somma = punti[0] + punti[1] + punti[2];
+        const scarto = Math.abs(somma - a.techEff);
+        if (scarto > peggiore) peggiore = scarto;
+        if (scarto > 0.15) sbagliate++;
+        // e il totale stampato deve essere quello della tabella, non un terzo numero
+        if (Math.abs(punti[3] - a.techEff) > 0.5) sbagliate++;
+        controllate++;
+      }
     }
+    verifica(`i tre pezzi ricostruiscono l'efficienza tecnica (${controllate} righe)`,
+      sbagliate === 0 && controllate > 0, `${sbagliate} fuori, scarto massimo ${peggiore.toFixed(3)}`);
   }
-  verifica(`i tre pezzi ricostruiscono l'efficienza tecnica (${controllate} righe)`,
-    sbagliate === 0 && controllate > 0, `${sbagliate} fuori, scarto massimo ${peggiore.toFixed(3)}`);
 
   // Il dettaglio deve usare i pesi DEL REPARTO: stessi numeri grezzi, reparti diversi,
   // risultati diversi. Altrimenti mostrerebbe una spiegazione che non c'entra col punteggio.
@@ -316,8 +320,12 @@ console.log("\nScheda di chi non e' ancora in rosa");
       "\nfunction closePlayerCard(){}\nfunction getAchievements(){return [];}" +
       "\nreturn { openPlayerCard, schedaDaPartite };")();
 
-    verifica(`ci sono giocatori che hanno giocato ma non sono in rosa (${fuori.size})`,
-      fuori.size > 0, "nessuno: il controllo non sta provando niente");
+    if (fuori.size === 0) {
+      verifica("nessuna partita in questo archivio: salto la verifica di chi ha giocato ma non e' in rosa", true);
+    } else {
+      verifica(`ci sono giocatori che hanno giocato ma non sono in rosa (${fuori.size})`,
+        fuori.size > 0, "nessuno: il controllo non sta provando niente");
+    }
 
     let muti = 0, senzaAvviso = 0, ruoloSbagliato = 0;
     for (const nome of fuori) {
@@ -500,25 +508,27 @@ console.log("\nScheda osservatore");
     )();
 
     const nomi = Object.keys(scelte).filter(k => k.startsWith("n:")).map(k => k.slice(2));
-    verifica("la scheda si costruisce per almeno un giocatore", nomi.length > 0);
+    if (nomi.length === 0) {
+      verifica("nessun giocatore in questo archivio: salto i controlli sulla scheda osservatore", true);
+    } else {
+      let senzaAvversario = 0, senzaVoci = 0;
+      nomi.forEach(n => {
+        scelte["n:" + n]();
+        const h = magazzino["ossCuriosita"].innerHTML;
+        const voci = (h.match(/margin-bottom:2px;">/g) || []).length;
+        if(voci === 0) senzaVoci++;
+        // "I due estremi" nomina sempre l'avversario: se la partita non viene trovata
+        // compare un trattino, ed e' il sintomo esatto del bug del match_id.
+        if(/Meglio: <strong>[^<]+<\/strong> contro —/.test(h)) senzaAvversario++;
+      });
+      verifica("ogni scheda produce almeno una voce", senzaVoci === 0, `${senzaVoci} vuote`);
+      verifica("le voci risalgono sempre alla partita giusta",
+        senzaAvversario === 0, `${senzaAvversario} schede senza nome dell'avversario`);
 
-    let senzaAvversario = 0, senzaVoci = 0;
-    nomi.forEach(n => {
-      scelte["n:" + n]();
-      const h = magazzino["ossCuriosita"].innerHTML;
-      const voci = (h.match(/margin-bottom:2px;">/g) || []).length;
-      if(voci === 0) senzaVoci++;
-      // "I due estremi" nomina sempre l'avversario: se la partita non viene trovata
-      // compare un trattino, ed e' il sintomo esatto del bug del match_id.
-      if(/Meglio: <strong>[^<]+<\/strong> contro —/.test(h)) senzaAvversario++;
-    });
-    verifica("ogni scheda produce almeno una voce", senzaVoci === 0, `${senzaVoci} vuote`);
-    verifica("le voci risalgono sempre alla partita giusta",
-      senzaAvversario === 0, `${senzaAvversario} schede senza nome dell'avversario`);
-
-    // La diagnosi di squadra deve dire qualcosa, non restare una tabella muta.
-    verifica("la lettura di vittorie e sconfitte viene scritta",
-      /Nelle sconfitte|Cambiano invece/.test(magazzino["diagnosiLettura"].innerHTML));
+      // La diagnosi di squadra deve dire qualcosa, non restare una tabella muta.
+      verifica("la lettura di vittorie e sconfitte viene scritta",
+        /Nelle sconfitte|Cambiano invece/.test(magazzino["diagnosiLettura"].innerHTML));
+    }
   } catch (e) {
     verifica("la scheda osservatore si esegue senza eccezioni", false, e.message);
   }
@@ -547,157 +557,161 @@ console.log("\nConfronto testa a testa");
     )();
 
     const rosa = [...ambienteH2H.DATA.roster].map(r => r.player_name).sort();
-    verifica("la sezione si costruisce e riempie i menu a tendina",
-      String(magazzino["h2hA"].innerHTML).includes("<option"), "nessuna opzione");
+    if (rosa.length < 2) {
+      verifica("meno di due giocatori in questo archivio: salto i controlli del testa a testa", true);
+    } else {
+      verifica("la sezione si costruisce e riempie i menu a tendina",
+        String(magazzino["h2hA"].innerHTML).includes("<option"), "nessuna opzione");
 
-    // Ricalcolo la stessa promessa fuori dalla pagina: la somma delle voci deve
-    // ricostruire il distacco fra i due punteggi mostrati in classifica.
-    const punteggi = ambienteH2H.computeBlendedScores(30, 0.5);
-    let peggiore = 0, coppie = 0;
-    for (let i = 0; i < punteggi.length; i++) {
-      for (let j = i + 1; j < punteggi.length; j++) {
-        const a = punteggi[i], b = punteggi[j];
-        if (!a.vociMescolate || !b.vociMescolate) continue;
-        const somma = Object.keys(ambienteH2H.PESI_INDICE).reduce((t, k) =>
-          t + 100 * ambienteH2H.PESI_INDICE[k] * (a.vociMescolate[k] - b.vociMescolate[k])
-              * (k === "disc" ? -1 : 1), 0);
-        const scarto = Math.abs(somma - (a.blendedScore - b.blendedScore));
-        if (scarto > peggiore) peggiore = scarto;
-        coppie++;
-      }
-    }
-    verifica(`le voci ricostruiscono il distacco in tutte le ${coppie} coppie`,
-      peggiore < 0.15, `errore massimo ${peggiore.toFixed(3)} punti`);
-
-    const quanteAttese = Object.keys(ambienteH2H.PESI_INDICE).length;
-    verifica(`ogni giocatore ha la scomposizione completa (${quanteAttese} voci)`,
-      punteggi.every(s => s.vociMescolate && Object.keys(s.vociMescolate).length === quanteAttese),
-      punteggi.filter(s => !s.vociMescolate || Object.keys(s.vociMescolate).length !== quanteAttese)
-              .map(s => s.r.player_name).join(", "));
-
-    // Il verdetto deve nominare qualcuno e dare un numero, non restare una scatola vuota.
-    const testo = String(magazzino["h2hVerdetto"].innerHTML);
-    verifica("il verdetto dice di quanto sta sopra o sotto",
-      /sta[\s\S]*punti[\s\S]*(sopra|sotto)/.test(testo) && rosa.some(n => testo.includes(n)), testo.slice(0, 80));
-    verifica("le voci vengono elencate con i valori grezzi",
-      /nella rosa da/.test(String(magazzino["h2hVoci"].innerHTML)));
-
-    verifica("ogni pezzo dichiara su cosa e' calcolato",
-      /sui passaggi tentati/.test(String(magazzino["h2hVoci"].innerHTML))
-      && /gol sui tiri tentati/.test(String(magazzino["h2hVoci"].innerHTML))
-      && /sui contrasti tentati/.test(String(magazzino["h2hVoci"].innerHTML)));
-
-    // Il controllo che conta: si leggono i numeri STAMPATI e si verifica che sommino al
-    // distacco annunciato. Ricalcolarli a parte non basta - il difetto puo' stare nel modo
-    // in cui vengono mostrati, per esempio un segno sbagliato sui cartellini, e in quel
-    // caso il conto tornerebbe lo stesso mentre a schermo compare l'opposto.
-    //
-    // E va fatto su TUTTE le coppie, non su quella aperta per prima: una versione
-    // precedente ne guardava una sola e non si accorse di un'attribuzione sbagliata dei
-    // pezzi dell'efficienza tecnica, perche' quella coppia non era fra le undici che la
-    // rendevano visibile.
-    // Tutto e' letto dal punto di vista del giocatore scelto A SINISTRA: positivo quando e'
-    // lui a guadagnare la voce, negativo quando la perde. Il nome accanto ai punti dice a
-    // chi vanno, quindi il segno si ricava da li'.
-    const leggiPunti = (frammento, nomeSinistra) =>
-      [...frammento.matchAll(/([+−])[\d.]*?([\d.]+) punti\s*<span[^>]*>\s*a ([^<]+?)\s*<\/span>/g)]
-        .map(m => (m[3].trim() === nomeSinistra ? 1 : -1) * Number(m[2]))
-        .concat([...frammento.matchAll(/>\s*pari\s*</g)].map(() => 0));
-
-    let coppieViste = 0, vociSbagliate = 0, pezziSbagliati = 0, quanteVoci = new Set();
-    let peggiorVoci = 0, peggiorPezzi = 0, senzaNome = 0;
-    for (let i = 0; i < rosa.length; i++) {
-      for (let j = i + 1; j < rosa.length; j++) {
-        magazzino["h2hA"].value = rosa[i];
-        magazzino["h2hB"].value = rosa[j];
-        cambia();
-        coppieViste++;
-        const testoV = String(magazzino["h2hVerdetto"].innerHTML);
-        const h = String(magazzino["h2hVoci"].innerHTML);
-        // Il distacco annunciato e' in valore assoluto: il verso lo dice "sopra" o "sotto".
-        const atteso = Number((testoV.match(/([\d.]+) punti/) || [])[1])
-                     * (/sotto/.test(testoV) ? -1 : 1);
-        // Il riferimento e' il valore VERO del menu di sinistra, non il nome che la
-        // pagina stampa: ricavarlo dal verdetto rendeva il controllo cieco: se il codice
-        // avesse ancorato tutto a chi sta piu' in alto in classifica, il test lo avrebbe
-        // seguito invece di accorgersene. Provato rompendolo apposta.
-        const nomeAlto = rosa[i];
-        if (!/<strong>/.test(testoV) || !testoV.includes(nomeAlto)) { senzaNome++; continue; }
-        if (!new RegExp("<strong>" + nomeAlto.replace(/[.*+?^${}()|\[\]\\]/g, "\\$&") + "</strong>\\s*sta").test(testoV)) {
-          senzaNome++; continue;
-        }
-
-        // Le tendine contengono a loro volta dei punti: vanno tolte, altrimenti i pezzi
-        // dell'efficienza tecnica verrebbero contati insieme al loro totale.
-        const senzaTendine = h.replace(/<details[\s\S]*?<\/details>/g, "");
-        const punti = leggiPunti(senzaTendine, nomeAlto);
-        quanteVoci.add(punti.length);
-        // Tolleranza 0.35 e non un numero a caso: si sommano sei voci gia' arrotondate a un
-        // decimale e le si confronta con un totale anch'esso arrotondato, quindi sette
-        // arrotondamenti da 0.05. Con 59 partite non si superava 0.15 e la soglia sembrava
-        // stretta a sufficienza; a 69 partite e' arrivata una coppia a 0.20, che non era un
-        // difetto: verificato che la somma ESATTA coincide col distacco a meno di 1e-14.
-        // Un'attribuzione davvero sbagliata produce scarti di parecchi punti - le rotture
-        // provate apposta davano 23.8 e 125.3 - quindi il controllo resta severo.
-        const scartoVoci = Math.abs(punti.reduce((t, v) => t + v, 0) - atteso);
-        if (scartoVoci > 0.35) vociSbagliate++;
-        if (scartoVoci > peggiorVoci) peggiorVoci = scartoVoci;
-
-        // La riga dell'efficienza tecnica va isolata PRIMA della sua tendina: cercando il
-        // primo "punti" dopo l'etichetta si finiva dentro il riepilogo dei tre pezzi, e il
-        // controllo confrontava un numero con se stesso passando sempre.
-        const rigaTech = (h.match(/Efficienza tecnica([\s\S]*?)<details/) || [])[1];
-        const dentroTendina = (h.match(/<details[\s\S]*?<\/details>/) || [])[0];
-        if (rigaTech && dentroTendina) {
-          const t = leggiPunti(rigaTech, nomeAlto)[0];
-          const q = leggiPunti(dentroTendina, nomeAlto).reduce((a, b) => a + b, 0);
-          // Tolleranza 0.16 e non zero: si sommano tre numeri gia' arrotondati a un
-          // decimale, quindi fino a 0.05 ciascuno di scarto legittimo. Un'attribuzione
-          // davvero sbagliata produce scarti di oltre un punto, ben fuori da qui.
-          const scartoPezzi = Math.abs(t - q);
-          if (scartoPezzi > 0.16) pezziSbagliati++;
-          if (scartoPezzi > peggiorPezzi) peggiorPezzi = scartoPezzi;
+      // Ricalcolo la stessa promessa fuori dalla pagina: la somma delle voci deve
+      // ricostruire il distacco fra i due punteggi mostrati in classifica.
+      const punteggi = ambienteH2H.computeBlendedScores(30, 0.5);
+      let peggiore = 0, coppie = 0;
+      for (let i = 0; i < punteggi.length; i++) {
+        for (let j = i + 1; j < punteggi.length; j++) {
+          const a = punteggi[i], b = punteggi[j];
+          if (!a.vociMescolate || !b.vociMescolate) continue;
+          const somma = Object.keys(ambienteH2H.PESI_INDICE).reduce((t, k) =>
+            t + 100 * ambienteH2H.PESI_INDICE[k] * (a.vociMescolate[k] - b.vociMescolate[k])
+                * (k === "disc" ? -1 : 1), 0);
+          const scarto = Math.abs(somma - (a.blendedScore - b.blendedScore));
+          if (scarto > peggiore) peggiore = scarto;
+          coppie++;
         }
       }
-    }
-    verifica("il verdetto nomina sempre il giocatore di sinistra", senzaNome === 0,
-      `${senzaNome} coppie senza nome`);
+      verifica(`le voci ricostruiscono il distacco in tutte le ${coppie} coppie`,
+        peggiore < 0.15, `errore massimo ${peggiore.toFixed(3)} punti`);
 
-    // Colore e verso devono seguire il giocatore di SINISTRA: verde e barra a sinistra
-    // quando e' in vantaggio, rosso e barra a destra quando e' in svantaggio. Se il colore
-    // guardasse chi sta piu' in alto in classifica i numeri tornerebbero comunque, ma per
-    // leggere una riga bisognerebbe prima ricordarsi quale dei due e' il primo.
-    {
-      let controcorrente = 0, coloreSbagliato = 0, verificate = 0;
-      for (let i = 0; i < rosa.length && controcorrente === 0 && coloreSbagliato === 0; i++) {
+      const quanteAttese = Object.keys(ambienteH2H.PESI_INDICE).length;
+      verifica(`ogni giocatore ha la scomposizione completa (${quanteAttese} voci)`,
+        punteggi.every(s => s.vociMescolate && Object.keys(s.vociMescolate).length === quanteAttese),
+        punteggi.filter(s => !s.vociMescolate || Object.keys(s.vociMescolate).length !== quanteAttese)
+                .map(s => s.r.player_name).join(", "));
+
+      // Il verdetto deve nominare qualcuno e dare un numero, non restare una scatola vuota.
+      const testo = String(magazzino["h2hVerdetto"].innerHTML);
+      verifica("il verdetto dice di quanto sta sopra o sotto",
+        /sta[\s\S]*punti[\s\S]*(sopra|sotto)/.test(testo) && rosa.some(n => testo.includes(n)), testo.slice(0, 80));
+      verifica("le voci vengono elencate con i valori grezzi",
+        /nella rosa da/.test(String(magazzino["h2hVoci"].innerHTML)));
+
+      verifica("ogni pezzo dichiara su cosa e' calcolato",
+        /sui passaggi tentati/.test(String(magazzino["h2hVoci"].innerHTML))
+        && /gol sui tiri tentati/.test(String(magazzino["h2hVoci"].innerHTML))
+        && /sui contrasti tentati/.test(String(magazzino["h2hVoci"].innerHTML)));
+
+      // Il controllo che conta: si leggono i numeri STAMPATI e si verifica che sommino al
+      // distacco annunciato. Ricalcolarli a parte non basta - il difetto puo' stare nel modo
+      // in cui vengono mostrati, per esempio un segno sbagliato sui cartellini, e in quel
+      // caso il conto tornerebbe lo stesso mentre a schermo compare l'opposto.
+      //
+      // E va fatto su TUTTE le coppie, non su quella aperta per prima: una versione
+      // precedente ne guardava una sola e non si accorse di un'attribuzione sbagliata dei
+      // pezzi dell'efficienza tecnica, perche' quella coppia non era fra le undici che la
+      // rendevano visibile.
+      // Tutto e' letto dal punto di vista del giocatore scelto A SINISTRA: positivo quando e'
+      // lui a guadagnare la voce, negativo quando la perde. Il nome accanto ai punti dice a
+      // chi vanno, quindi il segno si ricava da li'.
+      const leggiPunti = (frammento, nomeSinistra) =>
+        [...frammento.matchAll(/([+−])[\d.]*?([\d.]+) punti\s*<span[^>]*>\s*a ([^<]+?)\s*<\/span>/g)]
+          .map(m => (m[3].trim() === nomeSinistra ? 1 : -1) * Number(m[2]))
+          .concat([...frammento.matchAll(/>\s*pari\s*</g)].map(() => 0));
+
+      let coppieViste = 0, vociSbagliate = 0, pezziSbagliati = 0, quanteVoci = new Set();
+      let peggiorVoci = 0, peggiorPezzi = 0, senzaNome = 0;
+      for (let i = 0; i < rosa.length; i++) {
         for (let j = i + 1; j < rosa.length; j++) {
-          magazzino["h2hA"].value = rosa[i]; magazzino["h2hB"].value = rosa[j]; cambia();
-          const nome = rosa[i];   // il giocatore scelto a sinistra, non quello annunciato
-          const blocchi = String(magazzino["h2hVoci"].innerHTML)
-            .replace(/<details[\s\S]*?<\/details>/g, "").split(/border-bottom:1px solid var\(--panel-2/);
-          blocchi.forEach(b => {
-            const p = leggiPunti(b, nome);
-            if (!p.length || p[0] === 0) return;
-            verificate++;
-            // "right:50%" ancora la barra al centro e la fa crescere verso sinistra.
-            if ((p[0] > 0) !== /right:50%/.test(b)) controcorrente++;
-            if ((p[0] > 0) !== /--win/.test(b)) coloreSbagliato++;
-          });
-          if (controcorrente || coloreSbagliato) break;
+          magazzino["h2hA"].value = rosa[i];
+          magazzino["h2hB"].value = rosa[j];
+          cambia();
+          coppieViste++;
+          const testoV = String(magazzino["h2hVerdetto"].innerHTML);
+          const h = String(magazzino["h2hVoci"].innerHTML);
+          // Il distacco annunciato e' in valore assoluto: il verso lo dice "sopra" o "sotto".
+          const atteso = Number((testoV.match(/([\d.]+) punti/) || [])[1])
+                       * (/sotto/.test(testoV) ? -1 : 1);
+          // Il riferimento e' il valore VERO del menu di sinistra, non il nome che la
+          // pagina stampa: ricavarlo dal verdetto rendeva il controllo cieco: se il codice
+          // avesse ancorato tutto a chi sta piu' in alto in classifica, il test lo avrebbe
+          // seguito invece di accorgersene. Provato rompendolo apposta.
+          const nomeAlto = rosa[i];
+          if (!/<strong>/.test(testoV) || !testoV.includes(nomeAlto)) { senzaNome++; continue; }
+          if (!new RegExp("<strong>" + nomeAlto.replace(/[.*+?^${}()|\[\]\\]/g, "\\$&") + "</strong>\\s*sta").test(testoV)) {
+            senzaNome++; continue;
+          }
+
+          // Le tendine contengono a loro volta dei punti: vanno tolte, altrimenti i pezzi
+          // dell'efficienza tecnica verrebbero contati insieme al loro totale.
+          const senzaTendine = h.replace(/<details[\s\S]*?<\/details>/g, "");
+          const punti = leggiPunti(senzaTendine, nomeAlto);
+          quanteVoci.add(punti.length);
+          // Tolleranza 0.35 e non un numero a caso: si sommano sei voci gia' arrotondate a un
+          // decimale e le si confronta con un totale anch'esso arrotondato, quindi sette
+          // arrotondamenti da 0.05. Con 59 partite non si superava 0.15 e la soglia sembrava
+          // stretta a sufficienza; a 69 partite e' arrivata una coppia a 0.20, che non era un
+          // difetto: verificato che la somma ESATTA coincide col distacco a meno di 1e-14.
+          // Un'attribuzione davvero sbagliata produce scarti di parecchi punti - le rotture
+          // provate apposta davano 23.8 e 125.3 - quindi il controllo resta severo.
+          const scartoVoci = Math.abs(punti.reduce((t, v) => t + v, 0) - atteso);
+          if (scartoVoci > 0.35) vociSbagliate++;
+          if (scartoVoci > peggiorVoci) peggiorVoci = scartoVoci;
+
+          // La riga dell'efficienza tecnica va isolata PRIMA della sua tendina: cercando il
+          // primo "punti" dopo l'etichetta si finiva dentro il riepilogo dei tre pezzi, e il
+          // controllo confrontava un numero con se stesso passando sempre.
+          const rigaTech = (h.match(/Efficienza tecnica([\s\S]*?)<details/) || [])[1];
+          const dentroTendina = (h.match(/<details[\s\S]*?<\/details>/) || [])[0];
+          if (rigaTech && dentroTendina) {
+            const t = leggiPunti(rigaTech, nomeAlto)[0];
+            const q = leggiPunti(dentroTendina, nomeAlto).reduce((a, b) => a + b, 0);
+            // Tolleranza 0.16 e non zero: si sommano tre numeri gia' arrotondati a un
+            // decimale, quindi fino a 0.05 ciascuno di scarto legittimo. Un'attribuzione
+            // davvero sbagliata produce scarti di oltre un punto, ben fuori da qui.
+            const scartoPezzi = Math.abs(t - q);
+            if (scartoPezzi > 0.16) pezziSbagliati++;
+            if (scartoPezzi > peggiorPezzi) peggiorPezzi = scartoPezzi;
+          }
         }
       }
-      verifica(`la barra punta verso chi guadagna la voce (${verificate} righe)`,
-        controcorrente === 0, `${controcorrente} righe con barra dalla parte sbagliata`);
-      verifica("verde quando il giocatore di sinistra e' in vantaggio, rosso quando e' in svantaggio",
-        coloreSbagliato === 0, `${coloreSbagliato} righe col colore invertito`);
+      verifica("il verdetto nomina sempre il giocatore di sinistra", senzaNome === 0,
+        `${senzaNome} coppie senza nome`);
+
+      // Colore e verso devono seguire il giocatore di SINISTRA: verde e barra a sinistra
+      // quando e' in vantaggio, rosso e barra a destra quando e' in svantaggio. Se il colore
+      // guardasse chi sta piu' in alto in classifica i numeri tornerebbero comunque, ma per
+      // leggere una riga bisognerebbe prima ricordarsi quale dei due e' il primo.
+      {
+        let controcorrente = 0, coloreSbagliato = 0, verificate = 0;
+        for (let i = 0; i < rosa.length && controcorrente === 0 && coloreSbagliato === 0; i++) {
+          for (let j = i + 1; j < rosa.length; j++) {
+            magazzino["h2hA"].value = rosa[i]; magazzino["h2hB"].value = rosa[j]; cambia();
+            const nome = rosa[i];   // il giocatore scelto a sinistra, non quello annunciato
+            const blocchi = String(magazzino["h2hVoci"].innerHTML)
+              .replace(/<details[\s\S]*?<\/details>/g, "").split(/border-bottom:1px solid var\(--panel-2/);
+            blocchi.forEach(b => {
+              const p = leggiPunti(b, nome);
+              if (!p.length || p[0] === 0) return;
+              verificate++;
+              // "right:50%" ancora la barra al centro e la fa crescere verso sinistra.
+              if ((p[0] > 0) !== /right:50%/.test(b)) controcorrente++;
+              if ((p[0] > 0) !== /--win/.test(b)) coloreSbagliato++;
+            });
+            if (controcorrente || coloreSbagliato) break;
+          }
+        }
+        verifica(`la barra punta verso chi guadagna la voce (${verificate} righe)`,
+          controcorrente === 0, `${controcorrente} righe con barra dalla parte sbagliata`);
+        verifica("verde quando il giocatore di sinistra e' in vantaggio, rosso quando e' in svantaggio",
+          coloreSbagliato === 0, `${coloreSbagliato} righe col colore invertito`);
+      }
+      const attese = Object.keys(PESI_INDICE).length;
+      verifica(`le voci mostrate sono sempre ${attese} (${coppieViste} coppie)`,
+        quanteVoci.size === 1 && quanteVoci.has(attese), `viste ${[...quanteVoci].join(", ")}`);
+      verifica("in ogni coppia i punti stampati sommano al distacco annunciato",
+        vociSbagliate === 0, `${vociSbagliate} coppie fuori, scarto massimo ${peggiorVoci.toFixed(2)}`);
+      verifica("in ogni coppia i tre pezzi sommano all'efficienza tecnica",
+        pezziSbagliati === 0, `${pezziSbagliati} coppie fuori, scarto massimo ${peggiorPezzi.toFixed(2)}`);
     }
-    const attese = Object.keys(PESI_INDICE).length;
-    verifica(`le voci mostrate sono sempre ${attese} (${coppieViste} coppie)`,
-      quanteVoci.size === 1 && quanteVoci.has(attese), `viste ${[...quanteVoci].join(", ")}`);
-    verifica("in ogni coppia i punti stampati sommano al distacco annunciato",
-      vociSbagliate === 0, `${vociSbagliate} coppie fuori, scarto massimo ${peggiorVoci.toFixed(2)}`);
-    verifica("in ogni coppia i tre pezzi sommano all'efficienza tecnica",
-      pezziSbagliati === 0, `${pezziSbagliati} coppie fuori, scarto massimo ${peggiorPezzi.toFixed(2)}`);
   } catch (e) {
     verifica("il confronto si esegue senza eccezioni", false, e.message);
   }
@@ -723,90 +737,93 @@ console.log("\nNovita' dall'ultima serata");
     const h = String(magazzino["newsBody"].innerHTML);
     const D = ambiente.DATA;
     const serate = D.serate || [];
-    verifica("ci sono almeno due serate da confrontare", serate.length >= 2);
+    if (serate.length < 2) {
+      verifica("meno di due serate in questo archivio: salto il confronto con la serata precedente", true);
+    } else {
 
-    const carta = (nome) => {
-      const blocco = h.split('<div class="news-card">').slice(1)
-        .find(c => (c.match(/class="nk">([^<]*)</) || [])[1] === nome);
-      // `class="nv"` e basta: dal 01/09/2026 il valore grande non porta piu' la classe
-      // up/down/flat, perche' il colore in questa sezione sta solo sui numeri col segno.
-      return blocco ? (blocco.match(/class="nv"[^>]*>([^<]*)</) || [])[1] : null;
-    };
+      const carta = (nome) => {
+        const blocco = h.split('<div class="news-card">').slice(1)
+          .find(c => (c.match(/class="nk">([^<]*)</) || [])[1] === nome);
+        // `class="nv"` e basta: dal 01/09/2026 il valore grande non porta piu' la classe
+        // up/down/flat, perche' il colore in questa sezione sta solo sui numeri col segno.
+        return blocco ? (blocco.match(/class="nv"[^>]*>([^<]*)</) || [])[1] : null;
+      };
 
-    // Ricostruzione indipendente della serata piu' recente.
-    const ids = serate[0].matchIds || [];
-    const perId = new Map((D.matches || []).map(m => [m.match_id, m]));
-    let v=0, n=0, p=0, gf=0, gs=0;
-    ids.forEach(id => { const m = perId.get(id); if(!m) return;
-      v += m.win?1:0; n += m.tie?1:0; p += m.loss?1:0;
-      gf += m.goals_for||0; gs += m.goals_against||0; });
+      // Ricostruzione indipendente della serata piu' recente.
+      const ids = serate[0].matchIds || [];
+      const perId = new Map((D.matches || []).map(m => [m.match_id, m]));
+      let v=0, n=0, p=0, gf=0, gs=0;
+      ids.forEach(id => { const m = perId.get(id); if(!m) return;
+        v += m.win?1:0; n += m.tie?1:0; p += m.loss?1:0;
+        gf += m.goals_for||0; gs += m.goals_against||0; });
 
-    verifica(`le partite mostrate sono quelle della serata (${ids.length})`,
-      carta("Partite") === String(ids.length), `mostra ${carta("Partite")}`);
-    verifica(`i gol fatti coincidono (${gf})`, carta("Gol fatti") === String(gf), `mostra ${carta("Gol fatti")}`);
-    verifica(`i gol subiti coincidono (${gs})`, carta("Gol subiti") === String(gs), `mostra ${carta("Gol subiti")}`);
-    verifica(`vittorie, pari e sconfitte coincidono (${v}V ${n}N ${p}P)`,
-      h.includes(`${v}V · ${n}N · ${p}P`));
+      verifica(`le partite mostrate sono quelle della serata (${ids.length})`,
+        carta("Partite") === String(ids.length), `mostra ${carta("Partite")}`);
+      verifica(`i gol fatti coincidono (${gf})`, carta("Gol fatti") === String(gf), `mostra ${carta("Gol fatti")}`);
+      verifica(`i gol subiti coincidono (${gs})`, carta("Gol subiti") === String(gs), `mostra ${carta("Gol subiti")}`);
+      verifica(`vittorie, pari e sconfitte coincidono (${v}V ${n}N ${p}P)`,
+        h.includes(`${v}V · ${n}N · ${p}P`));
 
-    // Il colore segue il MIGLIORAMENTO, non il segno. Il caso che lo mette alla prova sono i
-    // gol subiti: "+12" ha il piu' davanti ma e' un peggioramento, e deve uscire rosso.
-    // Nessun valore grande deve invece essere colorato: il colore e' solo per le variazioni.
-    const scheda = (nome) => (h.split('<div class="news-card">').slice(1)
-      .find(c => (c.match(/class="nk">([^<]*)</) || [])[1] === nome)) || "";
-    const colore = (nome) => (scheda(nome).match(/class="ns">\s*<span class="(up|down|flat)"/) || [])[1] || null;
+      // Il colore segue il MIGLIORAMENTO, non il segno. Il caso che lo mette alla prova sono i
+      // gol subiti: "+12" ha il piu' davanti ma e' un peggioramento, e deve uscire rosso.
+      // Nessun valore grande deve invece essere colorato: il colore e' solo per le variazioni.
+      const scheda = (nome) => (h.split('<div class="news-card">').slice(1)
+        .find(c => (c.match(/class="nk">([^<]*)</) || [])[1] === nome)) || "";
+      const colore = (nome) => (scheda(nome).match(/class="ns">\s*<span class="(up|down|flat)"/) || [])[1] || null;
 
-    const gsPrec = (serate[1] && (serate[1].matchIds || []).reduce((t, id) =>
-      t + ((perId.get(id) || {}).goals_against || 0), 0)) ?? null;
-    if(gsPrec !== null && gs !== gsPrec){
-      const atteso = gs > gsPrec ? "down" : "up";
-      verifica(`i gol subiti sono ${atteso === "down" ? "rossi" : "verdi"} (${gs} contro ${gsPrec} della volta prima)`,
-        colore("Gol subiti") === atteso, `sono ${colore("Gol subiti")}`);
-    }
-    verifica("nessun valore grande e' colorato",
-      !/class="nv (up|down|flat)"/.test(h),
-      (h.match(/class="nv [^"]*"/g) || []).slice(0, 3).join(", "));
+      const gsPrec = (serate[1] && (serate[1].matchIds || []).reduce((t, id) =>
+        t + ((perId.get(id) || {}).goals_against || 0), 0)) ?? null;
+      if(gsPrec !== null && gs !== gsPrec){
+        const atteso = gs > gsPrec ? "down" : "up";
+        verifica(`i gol subiti sono ${atteso === "down" ? "rossi" : "verdi"} (${gs} contro ${gsPrec} della volta prima)`,
+          colore("Gol subiti") === atteso, `sono ${colore("Gol subiti")}`);
+      }
+      verifica("nessun valore grande e' colorato",
+        !/class="nv (up|down|flat)"/.test(h),
+        (h.match(/class="nv [^"]*"/g) || []).slice(0, 3).join(", "));
 
-    // I giocatori elencati devono essere esattamente quelli che hanno giocato.
-    const attesi = new Set();
-    ids.forEach(id => (D.matchPlayers[id] || []).forEach(g => attesi.add(g.player_name)));
-    const elencati = new Set([...h.matchAll(/<div class="mover">\s*<b>([^<]+)<\/b>/g)].map(m => m[1]));
-    const mancanti = [...attesi].filter(x => !elencati.has(x));
-    const inPiu = [...elencati].filter(x => !attesi.has(x));
-    verifica(`sono elencati tutti e soli i ${attesi.size} che hanno giocato`,
-      mancanti.length === 0 && inPiu.length === 0,
-      `mancano ${mancanti.join(", ")||"-"}; in piu' ${inPiu.join(", ")||"-"}`);
+      // I giocatori elencati devono essere esattamente quelli che hanno giocato.
+      const attesi = new Set();
+      ids.forEach(id => (D.matchPlayers[id] || []).forEach(g => attesi.add(g.player_name)));
+      const elencati = new Set([...h.matchAll(/<div class="mover">\s*<b>([^<]+)<\/b>/g)].map(m => m[1]));
+      const mancanti = [...attesi].filter(x => !elencati.has(x));
+      const inPiu = [...elencati].filter(x => !attesi.has(x));
+      verifica(`sono elencati tutti e soli i ${attesi.size} che hanno giocato`,
+        mancanti.length === 0 && inPiu.length === 0,
+        `mancano ${mancanti.join(", ")||"-"}; in piu' ${inPiu.join(", ")||"-"}`);
 
-    // "non c'era" solo per chi davvero non c'era nella serata precedente.
-    const prima = new Set();
-    (serate[1].matchIds || []).forEach(id => (D.matchPlayers[id] || []).forEach(g => prima.add(g.player_name)));
-    // Una riga alla volta: cercando "non c'era" su tutto il blocco la ricerca scavalcava le
-    // righe e attribuiva l'assenza al giocatore sbagliato.
-    const blocchiGiocatore = h.split('<div class="mover">').slice(1);
-    const sbagliati = [], mancate = [];
-    blocchiGiocatore.forEach(b => {
-      const nome = (b.match(/<b>([^<]+)<\/b>/) || [])[1];
-      if(!nome) return;
-      const dice = /non c'era/.test(b.split("</div>")[0]);
-      if(dice && prima.has(nome)) sbagliati.push(nome);
-      if(!dice && !prima.has(nome)) mancate.push(nome);
-    });
-    verifica("chi e' dichiarato assente la volta prima lo era davvero",
-      sbagliati.length === 0, sbagliati.join(", "));
-    verifica("e chi non c'era viene dichiarato, invece di mostrare una variazione finta",
-      mancate.length === 0, mancate.join(", "));
+      // "non c'era" solo per chi davvero non c'era nella serata precedente.
+      const prima = new Set();
+      (serate[1].matchIds || []).forEach(id => (D.matchPlayers[id] || []).forEach(g => prima.add(g.player_name)));
+      // Una riga alla volta: cercando "non c'era" su tutto il blocco la ricerca scavalcava le
+      // righe e attribuiva l'assenza al giocatore sbagliato.
+      const blocchiGiocatore = h.split('<div class="mover">').slice(1);
+      const sbagliati = [], mancate = [];
+      blocchiGiocatore.forEach(b => {
+        const nome = (b.match(/<b>([^<]+)<\/b>/) || [])[1];
+        if(!nome) return;
+        const dice = /non c'era/.test(b.split("</div>")[0]);
+        if(dice && prima.has(nome)) sbagliati.push(nome);
+        if(!dice && !prima.has(nome)) mancate.push(nome);
+      });
+      verifica("chi e' dichiarato assente la volta prima lo era davvero",
+        sbagliati.length === 0, sbagliati.join(", "));
+      verifica("e chi non c'era viene dichiarato, invece di mostrare una variazione finta",
+        mancate.length === 0, mancate.join(", "));
 
-    // La finestra dello skill rating parte dalla PRIMA partita della serata. Prenderne una
-    // per posizione invece che per orario produce un numero plausibile e sbagliato.
-    const istanti = ids.map(id => (perId.get(id) || {}).played_at).filter(Boolean).sort();
-    const storia = D.history || [];
-    const precedente = [...storia].reverse().find(x => x.fetched_at < istanti[0]);
-    if(precedente && storia.length){
-      const atteso = storia[storia.length-1].skill_rating - precedente.skill_rating;
-      // La variazione ora vive dentro uno <span class="up|down"> per essere colorata.
-      const mostrato = (h.match(/Skill rating[\s\S]*?class="ns">\s*<span[^>]*>([+−]?\d+)/) || [])[1];
-      const num = mostrato ? Number(mostrato.replace("−","-")) : null;
-      verifica(`la variazione di skill rating parte dall'inizio della serata (${atteso >= 0 ? "+" : ""}${atteso})`,
-        num === atteso, `mostra ${mostrato}`);
+      // La finestra dello skill rating parte dalla PRIMA partita della serata. Prenderne una
+      // per posizione invece che per orario produce un numero plausibile e sbagliato.
+      const istanti = ids.map(id => (perId.get(id) || {}).played_at).filter(Boolean).sort();
+      const storia = D.history || [];
+      const precedente = [...storia].reverse().find(x => x.fetched_at < istanti[0]);
+      if(precedente && storia.length){
+        const atteso = storia[storia.length-1].skill_rating - precedente.skill_rating;
+        // La variazione ora vive dentro uno <span class="up|down"> per essere colorata.
+        const mostrato = (h.match(/Skill rating[\s\S]*?class="ns">\s*<span[^>]*>([+−]?\d+)/) || [])[1];
+        const num = mostrato ? Number(mostrato.replace("−","-")) : null;
+        verifica(`la variazione di skill rating parte dall'inizio della serata (${atteso >= 0 ? "+" : ""}${atteso})`,
+          num === atteso, `mostra ${mostrato}`);
+      }
     }
   } catch (e) {
     verifica("la sezione si esegue senza eccezioni", false, e.message);

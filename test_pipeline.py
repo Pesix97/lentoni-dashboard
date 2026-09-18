@@ -49,6 +49,16 @@ class BaseConArchivio(unittest.TestCase):
         self.raw = self.tmp / "raw"
         self.raw.mkdir()
         self._ricostruisci_raw()
+        # club.json sintetico, isolato da quello vero del repository: questi test
+        # generano la pagina per il club CLUB (i dati della copia di lentoni.db), e dal
+        # passaggio a FC 27 del 18/09/2026 il club.json vero ha un altro club attivo -
+        # leggerlo da li' cercherebbe dati che questa copia del database non ha.
+        self.club_json = self.tmp / "club.json"
+        self.club_json.write_text(json.dumps({
+            "attivo": {"club_id": CLUB, "nome": "Lentoni", "titolo": "FC 26",
+                       "piattaforma": "common-gen5", "dal": "2026-08-03"},
+            "storico": [],
+        }, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def _ricostruisci_raw(self):
         """Ricrea i file grezzi dal database invece di leggerli da raw/.
@@ -181,7 +191,7 @@ class TestIngest(BaseConArchivio):
 class TestDashboard(BaseConArchivio):
 
     def _genera(self, out):
-        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out))
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out), "--club-json", str(self.club_json))
         return Path(out).read_text(encoding="utf-8")
 
     def _dati(self, html):
@@ -830,7 +840,7 @@ class TestEsclusioni(BaseConArchivio):
         if not elenco:
             self.skipTest("nessuna esclusione configurata")
         out = self.tmp / "pagina.html"
-        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out))
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out), "--club-json", str(self.club_json))
         html = out.read_text(encoding="utf-8")
         inizio = html.index("const DATA = ") + len("const DATA = ")
         dati = json.loads(html[inizio:html.index(";\n", inizio)])
@@ -854,7 +864,7 @@ class TestEsclusioni(BaseConArchivio):
         if sentinella is None:
             self.skipTest("regola del voto sentinella disattivata")
         out = self.tmp / "pagina.html"
-        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out))
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out), "--club-json", str(self.club_json))
         html = out.read_text(encoding="utf-8")
         inizio = html.index("const DATA = ") + len("const DATA = ")
         dati = json.loads(html[inizio:html.index(";\n", inizio)])
@@ -990,7 +1000,7 @@ class TestEsclusioni(BaseConArchivio):
     def test_l_elenco_delle_esclusioni_non_finisce_nella_pagina(self):
         """Come per gli ex giocatori: il filtro agisce prima, la lista non si pubblica."""
         out = self.tmp / "pagina.html"
-        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out))
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(out), "--club-json", str(self.club_json))
         self.assertNotIn("excludedRows", out.read_text(encoding="utf-8"))
 
 
@@ -1016,6 +1026,16 @@ class TestPassaggioDiTitolo(BaseConArchivio):
     serate, e la pagina con zero partite.
     """
 
+    # Base sintetica di "prima del passaggio", non il club.json vero del repository: dal
+    # 18/09/2026 quel file ha gia' FC 27 in 'attivo', e leggerlo da li' per simulare LO
+    # STESSO passaggio produrrebbe due titoli "FC 27" nello stesso file (scoperto il
+    # 18/09/2026 girando questi test il giorno dopo il passaggio reale).
+    PRIMA_DEL_PASSAGGIO = {
+        "attivo": {"club_id": CLUB, "nome": "Lentoni", "titolo": "FC 26",
+                   "piattaforma": "common-gen5", "dal": "2026-08-03"},
+        "storico": [],
+    }
+
     def _prepara(self, cartella, club_nuovo):
         """Una copia del progetto con club.json già passato al titolo nuovo."""
         for nome in ("generate_dashboard.py", "ruoli.py", "roles.json"):
@@ -1025,7 +1045,7 @@ class TestPassaggioDiTitolo(BaseConArchivio):
         if (QUI / "pagellone_fc26.json").exists():
             shutil.copy(QUI / "pagellone_fc26.json", cartella / "pagellone_fc26.json")
         shutil.copytree(QUI / "modello", cartella / "modello")
-        conf = json.loads((QUI / "club.json").read_text(encoding="utf-8"))
+        conf = json.loads(json.dumps(self.PRIMA_DEL_PASSAGGIO))  # copia profonda
         conf["storico"] = [conf["attivo"]]
         conf["attivo"] = club_nuovo
         (cartella / "club.json").write_text(
@@ -1098,12 +1118,17 @@ class TestPassaggioDiTitolo(BaseConArchivio):
                              "le serate del titolo vecchio sono finite in quello nuovo")
 
     def test_zero_titoli_archiviati_niente_selettore(self):
-        """Oggi (storico vuoto): nessun menu, non c'e' niente fra cui scegliere."""
+        """Con lo storico vuoto (un solo titolo conosciuto): nessun menu, non c'e' niente
+        fra cui scegliere. Costruisce il proprio club.json invece di copiare quello vero
+        del repository: dal passaggio del 18/09/2026 quel file ha sempre almeno un titolo
+        in 'storico', quindi non rappresenta piu' questo caso."""
         cartella = self.tmp / "senza_storico"
         cartella.mkdir()
-        for nome in ("generate_dashboard.py", "ruoli.py", "roles.json", "club.json"):
+        for nome in ("generate_dashboard.py", "ruoli.py", "roles.json"):
             shutil.copy(QUI / nome, cartella / nome)
         shutil.copytree(QUI / "modello", cartella / "modello")
+        (cartella / "club.json").write_text(
+            json.dumps(self.PRIMA_DEL_PASSAGGIO, ensure_ascii=False, indent=2), encoding="utf-8")
         _, html = self._genera_in(cartella, self.tmp / "senzastorico.html")
         self.assertNotIn('id="titoloSelect"', html,
                          "con un solo titolo conosciuto non deve comparire nessun selettore")

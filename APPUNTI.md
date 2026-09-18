@@ -250,27 +250,39 @@ Prima del commit, il primo `git push` e' stato respinto: il locale era 22 commit
 con `git reset --hard origin/main` e rifacendo l'intero passaggio (edit di `club.json`,
 rigenerazione, test) sul `lentoni.db` aggiornato, invece di un merge sui file generati.
 
-**Scoperto qui, non prima: `test_pipeline.py` non e' pronto per il giorno dopo.** Girato
-subito dopo il cambio, segna 4 falliti su 102 (prima erano 102/102). Non e' un difetto della
-pagina - `giro.sh` non fa girare `test_pipeline.py`, solo i due test js sopra - ma va
-sistemato:
+**Scoperto qui, non prima: `test_pipeline.py` non era pronto per il giorno dopo - sistemato
+in giornata.** Girato subito dopo il cambio, segnava 4 falliti su 102 (prima erano 102/102).
+Non era un difetto della pagina - `giro.sh` non fa girare `test_pipeline.py`, solo i due test
+js sopra - e la causa era la stessa in tutti e quattro:
 
-| Test | Perche' fallisce oggi |
+| Test | Perche' falliva |
 | --- | --- |
-| `test_la_dashboard_contiene_i_dati_essenziali`, `test_pagellone_fc26_compare_sulla_pagina_attiva` | girano `generate_dashboard.py` su una copia di `lentoni.db` (dati FC 26, club `2703620`) ma leggono il `club.json` vero, che ora ha FC 27 attivo: cercano dati di un club che quella copia del database non contiene |
-| `test_zero_titoli_archiviati_niente_selettore` | copia il `club.json` vero aspettandosi `storico` vuoto ("oggi" nel suo commento - un oggi che non e' piu' questo) |
-| `test_il_selettore_elenca_tutti_i_titoli_con_i_link_giusti` | la sua `_prepara()` sposta l'`attivo` del `club.json` vero in `storico` e scrive un FC 27 finto sopra - ma l'`attivo` vero e' gia' FC 27, quindi si ritrova due titoli "FC 27" nello stesso file |
+| `test_la_dashboard_contiene_i_dati_essenziali`, `test_pagellone_fc26_compare_sulla_pagina_attiva` | giravano `generate_dashboard.py` su una copia di `lentoni.db` (dati FC 26, club `2703620`) ma leggevano il `club.json` vero, che ora ha FC 27 attivo: cercavano dati di un club che quella copia del database non contiene |
+| `test_zero_titoli_archiviati_niente_selettore` | copiava il `club.json` vero aspettandosi `storico` vuoto ("oggi" nel suo commento - un oggi che non era piu' quello reale) |
+| `test_il_selettore_elenca_tutti_i_titoli_con_i_link_giusti` | la sua `_prepara()` spostava l'`attivo` del `club.json` vero in `storico` e scriveva un FC 27 finto sopra - ma l'`attivo` vero era gia' FC 27, quindi si ritrovava due titoli "FC 27" nello stesso file |
 
 Tutti e quattro presumevano di girare *prima* del passaggio reale, non dopo: `CLUB = 2703620`
-e' scritto fisso in cima al file, e due test copiano `club.json` invece di costruirsene uno
-proprio. Da sistemare, non oggi per fretta di pubblicare - bloccare la serata per questo
-sarebbe l'errore opposto di quello che questo appunto avverte sempre.
+e' scritto fisso in cima al file, e due test copiavano `club.json` invece di costruirsene uno
+proprio. Corretto aggiungendo `--club-json` a `generate_dashboard.py` (un percorso esplicito
+che scavalca la ricerca accanto allo script, pensato apposta per isolare i test) e usandolo
+ovunque un test genera la pagina da una copia di `lentoni.db`. `_prepara()` e il test del
+selettore a zero titoli ora costruiscono un `club.json` sintetico proprio
+(`PRIMA_DEL_PASSAGGIO`, FC 26 attivo e storico vuoto) invece di leggere quello vero del
+repository - cosi' restano corretti qualunque sia il titolo attivo davvero, oggi o fra un
+anno al prossimo passaggio. Di nuovo 102/102.
 
-Anche `test_ruoli.js` non ha ricevuto la correzione "salta se l'archivio e' vuoto" che
-`test_apertura.js` e `test_tecnica.js` hanno avuto il 06/09 e il 17/09: su `index.html` a
-zero partite fallisce 11 controlli su schede osservatore, testa a testa e "novita'
-dall'ultima serata". Anche questo non blocca `giro.sh` (non ne fa parte), ma va sistemato
-prima che serva davvero come rete di sicurezza.
+Anche `test_ruoli.js` non aveva ricevuto la correzione "salta se l'archivio e' vuoto" che
+`test_apertura.js` e `test_tecnica.js` avevano avuto il 06/09 e il 17/09: su `index.html` a
+zero partite falliva 13 controlli in tutto (11 trovati subito su scheda osservatore, testa a
+testa e "novita' dall'ultima serata"; altri 2 - dettaglio dell'efficienza tecnica e la
+scheda di chi ha giocato ma non e' in rosa - scoperti solo dopo aver corretto i primi, oltre
+lo schermo del terminale). Non blocca `giro.sh` (non ne fa parte), ma era la stessa rete di
+sicurezza rimasta cieca proprio nei primi giorni di un titolo nuovo - il momento in cui serve
+di piu'. Sistemato con lo stesso pattern gia' in uso in `test_apertura.js`/`test_tecnica.js`:
+un controllo su quanti dati ci sono prima di ogni sezione, e un "salto" esplicito invece del
+silenzio (o del crash, per "novita' dall'ultima serata") quando non ce n'e' abbastanza.
+Verificato su entrambe le pagine: `index.html` (0 partite) e `archivio/fc-26.html` (180,
+dati veri) passano puliti.
 
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
