@@ -19,14 +19,20 @@
     "filtro i dati di due titoli finirebbero sommati nella stessa rosa e nelle stesse",
     "classifiche, senza che nulla lo segnali."
   ],
-
   "attivo": {
-    "club_id": 2703620,
+    "club_id": 18510,
     "nome": "Lentoni",
-    "titolo": "FC 26",
+    "titolo": "FC 27",
     "piattaforma": "common-gen5",
-    "dal": "2026-08-03"
+    "dal": "2026-09-18"
   },
-
-  "storico": []
+  "storico": [
+    {
+      "club_id": 2703620,
+      "nome": "Lentoni",
+      "titolo": "FC 26",
+      "piattaforma": "common-gen5",
+      "dal": "2026-08-03"
+    }
+  ]
 }

@@ -237,6 +237,41 @@ esplicita quando `#rosterTable .player-link` è vuoto, li fa girare normalmente 
 Verificato su entrambi i casi: la pagina FC 27 simulata a zero partite passa con i salti,
 `archivio/fc-26.html` (dati veri) passa identico a prima, `test_pipeline` resta 102/102.
 
+**Fatto il 18/09/2026: il passaggio e' reale.** `club.json` porta ora FC 27 in `attivo`
+(club_id `18510`, trovato cercando "Lentoni" su proclubstracker.com/search - piattaforma
+`common-gen5` confermata, la stessa di FC 26) e FC 26 (`2703620`) in `storico`. Rigenerato
+`index.html` (0 partite, come previsto: EA non ha ancora dati, li porta il prossimo giro di
+`giro.sh`) e `archivio/fc-26.html` (180 partite intatte). `test_apertura.js` e
+`test_tecnica.js` - gli unici due che `giro.sh` fa girare prima di pubblicare - passano
+puliti su entrambe le pagine.
+
+Prima del commit, il primo `git push` e' stato respinto: il locale era 22 commit indietro
+(l'automazione aveva continuato a girare su FC 26 mentre si cercava il club_id). Sistemato
+con `git reset --hard origin/main` e rifacendo l'intero passaggio (edit di `club.json`,
+rigenerazione, test) sul `lentoni.db` aggiornato, invece di un merge sui file generati.
+
+**Scoperto qui, non prima: `test_pipeline.py` non e' pronto per il giorno dopo.** Girato
+subito dopo il cambio, segna 4 falliti su 102 (prima erano 102/102). Non e' un difetto della
+pagina - `giro.sh` non fa girare `test_pipeline.py`, solo i due test js sopra - ma va
+sistemato:
+
+| Test | Perche' fallisce oggi |
+| --- | --- |
+| `test_la_dashboard_contiene_i_dati_essenziali`, `test_pagellone_fc26_compare_sulla_pagina_attiva` | girano `generate_dashboard.py` su una copia di `lentoni.db` (dati FC 26, club `2703620`) ma leggono il `club.json` vero, che ora ha FC 27 attivo: cercano dati di un club che quella copia del database non contiene |
+| `test_zero_titoli_archiviati_niente_selettore` | copia il `club.json` vero aspettandosi `storico` vuoto ("oggi" nel suo commento - un oggi che non e' piu' questo) |
+| `test_il_selettore_elenca_tutti_i_titoli_con_i_link_giusti` | la sua `_prepara()` sposta l'`attivo` del `club.json` vero in `storico` e scrive un FC 27 finto sopra - ma l'`attivo` vero e' gia' FC 27, quindi si ritrova due titoli "FC 27" nello stesso file |
+
+Tutti e quattro presumevano di girare *prima* del passaggio reale, non dopo: `CLUB = 2703620`
+e' scritto fisso in cima al file, e due test copiano `club.json` invece di costruirsene uno
+proprio. Da sistemare, non oggi per fretta di pubblicare - bloccare la serata per questo
+sarebbe l'errore opposto di quello che questo appunto avverte sempre.
+
+Anche `test_ruoli.js` non ha ricevuto la correzione "salta se l'archivio e' vuoto" che
+`test_apertura.js` e `test_tecnica.js` hanno avuto il 06/09 e il 17/09: su `index.html` a
+zero partite fallisce 11 controlli su schede osservatore, testa a testa e "novita'
+dall'ultima serata". Anche questo non blocca `giro.sh` (non ne fa parte), ma va sistemato
+prima che serva davvero come rete di sicurezza.
+
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un
