@@ -1767,6 +1767,60 @@
       "quando": "10/09 00:46 BINGILDAYANLAR",
       "giocatore": "ilmille",
       "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "3918718210014",
+      "quando": "18/09 01:39 VFC NT",
+      "giocatore": "ktm-008",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "3918718210014",
+      "quando": "18/09 01:39 VFC NT",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "3918718210014",
+      "quando": "18/09 01:39 VFC NT",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "6980401380198",
+      "quando": "19/09 00:45 boonsnchimp",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "6980401380198",
+      "quando": "19/09 00:45 boonsnchimp",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "6726980260397",
+      "quando": "19/09 01:07 sulaheltan",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "6726980260397",
+      "quando": "19/09 01:07 sulaheltan",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "6946935550340",
+      "quando": "19/09 01:59 LOHJANKEISARIT",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "6946935550340",
+      "quando": "19/09 01:59 LOHJANKEISARIT",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -1969,6 +2023,14 @@
     {
       "serata": "2026-09-09T21:17Z",
       "partite": 5
+    },
+    {
+      "serata": "2026-09-17T23:39Z",
+      "partite": 1
+    },
+    {
+      "serata": "2026-09-18T22:45Z",
+      "partite": 3
     }
   ],
   "_serate_chiuse": [
