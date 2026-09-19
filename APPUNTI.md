@@ -310,6 +310,52 @@ fidarsene sempre. Aggiunto un test mirato in `test_pipeline.py`
 `club_id_atteso`, cosi' la prossima volta che un file statico di `raw/` invecchia rispetto a
 un titolo nuovo il test lo dice subito invece di scoprirlo su una partita vera persa. 103/103.
 
+**La soglia dei 30 partite escludeva l'intera rosa a inizio stagione, solo su FC 27
+(19/09/2026).** `MIN_GAMES` in `generate_dashboard.py` decide chi compare in rosa,
+classifiche, premi e Indice di Forza: era 30 per qualunque titolo, un numero sensato
+quando l'archivio ha centinaia di partite a testa, com'e' FC 26. Su FC 27, appena
+iniziato, tutti hanno al massimo 3-4 partite - la soglia avrebbe mostrato una rosa vuota,
+non una rosa filtrata. Segnalato da Peppe, che ha anche chiarito subito il confine: vale
+solo per FC 27, non per FC 26. Diventata una soglia per titolo (`MIN_GAMES_PER_TITOLO =
+{"FC 27": 0}`, col vecchio `MIN_GAMES = 30` come default per tutti gli altri) invece di un
+solo numero globale. Aggiornati anche i due punti di `README.md` e il commento in
+`test_ruoli.js` che citavano "30" senza distinguere i titoli. Da togliere per FC 27 quando
+anche li' l'archivio avra' abbastanza partite perche' la soglia torni a fare quello per cui
+era nata - non e' stata tolta dal codice, solo azzerata per un titolo.
+
+Aprire per la prima volta una rosa non filtrata su FC 27 ha fatto uscire allo scoperto due
+guasti che la vecchia soglia teneva chiusi dentro un ramo di codice mai eseguito su un
+campione cosi' piccolo:
+
+- **`cliccare un'intestazione riordina la tabella` falliva per un pareggio, non per un
+  guasto vero.** Il controllo in `test_apertura.js` confrontava solo il NOME in cima prima
+  e dopo il clic. Con quattro giocatori a pari presenze (4 partite a testa) e un
+  ordinamento stabile, il primo della lista puo' restare lo stesso pur avendo ordinato
+  correttamente. Corretto leggendo l'intera colonna Presenze dopo il clic e verificando che
+  sia non-crescente (e non-decrescente dopo il secondo clic) - un riferimento indipendente
+  dal nome che capita in cima, non piu' sensibile ai pareggi. Verificato che sappia ancora
+  fallire: staccato apposta l'ascoltatore del clic (lo stesso guasto del 01/09/2026, vedi
+  sotto), il controllo e' tornato rosso, poi ripristinato.
+
+- **`tentativiDiCarriera()` stimava zero tentativi per chi ha lo 0% su tiro, passaggi o
+  contrasti - anche se ne aveva fatti davvero.** EA non manda i tentativi grezzi di
+  carriera per il club, solo i realizzati e la percentuale: la stima li ricava invertendo
+  la percentuale (`realizzati / (percentuale/100)`), e a 0% realizzati e percentuale
+  coincidono a zero. La stima non puo' distinguere "zero tentativi davvero" da "alcuni
+  tentativi, tutti falliti" - un limite della formula, non un errore di battitura. Con la
+  rosa aperta su un campione di 1-4 partite, quel 0% netto e' comune (bastano uno o due
+  tiri sbagliati); prima non si vedeva mai perche' con centinaia di partite a testa nessuno
+  arriva davvero a 0%. L'effetto: la colonna Tecnica smorzava del tutto quella voce verso la
+  media di reparto, mentre il dettaglio - che usa i tentativi VERI della finestra recente,
+  contati dalle partite archiviate - ne mostrava di piu' della carriera stimata, violando
+  l'ovvio "la finestra e' un sottoinsieme della carriera" e facendo fallire `test_tecnica.js`
+  (`ogni lato porta i propri tentativi...`). Corretto vincolando la stima al basso con i
+  tentativi veri della finestra, quando ce ne sono: `carTent = max(stima, tentativi della
+  finestra)`. Calcolato una sola volta e riusato sia per la colonna sia per il dettaglio
+  (prima erano due chiamate separate alla stessa funzione): altrimenti sarebbero tornati a
+  scucirsi, lo stesso guasto del 31/08/2026 in una forma nuova. 103/103, tutti i controlli
+  `node` verdi su `index.html` e su `archivio/fc-26.html`.
+
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un

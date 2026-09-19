@@ -494,8 +494,18 @@ def calcola_salute_archivio(cur, club_id):
     }
 
 
-# Soglia minima di partite giocate per comparire in rosa, classifiche, premi e Indice di Forza.
+# Soglia minima di partite giocate per comparire in rosa, classifiche, premi e Indice di
+# Forza. 30 partite ha senso su un archivio maturo, com'era FC 26 (centinaia di partite a
+# testa): esclude solo chi ha davvero un campione minuscolo.
 MIN_GAMES = 30
+
+# Eccezione per titolo, non per il progetto: dal passaggio a FC 27 (19/09/2026) quella
+# stessa soglia di 30 avrebbe svuotato la rosa intera invece di filtrarla, perche' a inizio
+# stagione nessuno ha piu' di 3-4 partite. Vale solo per FC 27, su richiesta di Peppe - FC 26
+# (chiuso, centinaia di partite a testa) resta alla soglia di sempre, dove il numero ha
+# ancora senso. Da togliere per FC 27 quando anche li' l'archivio avra' abbastanza partite
+# perche' la soglia torni a fare quello per cui era nata.
+MIN_GAMES_PER_TITOLO = {"FC 27": 0}
 
 MODELLO = QUI / "modello"
 
@@ -799,6 +809,7 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path):
                                      or data["club"].get("platform"))
     division = data["latest"].get("best_division") or "-"
     updated_at = data["history"][-1]["fetched_at"] if data["history"] else "-"
+    min_games = MIN_GAMES_PER_TITOLO.get(data["titolo"], MIN_GAMES)
 
     pagina_html = (
         HTML_TEMPLATE
@@ -806,7 +817,7 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path):
         .replace("__PLATFORM__", str(platform))
         .replace("__DIVISION__", str(division))
         .replace("__UPDATED_AT__", str(updated_at))
-        .replace("__MIN_GAMES__", str(MIN_GAMES))
+        .replace("__MIN_GAMES__", str(min_games))
         .replace("__SELETTORE_TITOLI__", selettore_titoli_html(titoli, corrente_file))
         .replace("__DATA_JSON__", json.dumps(data, ensure_ascii=False))
     )

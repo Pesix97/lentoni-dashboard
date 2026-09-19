@@ -1958,9 +1958,24 @@ function computeBlendedScores(windowSize, weight){
     // 7.10". La normalizzazione e' lineare, quindi mescolare i valori grezzi con lo stesso
     // peso da' esattamente lo stesso risultato che mescolare i normalizzati.
     const g = s.r, gp = g.games_played || 1;
+    // EA non manda i tentativi grezzi di carriera per il club, solo realizzati e
+    // percentuale: tentativiDiCarriera() li stima invertendo la percentuale, e a 0%
+    // realizzati e percentuale coincidono a zero - la stima non sa piu' distinguere
+    // "zero tentativi davvero" da "alcuni tentativi, tutti falliti". La finestra recente
+    // e' pero' un SOTTOINSIEME della carriera e i suoi tentativi sono contati per davvero
+    // dalle partite archiviate: se superano la stima, quel numero vero diventa il minimo.
+    // Trovato il 19/09/2026 aprendo la rosa di FC 27 a inizio stagione: prima, con la
+    // soglia dei 30 a svuotarla, questo ramo non veniva mai eseguito su un campione cosi'
+    // piccolo da avere davvero uno 0%.
+    const tCarStimato = tentativiDiCarriera(g);
+    const tCar = {
+      passaggi:  Math.max(tCarStimato.passaggi,  hasForm ? f.tentPassaggi : 0),
+      contrasti: Math.max(tCarStimato.contrasti, hasForm ? f.tentContrasti : 0),
+      tiro:      Math.max(tCarStimato.tiro,      hasForm ? f.tentTiro : 0),
+    };
     const carriera = {
       rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
-      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate, g.gruppo, tentativiDiCarriera(g)),
+      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate, g.gruppo, tCar),
       disc: g.red_cards / gp,
       passaggi: g.pass_success_rate, contrasti: g.tackle_success_rate, tiro: g.shot_success_rate,
     };
@@ -1996,7 +2011,6 @@ function computeBlendedScores(windowSize, weight){
     const lato = (car, carTent, fo, foTent) => ({
       car, carTent, forma: hasForm ? fo : null, formaTent: hasForm ? foTent : null,
     });
-    const tCar = tentativiDiCarriera(g);
     const tecnica = {
       pesoForma,
       partiteFinestra: hasForm ? f.games : 0,

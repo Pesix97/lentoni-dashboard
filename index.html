@@ -716,7 +716,7 @@
 </section>
 
 <section id="giocatori">
-  <h2>Giocatori <span class="h2-sub">— rosa, classifiche e confronto · solo giocatori con almeno 30 partite</span></h2>
+  <h2>Giocatori <span class="h2-sub">— rosa, classifiche e confronto · solo giocatori con almeno 0 partite</span></h2>
   <div class="panel">
     <input type="text" class="filter" id="rosterFilter" placeholder="Filtra giocatore...">
     <div class="filter-bar" id="rosterQuickFilters">
@@ -783,7 +783,7 @@
 </section>
 
 <section id="forza">
-  <h2>Indice di Forza <span class="h2-sub">— chi è più forte/decisivo, calcolato da un algoritmo · solo giocatori con almeno 30 partite</span></h2>
+  <h2>Indice di Forza <span class="h2-sub">— chi è più forte/decisivo, calcolato da un algoritmo · solo giocatori con almeno 0 partite</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px; border-left:3px solid var(--accent);">
@@ -1129,7 +1129,7 @@ const DATA = {"club": {"club_id": 18510, "name": "lentoni", "platform": null, "r
 // giocato meno di questo numero di partite col club: sample troppo piccolo per essere
 // rappresentativo (es. 2 partite giocate falsano medie e statistiche). Il filtro è
 // applicato una sola volta qui, alla fonte, così nessuna sezione può più mostrarli.
-const LEADERBOARD_MIN_GAMES = 30;
+const LEADERBOARD_MIN_GAMES = 0;
 
 // Chi ha lasciato il club non arriva nemmeno qui: generate_dashboard.py lo esclude
 // prima di scrivere la pagina, e il suo nome non compare nel file. Vedi 'ex_giocatori'
@@ -1958,9 +1958,24 @@ function computeBlendedScores(windowSize, weight){
     // 7.10". La normalizzazione e' lineare, quindi mescolare i valori grezzi con lo stesso
     // peso da' esattamente lo stesso risultato che mescolare i normalizzati.
     const g = s.r, gp = g.games_played || 1;
+    // EA non manda i tentativi grezzi di carriera per il club, solo realizzati e
+    // percentuale: tentativiDiCarriera() li stima invertendo la percentuale, e a 0%
+    // realizzati e percentuale coincidono a zero - la stima non sa piu' distinguere
+    // "zero tentativi davvero" da "alcuni tentativi, tutti falliti". La finestra recente
+    // e' pero' un SOTTOINSIEME della carriera e i suoi tentativi sono contati per davvero
+    // dalle partite archiviate: se superano la stima, quel numero vero diventa il minimo.
+    // Trovato il 19/09/2026 aprendo la rosa di FC 27 a inizio stagione: prima, con la
+    // soglia dei 30 a svuotarla, questo ramo non veniva mai eseguito su un campione cosi'
+    // piccolo da avere davvero uno 0%.
+    const tCarStimato = tentativiDiCarriera(g);
+    const tCar = {
+      passaggi:  Math.max(tCarStimato.passaggi,  hasForm ? f.tentPassaggi : 0),
+      contrasti: Math.max(tCarStimato.contrasti, hasForm ? f.tentContrasti : 0),
+      tiro:      Math.max(tCarStimato.tiro,      hasForm ? f.tentTiro : 0),
+    };
     const carriera = {
       rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
-      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate, g.gruppo, tentativiDiCarriera(g)),
+      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate, g.gruppo, tCar),
       disc: g.red_cards / gp,
       passaggi: g.pass_success_rate, contrasti: g.tackle_success_rate, tiro: g.shot_success_rate,
     };
@@ -1996,7 +2011,6 @@ function computeBlendedScores(windowSize, weight){
     const lato = (car, carTent, fo, foTent) => ({
       car, carTent, forma: hasForm ? fo : null, formaTent: hasForm ? foTent : null,
     });
-    const tCar = tentativiDiCarriera(g);
     const tecnica = {
       pesoForma,
       partiteFinestra: hasForm ? f.games : 0,

@@ -159,23 +159,36 @@ setTimeout(() => {
   // qui serve almeno un giocatore: con una sola riga placeholder non c'e' niente da
   // riordinare, e "prima e dopo restano uguali" sarebbe un fallimento del controllo, non
   // della pagina.
+  //
+  // Confrontare solo il NOME in cima non basta: a inizio stagione (dal 19/09/2026, rosa
+  // senza soglia minima di partite) piu' giocatori sono spesso a pari presenze, e un
+  // ordinamento stabile puo' lasciare lo stesso nome in cima prima e dopo il clic pur
+  // avendo ordinato correttamente - un fallimento del controllo, non della pagina, uguale
+  // nella sostanza al problema che il commento sopra descrive gia'. Il riferimento
+  // indipendente e' la colonna intera: dopo il clic deve essere non-crescente, a
+  // prescindere da quale nome capiti in cima.
   if (haGiocatori) {
     const nomePrimo = () => {
       const c = d.querySelector("#rosterTable tbody tr td:nth-child(2)");
       return c ? c.textContent.trim() : null;
     };
+    const colonnaPresenze = () => [...d.querySelectorAll("#rosterTable tbody tr td:nth-child(4)")]
+      .map(td => Number(td.textContent.trim()));
     const th = (k) => [...d.querySelectorAll("#rosterHead th")].find(t => t.dataset.key === k);
-    const partenza = nomePrimo();
     if (th("games_played")) th("games_played").click();
     const dopoPresenze = nomePrimo();
-    verifica("cliccare un'intestazione riordina la tabella",
-      partenza !== null && dopoPresenze !== null && partenza !== dopoPresenze,
-      `prima ${partenza}, dopo ${dopoPresenze}`);
+    const colonna = colonnaPresenze();
+    const nonCrescente = colonna.length > 0 && colonna.every((v, i) => i === 0 || colonna[i - 1] >= v);
+    verifica("cliccare un'intestazione riordina davvero la tabella",
+      nonCrescente, nonCrescente ? "" : `presenze non ordinate: ${colonna.join(", ")}`);
 
-    // Secondo clic sulla stessa: l'ordine si inverte, e chi era primo non lo e' piu'.
+    // Secondo clic sulla stessa: l'ordine si inverte, cioe' la colonna diventa non-decrescente.
     if (th("games_played")) th("games_played").click();
+    const colonnaInvertita = colonnaPresenze();
+    const nonDecrescente = colonnaInvertita.length > 0 &&
+      colonnaInvertita.every((v, i) => i === 0 || colonnaInvertita[i - 1] <= v);
     verifica("il secondo clic inverte il verso",
-      nomePrimo() !== dopoPresenze, `resta ${nomePrimo()}`);
+      nonDecrescente, nonDecrescente ? "" : `presenze non invertite: ${colonnaInvertita.join(", ")}`);
 
     // E il segno di quale colonna sta ordinando deve seguire il clic.
     const ordinata = d.querySelector("#rosterHead th.ordinata");

@@ -1131,11 +1131,20 @@ Due controlli in `test_ruoli.js` impediscono che il difetto rientri.
 
 ## La scheda si apre anche per chi non è ancora in rosa
 
-La rosa mostra solo chi ha almeno **30 partite di carriera**. La sezione **Serate** invece
-elenca chiunque abbia giocato quella sera, e quei nomi sono cliccabili: per un giocatore
-appena arrivato il clic quindi non apriva niente, **in silenzio**. Nessun errore, nessun
-messaggio, solo un nome che non risponde — segnalato dal club il 25/08/2026 su
-Bagherese_95, cinque partite giocate la sera prima.
+La rosa mostra solo chi supera una soglia minima di partite di carriera (`MIN_GAMES` in
+`generate_dashboard.py`). La sezione **Serate** invece elenca chiunque abbia giocato
+quella sera, e quei nomi sono cliccabili: per un giocatore appena arrivato il clic
+quindi non apriva niente, **in silenzio**. Nessun errore, nessun messaggio, solo un
+nome che non risponde — segnalato dal club il 25/08/2026 su Bagherese_95, cinque
+partite giocate la sera prima.
+
+**Per FC 27, dal 19/09/2026, la soglia è 0, cioè nessuna esclusione** — non per FC 26, che
+resta a 30. La soglia storica di 30 partite ha senso su un archivio maturo (centinaia di
+partite a testa, com'è FC 26): a inizio stagione, con tutti a 3-4 partite, avrebbe svuotato
+la rosa intera invece di escludere solo i pochi con un campione minuscolo. La soglia non è
+più un solo numero ma una per titolo (`MIN_GAMES_PER_TITOLO` in `generate_dashboard.py`,
+`{"FC 27": 0}`, col vecchio `MIN_GAMES = 30` come default per tutti gli altri). Da togliere
+per FC 27 quando anche lì l'archivio avrà abbastanza partite.
 
 Ora la scheda si costruisce dalle **partite archiviate**: presenze, media voto, gol,
 assist, premi, percentuali di passaggi, contrasti e tiro, e in che ruolo ha giocato. Un
