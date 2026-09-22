@@ -356,6 +356,35 @@ campione cosi' piccolo:
   scucirsi, lo stesso guasto del 31/08/2026 in una forma nuova. 103/103, tutti i controlli
   `node` verdi su `index.html` e su `archivio/fc-26.html`.
 
+**Un `dict.get(chiave, default)` non protegge da un JSON `null` esplicito - e per due
+giorni ha bloccato in silenzio ogni partita nuova, comprese tutte quelle del 21/09/2026
+(21-22/09/2026).** Peppe ha chiesto "le partite di ieri non le hai prese?" e il battito
+(`stato.json`) confermava: `ingest fallito`, in corso da `2026-09-20T22:07:45Z`, 107 giri
+di fila. `giro.sh` inghiotte l'errore di `ingest.py` ("ingest fallito, salto") e scrive
+comunque battito ok con la nota - il giro non si ferma, salta soltanto il salvataggio, ogni
+venti minuti, senza che nulla lo segnali finche' qualcuno non nota i dati mancanti da solo.
+
+La causa, trovata leggendo il traceback vero di un'esecuzione GitHub Actions
+(`AttributeError: 'NoneType' object has no attribute 'get'`, `ingest.py` riga 601): in
+`ingest_matches()`, `opp.get("details", {}).get("name")` sembra al sicuro, ma il default
+di `.get()` scatta solo quando la CHIAVE manca, non quando e' presente e vale JSON `null`.
+Verificato contro il dato vero (non solo teorizzato): interrogata via browser l'API di
+proclubstracker.com che `giro.sh` stesso chiama, trovata la partita `9920125220496` contro
+il club avversario `290802` con `"details": null` esplicito nel JSON - non assente, proprio
+`null`. Su quella partita `opp.get("details", {})` restituisce `None`, non `{}`, e la riga
+successiva va in crash.
+
+Corretto con `opp.get("details") or {}`, che copre sia la chiave assente sia il `null`
+esplicito. Rafforzata per lo stesso motivo anche la riga precedente,
+`clubs.get(opp_id, {})` → `clubs.get(opp_id) or {}`: stesso schema di bug, stessa funzione,
+non ancora visto scattare ma a costo zero da chiudere insieme. Aggiunto un test mirato in
+`test_pipeline.py` (`test_avversario_con_details_null_non_manda_in_crash_ingest`, in
+`TestIngest`) che costruisce una partita sintetica con l'avversario a `details: null` e
+verifica che l'ingest la salvi comunque, con `opponent_name` a `None` invece di andare in
+crash - cosi' la prossima volta che EA manda un `null` al posto di ometterlo il test lo dice
+subito invece di scoprirlo da un buco di due giorni nei dati. 104/104, tutti i controlli
+`node` verdi su `index.html` e su `archivio/fc-26.html`.
+
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un

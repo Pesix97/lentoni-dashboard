@@ -215,6 +215,48 @@ class TestIngest(BaseConArchivio):
                          "club_search.json di un altro club ha dettato il club_id")
         con.close()
 
+    def test_avversario_con_details_null_non_manda_in_crash_ingest(self):
+        """Un avversario con "details": null nel JSON di EA non deve fermare l'ingest.
+
+        clubs.get(opp_id, {}).get("details", {}) sembra al sicuro, ma il default scatta
+        solo quando la chiave manca: se e' presente e vale JSON null (come nella partita
+        9920125220496 contro il club 290802, vista il 20/09/2026), .get() la restituisce
+        cosi' com'e' - None, non {} - e la riga successiva (.get("name") su quel None)
+        va in AttributeError. giro.sh inghiotte l'errore ("ingest fallito, salto") e
+        scrive comunque battito ok: per 107 giri di fila, oltre due giorni, nessuna
+        partita nuova e' stata salvata, comprese tutte quelle del 21/09/2026, senza che
+        nulla lo segnalasse finche' Peppe non ha notato lui stesso i dati mancanti.
+        """
+        sys.path.insert(0, str(QUI))
+        import ingest
+
+        con = sqlite3.connect(":memory:")
+        cur = con.cursor()
+        cur.executescript(ingest.SCHEMA)
+
+        partita = {
+            "matchId": "9920125220496",
+            "timestamp": 1758000000,
+            "clubs": {
+                str(CLUB): {"goals": "0", "goalsAgainst": "6", "result": "0",
+                            "wins": "0", "losses": "1", "ties": "0"},
+                "290802": {"goals": "6", "goalsAgainst": "0", "result": "1",
+                           "wins": "1", "losses": "0", "ties": "0",
+                           "details": None},
+            },
+            "players": {str(CLUB): {}},
+        }
+
+        inserite = ingest.ingest_matches(cur, [partita], CLUB, "league")
+
+        self.assertEqual(inserite, 1, "la partita con avversario details:null non e' stata inserita")
+        riga = cur.execute(
+            "SELECT opponent_club_id, opponent_name FROM matches WHERE match_id=?",
+            ("9920125220496",)).fetchone()
+        self.assertEqual(riga[0], 290802)
+        self.assertIsNone(riga[1], "opponent_name dovrebbe essere None quando details e' null")
+        con.close()
+
 
 class TestDashboard(BaseConArchivio):
 

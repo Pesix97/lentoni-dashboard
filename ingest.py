@@ -582,8 +582,12 @@ def ingest_matches(cur, matches, club_id, match_type):
         if own is None:
             continue
         opp_id = next((cid for cid in clubs if cid != str(club_id)), None)
-        opp = clubs.get(opp_id, {}) if opp_id else {}
-        opp_details = opp.get("details", {})
+        # clubs.get(opp_id, {}) non basta: se la chiave c'e' ma vale JSON null
+        # (successo il 20/09/2026, partita 9920125220496 contro il club 290802),
+        # il default non scatta e torna None invece di {} -> "or {}" copre anche
+        # questo caso, non solo la chiave assente. Stesso motivo per "details".
+        opp = (clubs.get(opp_id) or {}) if opp_id else {}
+        opp_details = opp.get("details") or {}
 
         cur.execute(
             """INSERT OR IGNORE INTO matches
