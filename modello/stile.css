@@ -1,7 +1,8 @@
 
   :root{
-    --bg:#160a0d; --panel:#221115; --panel-2:#2c161b; --border:#4a232a;
-    --text:#f5ece4; --muted:#b99aa0; --accent:#d5203a; --accent-2:#f0b90b;
+    --bg:#161616; --panel:#1e1e1e; --panel-2:#252525; --border:#35353a;
+    --text:#f2f0ec; --muted:#9a9a95; --accent:#2dd4bf; --accent-2:#5eead4;
+    --accent-dark:#146b61; --accent-rgb:45,212,191; --accent-2-rgb:94,234,212; --bg-rgb:22,22,22;
     --win:#33c17a; --loss:#e5566d; --tie:#e0b23f; --gold:#ffd966;
   }
   *{box-sizing:border-box;}
@@ -15,7 +16,7 @@
   /* ---- Nav: barra sottile in alto con menu a comparsa (drawer) da sinistra ---- */
   #topNav{
     position:sticky; top:0; z-index:100; margin:-24px -32px 20px;
-    background:rgba(22,10,13,.92); backdrop-filter:blur(8px);
+    background:rgba(var(--bg-rgb),.92); backdrop-filter:blur(8px);
     border-bottom:1px solid var(--border);
     display:flex; align-items:center; gap:12px; padding:10px 20px;
   }
@@ -266,12 +267,12 @@
     display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase;
     letter-spacing:.03em; padding:3px 8px; border-radius:20px;
   }
-  .role-badge.forward{background:rgba(213,32,58,.18); color:#ff6b7f;}
+  .role-badge.forward{background:rgba(255,107,127,.18); color:#ff6b7f;}
   .role-badge.midfielder{background:rgba(80,150,230,.18); color:#7fb3f0;}
-  .role-badge.defender{background:rgba(60,190,150,.18); color:#5fd6b0;}
-  .role-badge.goalkeeper{background:rgba(240,185,11,.18); color:var(--accent-2);}
+  .role-badge.goalkeeper{background:rgba(242,193,78,.18); color:#f2c14e;}
   .role-badge.esterni{background:rgba(168,120,230,.18); color:#c4a0f0;}
   .role-badge.trequartista{background:rgba(255,159,67,.18); color:#ffb37a;}
+  .role-badge.defender{background:rgba(143,125,224,.18); color:#8f7de0;}
   .role-badge.unknown{background:var(--panel-2); color:var(--muted);}
   .match-row{cursor:pointer;}
   .match-detail{display:none; background:var(--panel-2);}
@@ -329,7 +330,7 @@
      piu' sessioni (es. pomeriggio e sera) prende la stessa idea ma in dorato - tinta
      piu' forte, bordo piu' forte - cosi' i due casi si distinguono scorrendo il mese,
      non solo guardando da vicino la singola casella. */
-  .calDay.haPartite{background:rgba(213,32,58,.16); border:1px solid var(--accent); color:var(--text);
+  .calDay.haPartite{background:rgba(var(--accent-rgb),.16); border:1px solid var(--accent); color:var(--text);
     cursor:pointer; font-weight:700; transition:all .12s;}
   .calDay.haPartite:hover{border-color:var(--accent-2); transform:scale(1.04);}
   .calDay.haPartite.active{background:var(--accent-2); border-color:var(--accent-2);}
@@ -486,7 +487,7 @@
   .pitch-player .dot.forward{background:#ff6b7f;}
   .pitch-player .dot.trequartista{background:#ffb37a;}
   .pitch-player .dot.midfielder{background:#7fb3f0;}
-  .pitch-player .dot.defender{background:#5fd6b0;}
+  .pitch-player .dot.defender{background:#8f7de0;}
   .pitch-player .dot.empty{background:rgba(255,255,255,.12); color:rgba(255,255,255,.6); border-style:dashed;}
   .pitch-player .pname{font-size:10px; font-weight:700; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.8); max-width:78px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .pitch-player .pscore{font-size:9px; color:rgba(255,255,255,.9); text-shadow:0 1px 3px rgba(0,0,0,.8);}

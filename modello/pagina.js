@@ -1,6 +1,19 @@
 
 const DATA = __DATA_JSON__;
 
+// Un canvas (Chart.js o <canvas> diretto, es. la scheda da condividere) non capisce
+// "var(--accent)": vuole un colore vero. Prima ogni punto che disegnava su un canvas si
+// teneva una sua copia scritta a mano dei colori del tema - due giri sullo stesso rosso e
+// oro persi la volta del passaggio a FC 27, e ritrovati uno a uno per il restyling
+// grafite del 24/09/2026. cssVar() legge il valore VERO da :root al momento del disegno,
+// cosi' un cambio di tema in stile.css basta da solo, senza tornare a cercare ogni canvas.
+function cssVar(nome, ripiego){
+  try{
+    const v = getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+    return v || ripiego;
+  }catch(e){ return ripiego; }
+}
+
 // Esclude OVUNQUE (rosa, classifiche, premi, top marcatori, confronto giocatori) chi ha
 // giocato meno di questo numero di partite col club: sample troppo piccolo per essere
 // rappresentativo (es. 2 partite giocate falsano medie e statistiche). Il filtro è
@@ -1029,8 +1042,8 @@ function computeBlendedScores(windowSize, weight){
         datasets: [{
           label: "Skill rating",
           data: punti.map(h => h.skill_rating),
-          borderColor: "#d5203a",
-          backgroundColor: "rgba(213,32,58,.18)",
+          borderColor: cssVar("--accent", "#2dd4bf"),
+          backgroundColor: `rgba(${cssVar("--accent-rgb", "45,212,191")},.18)`,
           tension: 0.25,
           fill: true,
           pointRadius: punti.length > 40 ? 0 : 3,
@@ -1040,8 +1053,8 @@ function computeBlendedScores(windowSize, weight){
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: "#b99aa0", maxTicksLimit: 8 }, grid: { color: "#4a232a" } },
-          y: { ticks: { color: "#b99aa0" }, grid: { color: "#4a232a" } },
+          x: { ticks: { color: cssVar("--muted", "#9a9a95"), maxTicksLimit: 8 }, grid: { color: cssVar("--border", "#35353a") } },
+          y: { ticks: { color: cssVar("--muted", "#9a9a95") }, grid: { color: cssVar("--border", "#35353a") } },
         }
       }
     });
@@ -1051,7 +1064,7 @@ function computeBlendedScores(windowSize, weight){
     const primo = valori[0], ultimo = valori[valori.length - 1];
     const delta = ultimo - primo;
     const segno = delta > 0 ? "+" : "";
-    const colore = delta > 0 ? "var(--ok,#4ade80)" : (delta < 0 ? "var(--accent)" : "var(--muted)");
+    const colore = delta > 0 ? "var(--ok,#4ade80)" : (delta < 0 ? "var(--loss)" : "var(--muted)");
     riepilogoEl.innerHTML =
       `Nel periodo selezionato: da <strong style="color:var(--text);">${primo}</strong> a ` +
       `<strong style="color:var(--text);">${ultimo}</strong>, ` +
@@ -1099,14 +1112,14 @@ function computeBlendedScores(windowSize, weight){
     type: "bar",
     data: {
       labels,
-      datasets: [{ label: "Primi posti", data: values, backgroundColor: "#d5203a", borderRadius: 4 }]
+      datasets: [{ label: "Primi posti", data: values, backgroundColor: cssVar("--accent", "#2dd4bf"), borderRadius: 4 }]
     },
     options: {
       responsive: true,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: "#b99aa0" }, grid: { display: false } },
-        y: { ticks: { color: "#b99aa0", precision: 0 }, grid: { color: "#4a232a" } },
+        x: { ticks: { color: cssVar("--muted", "#9a9a95") }, grid: { display: false } },
+        y: { ticks: { color: cssVar("--muted", "#9a9a95"), precision: 0 }, grid: { color: cssVar("--border", "#35353a") } },
       }
     }
   });
@@ -1454,46 +1467,55 @@ renderRoster();
   }
 
   function drawCard(){
+    // Un <canvas> non legge var(...): i colori del tema si leggono UNA volta qui, con
+    // cssVar(), invece che restare scritti a mano come prima del restyling grafite del
+    // 24/09/2026 (era rosso e oro duplicati in tredici punti diversi di questa funzione).
+    const colBg = cssVar("--bg", "#161616"), colPanel2 = cssVar("--panel-2", "#252525");
+    const colAccent = cssVar("--accent", "#2dd4bf"), colAccentRgb = cssVar("--accent-rgb", "45,212,191");
+    const colAccent2 = cssVar("--accent-2", "#5eead4"), colAccent2Rgb = cssVar("--accent-2-rgb", "94,234,212");
+    const colText = cssVar("--text", "#f2f0ec"), colMuted = cssVar("--muted", "#9a9a95");
+    const colWin = cssVar("--win", "#33c17a"), colTie = cssVar("--tie", "#e0b23f"), colLoss = cssVar("--loss", "#e5566d");
+
     // sfondo
     const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, "#1d0c10"); g.addColorStop(1, "#3a1119");
+    g.addColorStop(0, colBg); g.addColorStop(1, colPanel2);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "#f0b90b"; ctx.lineWidth = 8;
+    ctx.strokeStyle = colAccent2; ctx.lineWidth = 8;
     ctx.strokeRect(4, 4, W - 8, H - 8);
 
     // intestazione
     ctx.textAlign = "center";
-    ctx.fillStyle = "#f5ece4";
+    ctx.fillStyle = colText;
     ctx.font = "bold 76px -apple-system, Segoe UI, Roboto, sans-serif";
     ctx.fillText(clubName, W/2, 120);
-    ctx.fillStyle = "#b99aa0";
+    ctx.fillStyle = colMuted;
     ctx.font = "30px -apple-system, Segoe UI, Roboto, sans-serif";
     ctx.fillText(`Divisione ${l.best_division || "-"} · ${(club.platform || "").toUpperCase()}`, W/2, 168);
 
     // skill rating in evidenza
-    ctx.fillStyle = "rgba(240,185,11,.10)";
+    ctx.fillStyle = `rgba(${colAccent2Rgb},.10)`;
     roundRect(70, 210, W - 140, 190, 20); ctx.fill();
-    ctx.strokeStyle = "rgba(240,185,11,.45)"; ctx.lineWidth = 2;
+    ctx.strokeStyle = `rgba(${colAccent2Rgb},.45)`; ctx.lineWidth = 2;
     roundRect(70, 210, W - 140, 190, 20); ctx.stroke();
-    ctx.fillStyle = "#f0b90b";
+    ctx.fillStyle = colAccent2;
     ctx.font = "bold 110px -apple-system, Segoe UI, Roboto, sans-serif";
     ctx.fillText(String(l.skill_rating || "-"), W/2, 335);
-    ctx.fillStyle = "#b99aa0";
+    ctx.fillStyle = colMuted;
     ctx.font = "26px -apple-system, Segoe UI, Roboto, sans-serif";
     ctx.fillText("SKILL RATING", W/2, 378);
 
     // record W/N/P
     const stats = [
-      ["VITTORIE", l.wins,   "#33c17a"],
-      ["PAREGGI",  l.ties,   "#e0b23f"],
-      ["SCONFITTE",l.losses, "#e5566d"],
+      ["VITTORIE", l.wins,   colWin],
+      ["PAREGGI",  l.ties,   colTie],
+      ["SCONFITTE",l.losses, colLoss],
     ];
     stats.forEach(([k, v, col], i) => {
       const x = 70 + i * ((W - 140) / 3) + ((W - 140) / 6);
       ctx.fillStyle = col;
       ctx.font = "bold 62px -apple-system, Segoe UI, Roboto, sans-serif";
       ctx.fillText(String(v ?? "-"), x, 480);
-      ctx.fillStyle = "#b99aa0";
+      ctx.fillStyle = colMuted;
       ctx.font = "22px -apple-system, Segoe UI, Roboto, sans-serif";
       ctx.fillText(k, x, 515);
     });
@@ -1501,7 +1523,7 @@ renderRoster();
     // forma recente: ultime 5 partite dal database
     const recent = [...(DATA.matches || [])].slice(0, 5).reverse();
     if(recent.length){
-      ctx.fillStyle = "#b99aa0";
+      ctx.fillStyle = colMuted;
       ctx.font = "24px -apple-system, Segoe UI, Roboto, sans-serif";
       ctx.fillText("FORMA RECENTE", W/2, 585);
       const bw = 90, gap = 18;
@@ -1511,7 +1533,7 @@ renderRoster();
         const isW = m.win, isT = m.tie;
         ctx.fillStyle = isW ? "rgba(51,193,122,.22)" : isT ? "rgba(224,178,63,.22)" : "rgba(229,86,109,.22)";
         roundRect(x, 610, bw, 78, 12); ctx.fill();
-        ctx.fillStyle = isW ? "#33c17a" : isT ? "#e0b23f" : "#e5566d";
+        ctx.fillStyle = isW ? colWin : isT ? colTie : colLoss;
         ctx.font = "bold 34px -apple-system, Segoe UI, Roboto, sans-serif";
         ctx.fillText(`${m.goals_for}-${m.goals_against}`, x + bw/2, 658);
       });
@@ -1520,27 +1542,30 @@ renderRoster();
     // top 3 marcatori di sempre
     const top = [...(DATA.roster || [])].sort((a,b) => (b.goals||0) - (a.goals||0)).slice(0, 3);
     if(top.length){
-      ctx.fillStyle = "#b99aa0";
+      ctx.fillStyle = colMuted;
       ctx.font = "24px -apple-system, Segoe UI, Roboto, sans-serif";
       ctx.fillText("TOP MARCATORI", W/2, 750);
       const medals = ["🥇","🥈","🥉"];
       top.forEach((p, i) => {
         const y = 800 + i * 52;
         ctx.textAlign = "left";
-        ctx.fillStyle = "#f5ece4";
+        ctx.fillStyle = colText;
         ctx.font = "bold 34px -apple-system, Segoe UI, Roboto, sans-serif";
         ctx.fillText(`${medals[i]}  ${p.player_name}`, 150, y);
         ctx.textAlign = "right";
-        ctx.fillStyle = "#f0b90b";
+        ctx.fillStyle = colAccent2;
         ctx.fillText(`${p.goals} gol`, W - 150, y);
         ctx.textAlign = "center";
       });
     }
 
-    // piede
-    ctx.fillStyle = "#8a6c72";
+    // piede: la stessa tinta muted, ma piu' spenta - prima era un grigio-rosa scritto a
+    // parte (#8a6c72), qui basta abbassare l'opacita' del muted del tema.
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = colMuted;
     ctx.font = "22px -apple-system, Segoe UI, Roboto, sans-serif";
     ctx.fillText(location.host + location.pathname, W/2, H - 40);
+    ctx.globalAlpha = 1;
   }
 
   drawCard();
@@ -1865,7 +1890,7 @@ renderRoster();
     const partiteReparto = ranked.reduce((t, a) => t + a.games, 0);
     const pochiDati = rankable && partiteReparto < SOGLIA_REPARTO_ATTENDIBILE;
     const notaPochiDati = pochiDati
-      ? `<div style="font-size:12px; color:var(--accent); margin-bottom:10px;">
+      ? `<div style="font-size:12px; color:var(--loss); margin-bottom:10px;">
          <strong>Troppe poche partite per un indice attendibile:</strong> ${partiteReparto} in tutto il
          reparto, contro le centinaia degli altri. I numeri qui sotto sono calcolati come gli altri, ma
          una differenza di qualche punto qui non vuol dire niente. Le statistiche restano reali.</div>`
@@ -1943,8 +1968,8 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
   }
 
   const fasce = [
-    { chiave:"forti",  etichetta:"Più forti di noi",  test:d => d >  SOGLIA_LIVELLO, colore:"var(--accent)" },
-    { chiave:"pari",   etichetta:"Al nostro livello", test:d => Math.abs(d) <= SOGLIA_LIVELLO, colore:"#facc15" },
+    { chiave:"forti",  etichetta:"Più forti di noi",  test:d => d >  SOGLIA_LIVELLO, colore:"var(--loss)" },
+    { chiave:"pari",   etichetta:"Al nostro livello", test:d => Math.abs(d) <= SOGLIA_LIVELLO, colore:"var(--tie)" },
     { chiave:"deboli", etichetta:"Più deboli di noi", test:d => d < -SOGLIA_LIVELLO, colore:"var(--ok,#4ade80)" },
   ];
   const agg = {};
@@ -2013,7 +2038,7 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
       return;
     }
     const percChiuso = sa.attese > 0 ? Math.round((sa.archiviateDaPrimoSnapshot / sa.attese) * 100) : 100;
-    const coloreChiuso = percChiuso >= 90 ? "var(--ok,#4ade80)" : (percChiuso >= 60 ? "#facc15" : "var(--accent)");
+    const coloreChiuso = percChiuso >= 90 ? "var(--ok,#4ade80)" : (percChiuso >= 60 ? "var(--tie)" : "var(--loss)");
     el.innerHTML = `
       <div style="font-size:13px; line-height:1.6;">
         <strong style="color:var(--text);">${sa.archiviate} partite archiviate</strong> in totale,
@@ -2038,7 +2063,7 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
     return;
   }
   const perc = sa.attese > 0 ? Math.round((sa.archiviateDaPrimoSnapshot / sa.attese) * 100) : 100;
-  const colore = perc >= 90 ? "var(--ok,#4ade80)" : (perc >= 60 ? "#facc15" : "var(--accent)");
+  const colore = perc >= 90 ? "var(--ok,#4ade80)" : (perc >= 60 ? "var(--tie)" : "var(--loss)");
   const recente = sa.divarioRecente;
   // Le partite gia' presenti nella finestra di EA al primo scaricamento: sono in archivio
   // ma NON entrano nella percentuale, perche' quella confronta cio' che abbiamo salvato con
@@ -2066,7 +2091,7 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
         <div style="width:${Math.min(100, perc)}%; height:8px; border-radius:4px; background:${colore};"></div>
       </div>
       ${recente
-        ? `<span style="color:var(--accent);"><strong>${recente} partite delle ultime 48 ore non sono ancora in archivio.</strong></span>
+        ? `<span style="color:var(--loss);"><strong>${recente} partite delle ultime 48 ore non sono ancora in archivio.</strong></span>
            EA pubblica i risultati con qualche ora di ritardo, quindi può essere normale: se il numero
            non scende entro il prossimo aggiornamento, quelle partite sono perse.`
         : `<span style="color:var(--ok,#4ade80);">Nessuna partita mancante nelle ultime 48 ore.</span>`}
@@ -2628,8 +2653,8 @@ function computeOutfieldLineup(){
       responsive: true,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: "#b99aa0", autoSkip: false, maxRotation: 40, minRotation: 0 }, grid: { display: false } },
-        y: { ticks: { color: "#b99aa0", precision: 0 }, grid: { color: "#4a232a" } },
+        x: { ticks: { color: cssVar("--muted", "#9a9a95"), autoSkip: false, maxRotation: 40, minRotation: 0 }, grid: { display: false } },
+        y: { ticks: { color: cssVar("--muted", "#9a9a95"), precision: 0 }, grid: { color: cssVar("--border", "#35353a") } },
       }
     }
   });
@@ -3297,7 +3322,7 @@ function computeOutfieldLineup(){
       const forza = (suo - base) / dispersione[d.k];
       const scarso = d.minimo && !d.minimo(rif.attuale);
       const col = d.neutra || Math.abs(forza) < 0.4 ? "var(--muted)"
-                : forza > 0 ? "var(--ok,#4ade80)" : "var(--accent)";
+                : forza > 0 ? "var(--ok,#4ade80)" : "var(--loss)";
       const larghezza = Math.min(100, Math.abs(forza) * 45);
       return `<tr>
         <td data-label="Indicatore">${d.lab}${d.neutra ? ` <span style="color:var(--muted); font-size:11px;">(né bene né male)</span>` : ""}</td>
@@ -3454,7 +3479,7 @@ function computeOutfieldLineup(){
 
     const sr = variazione(partite, limite);
     const srHtml = sr
-      ? `<span style="color:${sr.delta > 0 ? "var(--ok,#4ade80)" : sr.delta < 0 ? "var(--accent)" : "var(--muted)"};">
+      ? `<span style="color:${sr.delta > 0 ? "var(--ok,#4ade80)" : sr.delta < 0 ? "var(--loss)" : "var(--muted)"};">
            ${sr.da} → ${sr.a} (${sr.delta > 0 ? "+" : ""}${sr.delta})</span>`
       : `<span style="color:var(--muted);">variazione non rilevata</span>`;
 
@@ -3464,7 +3489,7 @@ function computeOutfieldLineup(){
 
     const esito = m => m.goals_for > m.goals_against ? ["V", "var(--ok,#4ade80)"]
                      : m.goals_for === m.goals_against ? ["P", "var(--muted)"]
-                     : ["S", "var(--accent)"];
+                     : ["S", "var(--loss)"];
 
     return `
       <div class="panel" style="margin-bottom:12px;">
@@ -3906,7 +3931,7 @@ document.addEventListener("keydown", (e) => {
   const el = document.getElementById("crestBadge");
   const club = DATA.club || {};
   const initials = (club.name || "?").slice(0, 2).toUpperCase();
-  el.style.background = "linear-gradient(145deg, var(--accent), #8a1424)";
+  el.style.background = "linear-gradient(145deg, var(--accent), var(--accent-dark))";
   el.textContent = initials;
 })();
 

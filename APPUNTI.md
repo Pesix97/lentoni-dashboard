@@ -385,6 +385,58 @@ crash - cosi' la prossima volta che EA manda un `null` al posto di ometterlo il 
 subito invece di scoprirlo da un buco di due giorni nei dati. 104/104, tutti i controlli
 `node` verdi su `index.html` e su `archivio/fc-26.html`.
 
+**Restyling grafico completo, dal giallorosso a un tema grafite (24/09/2026).** Richiesta
+di Peppe: il giallorosso era stato scelto perche' l'anno scorso erano la Roma, ma quest'anno
+cambiano identita' ogni stagione - tenerlo avrebbe voluto dire sembrare sempre una squadra
+vera, per caso. Mostrate tre direzioni (Blu Notte, Viola Elettrico, Grafite Minimal) sugli
+stessi componenti veri della pagina, tenendo IDENTICI vittoria/pareggio/sconfitta e l'oro
+dei piazzamenti in tutte e tre - quelli sono leggibilita' dei dati, non identita' visiva, e
+non erano in discussione. Scelta: Grafite Minimal (`--bg:#161616`, `--accent:#2dd4bf`).
+
+Il colore non stava tutto in `:root`: un audit completo ha trovato 35 tinte scritte a mano
+in `stile.css` e 17 in `pagina.js`, oltre alle sei variabili principali. Tre categorie:
+
+1. **Duplicati del vecchio brand fuori da `:root`** - la tinta di sfondo di `#topNav`, lo
+   sfondo del badge "attaccante", il bordo dei giorni con partite nel calendario, i due
+   grafici Chart.js, e l'intera scheda da condividere (`drawCard()` in `pagina.js`, tredici
+   colori scritti a mano su un `<canvas>`, che non legge `var(...)`) ripetevano rosso e oro
+   come tripletta rgb o hex invece di leggerli da `:root`. Un `<canvas>` non puo' leggere una
+   variabile CSS da solo, quindi ora la legge lui: `cssVar(nome, ripiego)` in `pagina.js`
+   interroga `getComputedStyle` una volta per disegno. Aggiunte anche `--accent-rgb`,
+   `--accent-2-rgb`, `--accent-dark`, `--bg-rgb`: senza, un gradiente o una `rgba()` di
+   sfondo avrebbero comunque richiesto di scrivere il colore una seconda volta a mano. La
+   prossima volta che il tema cambia, tocca solo `:root`.
+
+2. **Due badge di ruolo che collidevano col nuovo accento.** Il difensore aveva un
+   verde-teal (`#5fd6b0`) che col nuovo `--accent` teal (`#2dd4bf`) sarebbe diventato quasi
+   lo stesso colore di "questo e' cliccabile" - spostato su un indaco (`#8f7de0`), libero
+   nella tavolozza dei ruoli. Il portiere prendeva il colore da `var(--accent-2)`: con
+   `--accent-2` diventato anch'esso un teal chiaro, avrebbe preso lo stesso problema.
+   Sganciato dal tema con un oro fisso suo (`#f2c14e`), perche' l'identita' di un ruolo non
+   dovrebbe dipendere da quale tema e' attivo in quel momento - era un accoppiamento
+   nascosto, non solo un colore da cambiare.
+
+3. **Otto punti dove `var(--accent)` significava "rosso di allarme", non "colore del
+   marchio".** Residui di quando l'accento ERA rosso: l'avversario piu' forte di noi, la
+   percentuale di archivio sotto soglia, le partite delle ultime 48 ore non ancora salvate,
+   una variazione di skill rating in calo, l'esito "S" di una partita. Lasciati su
+   `var(--accent)` sarebbero diventati teal - un peggioramento travestito da niente di
+   che. Reindirizzati tutti su `var(--loss)`, il rosso "cattiva notizia" gia' usato ovunque
+   nel resto della pagina (badge L, trend-down) e che questo restyling non tocca. Trovati
+   due gialli scritti a parte (`#facc15`) per lo stesso significato di `var(--tie)` gia'
+   presente nel tema: consolidati sullo stesso.
+
+Verificato guardando la pagina vera, non fidandosi dei soli test: un server locale sul PC
+di Peppe (`python3 -m http.server`, dato che un file `file://` aperto dal browser reale
+via Claude in Chrome non trova un servizio sulla porta della VM di `device_bash` - sono due
+"localhost" diversi) e uno stub di Chart.js per una copia di verifica in locale (il sandbox
+cloud non raggiunge cdnjs.cloudflare.com, la CDN vera invece funziona sul sito pubblicato).
+Controllati stemma, badge di ruolo, formazione, tabella confronto, e la scheda da
+condividere. 104/104 (l'unico rosso, `test_la_guardia_regge_a_una_riga_ricostruita`, e'
+scollegato: il `raw_json` del club FC 26 e' uscito dalla finestra delle ultime 15 partite
+tenute da `potatura.py`, normale a sei giorni dal passaggio a FC 27 - vedi "Verifiche ancora aperte"),
+tutti i controlli `node` verdi su `index.html` e su `archivio/fc-26.html`.
+
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un
@@ -668,6 +720,19 @@ l'archivio hanno detto lo stesso numero: **zero partite perse**. La prova che ma
 23/08 l'app era chiusa e ha funzionato, il che basta a dire che non dipende da Cowork;
 manca solo la prova formale a macchina spenta, che è una formalità visto che tutto gira
 sui server di GitHub.
+
+**`test_la_guardia_regge_a_una_riga_ricostruita` non trova più partite da testare, e non
+è colpa del codice.** Notato il 24/09/2026 lavorando al restyling grafico: il test
+ricostruisce `matches_league.json` dal `raw_json` salvato in `lentoni.db` per il club
+`CLUB = 2703620` (FC 26, chiuso il 18/09/2026), ma `potatura.py` tiene il grezzo solo
+delle ultime 15 partite **in tutto il database**, non per club. A sei giorni dal
+passaggio a FC 27, quelle 15 sono ormai tutte partite del club nuovo: il `raw_json` di FC
+26 è uscito dalla finestra, la lista di partite ricostruibili è vuota, e il test fallisce
+con `AssertionError: set() is not true`. Non è una guardia rotta - è una guardia che
+misura un titolo chiuso con dati che *per progetto* non restano lì per sempre. Da
+decidere: puntare il test al club attivo del momento (perde il legame con la partita
+originale che lo ha fatto nascere), o dargli un fixture proprio invece di ricostruirlo dal
+database vero.
 
 ---
 
