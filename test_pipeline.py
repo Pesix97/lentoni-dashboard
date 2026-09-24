@@ -968,6 +968,86 @@ class TestEsclusioni(BaseConArchivio):
         self.assertGreater(spenta, 0, "senza filtro le righe dovrebbero esserci")
         self.assertEqual(accesa, 0, "con il filtro non devono restare")
 
+    def test_la_carriera_toglie_le_stesse_partite_dellarchivio(self):
+        """PG e media voto in "Giocatori" devono contare le stesse partite di
+        "Indice di Forza", non di piu'.
+
+        Segnalato il 24/09/2026 su Pesix_97 in FC 27: l'Indice di Forza derivava la
+        forma da 17 partite (quelle con un voto vero), "Giocatori" mostrava ancora il PG
+        che manda EA (18), che conta anche una partita a voto sentinella. Stesso
+        giocatore, stessa serata, due numeri diversi - la causa era la stessa gia' nota
+        del test sopra, ma applicata solo a matchPlayers e mai al contatore di carriera.
+
+        Riferimento indipendente: il valore grezzo di member_stats_history (roster senza
+        alcun filtro attivo, qui sotto "grezzo") e il conteggio delle righe scartate per
+        ciascun giocatore, rifatto qui con una query separata invece di fidarsi di
+        tolte/tolte_voto calcolati dal codice sotto esame.
+        """
+        r = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        sentinella = r.get("voto_sentinella")
+        if sentinella is None:
+            self.skipTest("regola del voto sentinella disattivata")
+        elenco_esclusioni = {f"{e['match_id']}|{e['giocatore']}"
+                              for e in (r.get("esclusioni_partita") or [])}
+
+        con = sqlite3.connect(self.db)
+        con.row_factory = sqlite3.Row
+        cur = con.cursor()
+        cur.execute("""SELECT mps.player_name AS nome, mps.match_id AS mid, mps.rating AS voto
+                       FROM match_player_stats mps
+                       JOIN matches m ON m.match_id = mps.match_id AND m.club_id = mps.club_id
+                       WHERE mps.club_id = ?""", (CLUB,))
+        righe = cur.fetchall()
+        con.close()
+
+        # Per giocatore: quante righe si scartano in tutto, e quante di quelle sono
+        # sentinella "pura" (serve dopo per sapere di quanto la somma dei voti doveva
+        # calare: le esclusioni a mano non hanno per forza voto 3.0).
+        scarti, scarti_sentinella = {}, {}
+        for row in righe:
+            chiave = f"{row['mid']}|{row['nome']}"
+            e_sentinella = row["voto"] == sentinella
+            if chiave in elenco_esclusioni or e_sentinella:
+                scarti[row["nome"]] = scarti.get(row["nome"], 0) + 1
+                if e_sentinella:
+                    scarti_sentinella[row["nome"]] = scarti_sentinella.get(row["nome"], 0) + 1
+        if not scarti:
+            self.skipTest("nessuna partita scartata in questo archivio, niente da verificare")
+
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+        grezzo = {r["player_name"]: r for r in
+                  gd.build_data(str(self.db), club_id=CLUB,
+                                voto_sentinella=None)["roster"]}
+        corretto = {r["player_name"]: r for r in
+                    gd.build_data(str(self.db), club_id=CLUB, voto_sentinella=sentinella,
+                                  righe_escluse=elenco_esclusioni)["roster"]}
+
+        verificati = 0
+        for nome, n_scarti in scarti.items():
+            prima, dopo = grezzo.get(nome), corretto.get(nome)
+            if prima is None or dopo is None:
+                continue  # non in rosa (fuori dal gruppo)
+            with self.subTest(giocatore=nome):
+                # max(0, ...): in FC 26 il contatore EA di qualche giocatore marginale
+                # e' piu' vecchio delle partite che gli scartiamo (roster instabile,
+                # nomi riusati) - non deve andare sotto zero, ne' qui ne' nel codice
+                # sotto esame, che ha lo stesso pavimento.
+                self.assertEqual(
+                    dopo["games_played"], max(0, prima["games_played"] - n_scarti),
+                    "PG deve calare esattamente delle partite scartate per quel giocatore")
+                # Il voto medio si verifica solo per chi ha SOLO scarti sentinella: e' il
+                # solo caso in cui si conosce a priori il voto di ogni riga tolta e si
+                # puo' ricalcolare un atteso indipendente.
+                if dopo["games_played"] > 0 and scarti_sentinella.get(nome) == n_scarti:
+                    attesa = ((prima["rating_ave"] * prima["games_played"]
+                               - sentinella * n_scarti) / dopo["games_played"])
+                    self.assertAlmostEqual(
+                        dopo["rating_ave"], attesa, places=1,
+                        msg="media voto deve escludere il contributo del sentinella")
+            verificati += 1
+        self.assertGreater(verificati, 0, "nessun giocatore scartato era ancora in rosa")
+
     def test_python_e_javascript_assegnano_lo_stesso_reparto(self):
         """La regola dei ruoli esiste due volte: in ruoli.py e nel JS della pagina.
 

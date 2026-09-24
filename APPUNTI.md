@@ -437,6 +437,34 @@ scollegato: il `raw_json` del club FC 26 e' uscito dalla finestra delle ultime 1
 tenute da `potatura.py`, normale a sei giorni dal passaggio a FC 27 - vedi "Verifiche ancora aperte"),
 tutti i controlli `node` verdi su `index.html` e su `archivio/fc-26.html`.
 
+**La carriera di un giocatore ora toglie anche lei le partite scartate (24/09/2026).**
+Segnalato da Peppe: su Pesix_97, "Indice di Forza" diceva 17 partite e "Giocatori" ne
+diceva 18 - stesso giocatore, stessa serata. La causa era gia' nota (vedi il voto
+sentinella, sopra in questa sezione, e le esclusioni a mano in `TestEsclusioni`): quando
+una riga viene scartata da `matchPlayers` (voto 3.0 di EA per un voto mai registrato,
+o un'esclusione a mano per CPU-al-posto-del-disconnesso), tutto cio' che parte
+dall'archivio delle partite smette di contarla. Ma il contatore di carriera che arriva
+gia' pronto da EA (`member_stats_history.games_played`, `.rating_ave`) non lo sa, e
+continuava a contare 18.
+
+Non e' un numero nostro da correggere alla fonte - e' quello che manda EA. Quello che si
+puo' fare, e ora si fa in `generate_dashboard.py`: ogni riga scartata (a mano o per
+sentinella) viene accumulata per giocatore mentre si costruisce `matchPlayers`, e subito
+dopo sottratta dal contatore EA del roster - `games_played` -1 per riga, media voto
+ricalcolata togliendo il suo contributo dalla somma, gol/assist/MOTM/rossi sottratti
+anche loro (quasi sempre zero, ma il CPU al posto di un disconnesso puo' segnare). Vale
+solo per le partite che abbiamo in archivio: un buco di FC 26 mai archiviato (35 partite,
+vedi "salute archivio") resta scoperto come prima, non e' un peggioramento.
+
+Verificato con un riferimento indipendente, non con l'output del codice sotto esame:
+`test_la_carriera_toglie_le_stesse_partite_dellarchivio` in `TestEsclusioni` rifa' il
+conteggio delle righe scartate con una query SQL propria (non con `tolte`/`tolte_voto`
+del codice) e ricalcola a mano il voto medio atteso per chi ha solo scarti sentinella.
+Fatto fallire apposta disattivando la correzione, per essere sicuri che sappia
+accorgersene. Su Pesix_97 in FC 27: 18 -> 17 partite, media voto 7.20 -> 7.45 (quel 3.0
+pesava per un diciottesimo della media, non poco quando le partite sono ancora poche).
+105/105, README aggiornato al nuovo conteggio.
+
 ### 2. Pesi specifici per reparto nell'Indice di Forza
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un

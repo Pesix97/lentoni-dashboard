@@ -339,6 +339,26 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
     match_players = {}
     tolte = 0
     tolte_voto = 0
+    # Ogni riga tolta da qui (a mano o per voto sentinella) pesa comunque nel contatore
+    # di carriera che arriva da EA (m.games_played, m.rating_ave...): quel numero non lo
+    # calcoliamo noi, e non sa che l'abbiamo scartata. Segnalato il 24/09/2026 su Pesix_97:
+    # "Indice di Forza" diceva 17 partite (quelle vere), "Giocatori" ne diceva 18 (quante
+    # ne conta EA) - stesso giocatore, stessa serata, due numeri diversi. Qui si accumula
+    # il contributo di ogni riga scartata, cosi' da poterlo sottrarre dalla carriera EA
+    # subito dopo, invece di lasciare le due sezioni a raccontare partite diverse.
+    correzioni_carriera = {}
+
+    def accumula_scarto(nome, riga):
+        c = correzioni_carriera.setdefault(nome, {
+            "partite": 0, "voto_somma": 0.0, "gol": 0, "assist": 0, "mom": 0, "rosso": 0,
+        })
+        c["partite"]    += 1
+        c["voto_somma"] += riga["rating"] or 0.0
+        c["gol"]        += riga["goals"] or 0
+        c["assist"]     += riga["assists"] or 0
+        c["mom"]        += riga["mom"] or 0
+        c["rosso"]      += riga["red_cards"] or 0
+
     # Le partite del titolo attivo, per distinguere una voce sbagliata di roles.json da una
     # che semplicemente riguarda un titolo precedente.
     id_partite = {str(m["match_id"]) for m in matches}
@@ -368,8 +388,10 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
         for r in rows:
             if f"{m['match_id']}|{r['player_name']}" in righe_escluse:
                 tolte += 1
+                accumula_scarto(r["player_name"], r)
             elif voto_sentinella is not None and r["rating"] == voto_sentinella:
                 tolte_voto += 1
+                accumula_scarto(r["player_name"], r)
             else:
                 tenute.append(r)
         match_players[m["match_id"]] = tenute
@@ -393,6 +415,33 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
                   f"({di_altri} riguardano titoli precedenti)")
     if tolte_voto:
         print(f"  prestazioni senza voto (sentinella {voto_sentinella}): {tolte_voto}")
+
+    # La correzione vera e propria: dal contatore EA di ciascun giocatore si tolgono
+    # esattamente le partite appena scartate, e la media voto si ricalcola senza il loro
+    # contributo. Gol/assist/MOTM/rossi delle righe scartate sono quasi sempre zero (chi
+    # non ha giocato non segna), ma si sottraggono comunque per i casi in cui non lo sono
+    # (il CPU al posto di un disconnesso puo' segnare). Riguarda solo le partite che
+    # abbiamo in archivio: un buco di FC 26 mai archiviato resta scoperto come prima,
+    # non e' un peggioramento rispetto a oggi.
+    corretti = 0
+    for r in roster:
+        c = correzioni_carriera.get(r["player_name"])
+        if not c or not c["partite"]:
+            continue
+        vecchie = r["games_played"] or 0
+        nuove = max(0, vecchie - c["partite"])
+        vecchia_media = r["rating_ave"] or 0.0
+        if nuove > 0:
+            r["rating_ave"] = round((vecchia_media * vecchie - c["voto_somma"]) / nuove, 2)
+        r["games_played"] = nuove
+        r["goals"]            = max(0, (r["goals"] or 0) - c["gol"])
+        r["assists"]          = max(0, (r["assists"] or 0) - c["assist"])
+        r["man_of_the_match"] = max(0, (r["man_of_the_match"] or 0) - c["mom"])
+        r["red_cards"]        = max(0, (r["red_cards"] or 0) - c["rosso"])
+        corretti += 1
+    if corretti:
+        print(f"  carriera corretta per {corretti} giocatori: le partite scartate (a mano o "
+              f"per voto sentinella) non contano piu' nemmeno in PG e media voto")
 
     salute = calcola_salute_archivio(cur, club_id)
     data_identita = controlla_identita(cur, club_id)
