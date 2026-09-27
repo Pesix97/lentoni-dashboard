@@ -20,6 +20,16 @@ from pathlib import Path
 
 QUI = Path(__file__).resolve().parent
 CLUB = 2703620
+# CLUB e' il club di FC 26, congelato apposta (vedi il commento su self.club_json qui
+# sotto): la maggior parte di questi test e' calibrata sui suoi numeri. Ma dal passaggio
+# a FC 27 (18/09/2026) FC 26 e' il titolo ARCHIVIATO, e potatura.py ripulisce il raw_json
+# di un titolo non piu' attivo: al 27/09/2026 FC 26 e' arrivato a zero partite con
+# raw_json su 180 (era gia' cosi' per il grosso dell'archivio anche prima, la potatura
+# tiene solo le ultime 15 del titolo ATTIVO). I test che ricostruiscono i grezzi da
+# raw_json per rigiocare un ingest vero (non quelli che leggono solo self.db) hanno quindi
+# bisogno del titolo che oggi ne ha ancora, non di CLUB. Va aggiornato al prossimo
+# passaggio di titolo, come 18510 lo era da CLUB il 18/09/2026.
+CLUB_ATTIVO = 18510
 
 
 def md5file(p):
@@ -60,14 +70,19 @@ class BaseConArchivio(unittest.TestCase):
             "storico": [],
         }, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    def _ricostruisci_raw(self):
+    def _ricostruisci_raw(self, club_id=None):
         """Ricrea i file grezzi dal database invece di leggerli da raw/.
 
         raw/ non e' sotto controllo di versione (contiene campi che EA cambia ad ogni
         chiamata), quindi sul runner quei file non esistono. Ma il database conserva in
         'raw_json' la risposta originale di ogni entita': da li' si ricostruisce un
         fixture identico a quello vero, senza rete e senza dipendere dall'ambiente.
+
+        club_id e' CLUB di default (il titolo su cui e' calibrata la maggior parte dei
+        test). Chi ha bisogno di partite con raw_json ANCORA presente (non potato) passa
+        CLUB_ATTIVO invece - vedi il commento su CLUB_ATTIVO in cima al file.
         """
+        club_id = CLUB if club_id is None else club_id
         con = sqlite3.connect(self.db)
         con.row_factory = sqlite3.Row
         scrivi = lambda n, o: (self.raw / n).write_text(
@@ -75,17 +90,17 @@ class BaseConArchivio(unittest.TestCase):
 
         club = con.execute(
             "SELECT raw_json FROM club_stats_history WHERE club_id=? AND raw_json IS NOT NULL "
-            "ORDER BY id DESC LIMIT 1", (CLUB,)).fetchone()
+            "ORDER BY id DESC LIMIT 1", (club_id,)).fetchone()
         scrivi("overall_stats.json", [json.loads(club["raw_json"])] if club else [])
 
         ultimo = con.execute(
-            "SELECT MAX(fetched_at) FROM member_stats_history WHERE club_id=?", (CLUB,)).fetchone()[0]
+            "SELECT MAX(fetched_at) FROM member_stats_history WHERE club_id=?", (club_id,)).fetchone()[0]
         membri = [json.loads(r["raw_json"]) for r in con.execute(
             "SELECT raw_json FROM member_stats_history WHERE club_id=? AND fetched_at=? "
-            "AND raw_json IS NOT NULL", (CLUB, ultimo))]
+            "AND raw_json IS NOT NULL", (club_id, ultimo))]
         scrivi("members_stats.json", {"members": membri, "positionCount": {}})
 
-        info = con.execute("SELECT raw_json FROM club_info WHERE club_id=?", (CLUB,)).fetchone()
+        info = con.execute("SELECT raw_json FROM club_info WHERE club_id=?", (club_id,)).fetchone()
         dati_club = {}
         if info and info["raw_json"]:
             grezzo = json.loads(info["raw_json"])
@@ -94,7 +109,7 @@ class BaseConArchivio(unittest.TestCase):
 
         partite = [json.loads(r["raw_json"]) for r in con.execute(
             "SELECT raw_json FROM matches WHERE club_id=? AND raw_json IS NOT NULL "
-            "ORDER BY ts DESC LIMIT 10", (CLUB,))]
+            "ORDER BY ts DESC LIMIT 10", (club_id,))]
         scrivi("matches_league.json", partite)
         scrivi("matches_playoff.json", [])
         scrivi("matches_friendly.json", [])
@@ -152,7 +167,12 @@ class TestIngest(BaseConArchivio):
         agisce mentre si reinseriscono i dati, quindi non tocca le partite piu' vecchie
         della finestra di 10 che EA restituisce. Quelle sono state ripulite una volta a
         mano e non possono piu' sporcarsi.
+
+        Serve un titolo il cui raw_json non sia stato potato: CLUB (FC 26) e' l'archivio
+        congelato e da tempo non ne ha piu' (vedi il commento su CLUB_ATTIVO), quindi qui
+        si ricostruisce raw/ apposta per CLUB_ATTIVO invece di usare quello di setUp.
         """
+        self._ricostruisci_raw(CLUB_ATTIVO)
         nel_feed = {str(m["matchId"]) for m in
                     json.loads((self.raw / "matches_league.json").read_text(encoding="utf-8"))}
         self.assertTrue(nel_feed, "feed delle partite vuoto")
@@ -170,7 +190,7 @@ class TestIngest(BaseConArchivio):
         mid, nome = riga
         con.execute(
             "INSERT INTO match_player_stats (match_id, club_id, ea_player_id, player_name, pos) "
-            "VALUES (?,?,?,?,?)", (mid, CLUB, "recovered_test", nome, "midfielder"))
+            "VALUES (?,?,?,?,?)", (mid, CLUB_ATTIVO, "recovered_test", nome, "midfielder"))
         con.commit()
         prima = con.execute(
             "SELECT COUNT(*) FROM match_player_stats WHERE match_id=? AND player_name=?",
