@@ -1290,3 +1290,21 @@ fondo (EA non distingue un COC da un CC) - li' e' terminologia calcistica, non
 un'etichetta della dashboard. Nota a margine: il nome coincide ora con lo slot
 "trequartista" gia' esistente nella formazione tipo (vedi sopra) - stesso concetto
 calcistico, due sistemi ancora separati, non unificati qui.
+
+**GRUPPO_FORMA_BUG, trovato il 27/09/2026 confermando la serata del 26/09.**
+`test_tecnica.js` segnalava uno scarto vero (non arrotondamento) fra colonna e dettaglio
+della Tecnica: per m4tt1asgn8, finestra 30 / peso 1, colonna 48.40 contro dettaglio 46.38.
+Causa: in `computeFormScores` il lato "forma" dell'efficienza tecnica calcolava il reparto
+con `gruppoGiocatore(name, null)` - ripiego `null` esplicito. Per chi non ha
+un'assegnazione manuale in `roles.json` (come m4tt1asgn8, difensore ma "da assegnare"),
+`gruppoGiocatore` restituisce `null` e `efficienzaTecnica` ripiega sui pesi di default
+(quelli dell'attacco: 45/10/45) invece dei pesi veri del reparto (difensore: 40/50/10). Il
+lato "carriera", invece, usa sempre `r.gruppo` - risolto una volta sola sul roster con
+`r.role_effective` come ripiego, mai `null`. Due pesi diversi mescolati nello stesso
+numero: lo stesso schema di guasto di questo progetto, confrontare cose non confrontabili.
+Corretto riusando il gruppo gia' risolto sul roster (`GRUPPO_BY_NAME`, una mappa nome→gruppo
+costruita subito dopo quel roster.forEach) invece di ricalcolarlo con un ripiego sbagliato.
+Prova indipendente: sulla pagina generata PRIMA di questa correzione `test_tecnica.js`
+falliva proprio su questo scarto; rigenerata la pagina con la correzione, lo stesso test
+passa su tutte le 150 combinazioni (3 finestre x 5 pesi x 10 giocatori), scarto massimo
+misurato 1.4e-14.

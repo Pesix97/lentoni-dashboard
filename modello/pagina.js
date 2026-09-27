@@ -167,6 +167,11 @@ function gruppoBadge(gruppo, daAssegnare){
   r.role_counts = sortedGruppi.length ? Object.fromEntries(sortedGruppi) : null;
 });
 
+// Stesso gruppo gia' risolto qui sopra (con la sua vera scorciatoia di ripiego,
+// r.role_effective), riusabile da chi calcola la forma senza rifare la risoluzione con
+// un ripiego sbagliato. Vedi GRUPPO_FORMA_BUG piu' sotto per il perche' serve.
+const GRUPPO_BY_NAME = new Map((DATA.roster || []).map(r => [r.player_name, r.gruppo]));
+
 // ---- I pesi dell'Indice di Forza, in un posto solo ----
 // Erano ripetuti in quattro punti (generale storico, generale forma, per reparto, per
 // ruolo EA). Quattro copie della stessa regola significa vederla cambiare in tre.
@@ -785,7 +790,18 @@ function computeFormScores(windowSize){
         contrib:   (a.goals + a.assists) / a.games,
         motmRate:  a.mom / a.games,
         winRate:   (a.win / a.games) * 100,
-        techEff:   efficienzaTecnica(pass, tackle, shot, gruppoGiocatore(name, null),
+        // GRUPPO_FORMA_BUG, trovato il 27/09/2026 da una segnalazione di Peppe (pagina
+        // ferma da 38 ore, test_tecnica.js falliva su m4tt1asgn8 a finestra 30, peso 1:
+        // colonna 48.40, dettaglio 46.38). Qui sotto c'era gruppoGiocatore(name, null): per
+        // chi non ha un'assegnazione manuale in roles.json (m4tt1asgn8, "gruppo_da_assegnare")
+        // il ripiego null fa restituire null a gruppoGiocatore, ed efficienzaTecnica ripiega
+        // sui pesi di DEFAULT invece di quelli veri del reparto (qui DIFENSORI: 40/50/10).
+        // La colonna e il dettaglio, invece, usano sempre r.gruppo (riga ~162, risolto con
+        // r.role_effective come ripiego) - due pesi diversi mescolati nello stesso numero,
+        // ed e' esattamente il tipo di guasto di questo progetto: confrontare cose non
+        // confrontabili. Corretto riusando lo stesso gruppo gia' risolto sul roster
+        // (GRUPPO_BY_NAME) invece di ricalcolarlo qui con un ripiego che non c'entra.
+        techEff:   efficienzaTecnica(pass, tackle, shot, GRUPPO_BY_NAME.get(name) || null,
                      { passaggi: a.passAtt, contrasti: a.tackleAtt, tiro: a.shots }),
         // I tre pezzi si conservano anche separati: il testa a testa apre l'efficienza
         // tecnica per mostrare da quale dei tre nasce il distacco.
