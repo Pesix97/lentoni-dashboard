@@ -1821,6 +1821,42 @@
       "quando": "19/09 01:59 LOHJANKEISARIT",
       "giocatore": "domenicocasaburi",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "37906124320114",
+      "quando": "27/09 22:45 Bomull FC",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "37742812790226",
+      "quando": "27/09 23:04 Hunde Stil",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "38192125070195",
+      "quando": "27/09 23:28 Hedmark Vikings",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "38192371360394",
+      "quando": "27/09 23:58 Doofenshmirtz",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "38234541810457",
+      "quando": "28/09 00:08 EastGang",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "38468099250402",
+      "quando": "28/09 00:48 ROD 3ERI FC",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
     }
   ],
   "_esclusioni_partita": [
@@ -2047,6 +2083,10 @@
     {
       "serata": "2026-09-25T22:00Z",
       "partite": 5
+    },
+    {
+      "serata": "2026-09-27T20:45Z",
+      "partite": 6
     }
   ],
   "_serate_chiuse": [
