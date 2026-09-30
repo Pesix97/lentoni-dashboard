@@ -1335,3 +1335,42 @@ correzione riportata nella skill Cowork `lentoni-dashboard`, che duplicava la ri
 identica. Nessun altro punto trovato: il resto delle citazioni di `Downloads` nel
 repository (qui sopra, e in `CLAUDE.md` sulle credenziali) sono gia' corrette - descrivono
 dov'era il progetto PRIMA, o dove vive tuttora lo script (che non s'e' mai spostato).
+
+**Secondo restyling grafico: da Grafite ad "Aurora Elettrica" (30/09/2026).** Richiesta di
+Peppe: il tema grafite del 24/09 "e' troppo spenta". Chiarito con due domande invece di
+indovinare: mancava profondita'/movimento (non i colori in se'), e la direzione voluta era
+piu' energica, da gaming. Mostrate tre direzioni sugli stessi componenti veri della pagina
+(Aurora Elettrica viola->ciano, Plasma Notturno magenta->arancio, Cyber Lime lime->ciano),
+tutte con un accento a due toni invece di uno piatto, glow ambientali e uno sparkline a
+tratto sfumato al posto della linea in tinta unita; vittoria/pareggio/sconfitta e l'oro dei
+piazzamenti di nuovo fuori discussione, identici nelle tre. Scelta: Aurora Elettrica
+(`--accent:#8b7cff`, `--accent-2:#22d3ee`, `--bg:#0b0b12`).
+
+Stessa collisione del restyling di sei giorni prima, stessa causa: cambiare l'accento ha
+fatto scontrare tre badge di ruolo gia' vicini al nuovo viola - difensore (`#8f7de0`),
+esterni (`#c4a0f0`), centrocampista (`#7fb3f0`). Validati uno per uno con lo stesso
+`validate_palette.js` del restyling precedente (modalita' dark, contro il vero sfondo dei
+badge `--panel-2`) finche' non si e' trovata una terna che non collide ne' con l'accento
+ne' fra loro ne' col resto della tavolozza: centrocampista -> blu `#3363bd`, esterni ->
+magenta `#a844a0`, difensore -> bronzo `#a6793a`.
+
+Profondita' aggiunta in tre punti, tutta CSS/JS puro, nessuna immagine: due aloni radiali
+impilati nello sfondo di `<body>` (mai un `::before`/`::after`, per non rischiare lo
+z-index della barra di navigazione fissa, `#topNav` a `z-index:100`); un bagliore in piu'
+nel box-shadow di `.card:hover`; e il grafico dello skill rating (`chartHistory` in
+`pagina.js`) che ora disegna linea e riempimento con veri gradienti Chart.js - opzioni
+"scriptable" (`borderColor`/`backgroundColor` come funzioni che costruiscono un
+`CanvasGradient` da `context.chart.ctx`/`chartArea`), con un ripiego a tinta piatta per il
+primissimo giro di disegno, quando `chartArea` non esiste ancora. Aggiornati anche i
+quattro ripieghi rimasti scritti a mano nei `cssVar()` di `pagina.js` (grafico primi posti,
+scheda da condividere) - stesso genere di residuo gia' documentato nel restyling
+precedente - e ricontrollato con un grep mirato sui vecchi esadecimali che non ne restasse
+indietro nessuno.
+
+Verificato guardando la pagina vera, non i soli test: 105/105 Python, tutti i controlli
+`node` verdi (`test_ruoli`, `test_apertura`, `test_tecnica`) su `index.html` rigenerato, e
+screenshot reali via Playwright delle pagine Home, Giocatori e Indice di Forza con
+Chart.js sostituito da uno stub (stesso motivo del restyling precedente:
+cdnjs.cloudflare.com non raggiungibile dal sandbox cloud - la CDN vera funziona sul sito
+pubblicato) - badge di ruolo tutti leggibili e distinti, bagliore visibile su stemma e
+card, vittoria/pareggio/sconfitta/oro invariati.

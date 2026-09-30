@@ -1058,8 +1058,27 @@ function computeBlendedScores(windowSize, weight){
         datasets: [{
           label: "Skill rating",
           data: punti.map(h => h.skill_rating),
-          borderColor: cssVar("--accent", "#2dd4bf"),
-          backgroundColor: `rgba(${cssVar("--accent-rgb", "45,212,191")},.18)`,
+          // Sfumatura viola->ciano invece di un colore piatto (restyling "Aurora Elettrica"
+          // del 30/09/2026): Chart.js chiama questa funzione ad ogni disegno, e chartArea
+          // non esiste ancora al primissimo giro di layout, quindi il ripiego resta un
+          // colore piatto finche' l'area non e' nota.
+          borderColor: (context) => {
+            const { ctx, chartArea } = context.chart;
+            if(!chartArea) return cssVar("--accent", "#8b7cff");
+            const g = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+            g.addColorStop(0, cssVar("--accent", "#8b7cff"));
+            g.addColorStop(1, cssVar("--accent-2", "#22d3ee"));
+            return g;
+          },
+          backgroundColor: (context) => {
+            const { ctx, chartArea } = context.chart;
+            const rgb = cssVar("--accent-2-rgb", "34,211,238");
+            if(!chartArea) return `rgba(${rgb},.18)`;
+            const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, `rgba(${rgb},.30)`);
+            g.addColorStop(1, `rgba(${rgb},0)`);
+            return g;
+          },
           tension: 0.25,
           fill: true,
           pointRadius: punti.length > 40 ? 0 : 3,
@@ -1128,7 +1147,7 @@ function computeBlendedScores(windowSize, weight){
     type: "bar",
     data: {
       labels,
-      datasets: [{ label: "Primi posti", data: values, backgroundColor: cssVar("--accent", "#2dd4bf"), borderRadius: 4 }]
+      datasets: [{ label: "Primi posti", data: values, backgroundColor: cssVar("--accent", "#8b7cff"), borderRadius: 4 }]
     },
     options: {
       responsive: true,
@@ -1486,9 +1505,9 @@ renderRoster();
     // Un <canvas> non legge var(...): i colori del tema si leggono UNA volta qui, con
     // cssVar(), invece che restare scritti a mano come prima del restyling grafite del
     // 24/09/2026 (era rosso e oro duplicati in tredici punti diversi di questa funzione).
-    const colBg = cssVar("--bg", "#161616"), colPanel2 = cssVar("--panel-2", "#252525");
-    const colAccent = cssVar("--accent", "#2dd4bf"), colAccentRgb = cssVar("--accent-rgb", "45,212,191");
-    const colAccent2 = cssVar("--accent-2", "#5eead4"), colAccent2Rgb = cssVar("--accent-2-rgb", "94,234,212");
+    const colBg = cssVar("--bg", "#0b0b12"), colPanel2 = cssVar("--panel-2", "#191929");
+    const colAccent = cssVar("--accent", "#8b7cff"), colAccentRgb = cssVar("--accent-rgb", "139,124,255");
+    const colAccent2 = cssVar("--accent-2", "#22d3ee"), colAccent2Rgb = cssVar("--accent-2-rgb", "34,211,238");
     const colText = cssVar("--text", "#f2f0ec"), colMuted = cssVar("--muted", "#9a9a95");
     const colWin = cssVar("--win", "#33c17a"), colTie = cssVar("--tie", "#e0b23f"), colLoss = cssVar("--loss", "#e5566d");
 
