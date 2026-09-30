@@ -133,7 +133,7 @@ Infine, se è cambiato uno di questi documenti, va rigenerata la pagina che Pepp
 leggerli — Windows non apre i `.md`:
 
 ```
-LENTONI_BASE=".." python3 "../../Downloads/Claude - skill/genera-documenti.py"
+LENTONI_BASE=".." python3 "C:/Users/gseid/Downloads/Claude - skill/genera-documenti.py"
 ```
 
 (Lo script vive ancora dentro `Downloads/Claude - skill/`, invariato. `LENTONI_BASE`
@@ -141,7 +141,13 @@ serve dal 02/09/2026, da quando la cartella del progetto non e' piu' dentro Down
 senza, lo script cerca CLAUDE.md/README.md/APPUNTI.md dove non ci sono piu' e li salta in
 silenzio, producendo un `Documenti.html` incompleto senza dirlo — successo il 02/09/2026
 stesso, scoperto solo rilanciandolo a mano. Su Windows nativo, senza questa variabile, lo
-script usa da solo `C:\dev` come base: e' li' che vive ora la dashboard.)
+script usa da solo `C:\dev` come base: e' li' che vive ora la dashboard.
+
+Il percorso dello SCRIPT qui sopra e' assoluto apposta, non relativo: trovato il 30/09/2026
+che `../../Downloads/...` (due risalite da dentro Downloads, dove il progetto viveva prima
+del 02/09) da `C:\dev\proclubs_lentoni` porta a `C:\Downloads`, non a `C:\Users\gseid` -
+la stessa identica fragilita' spiegata due righe sopra per i DATI, mai corretta per lo
+SCRIPT stesso. Vedi APPUNTI.md.)
 
 Produce `Downloads\Documenti.html`. È una **copia**: se non si rigenera, lui legge la
 versione vecchia senza accorgersene.

@@ -1308,3 +1308,30 @@ Prova indipendente: sulla pagina generata PRIMA di questa correzione `test_tecni
 falliva proprio su questo scarto; rigenerata la pagina con la correzione, lo stesso test
 passa su tutte le 150 combinazioni (3 finestre x 5 pesi x 10 giocatori), scarto massimo
 misurato 1.4e-14.
+
+**Il comando di pubblicazione puntava ancora a `C:\Downloads`, trovato il 30/09/2026.**
+Segnalato da Peppe: la cartella del progetto s'e' spostata da `Downloads` a `C:\dev` il
+02/09/2026, ma non tutta la documentazione lo riflette ancora. Cercando "Downloads" in
+tutto il repository si e' trovato un solo punto davvero rotto, non solo "non aggiornato":
+in `CLAUDE.md`, "Pubblicazione" dava il comando
+
+    LENTONI_BASE=".." python3 "../../Downloads/Claude - skill/genera-documenti.py"
+
+Quel `../../Downloads` risaliva due cartelle da dentro `Downloads`, dove il progetto viveva
+prima del 02/09. Da `C:\dev\proclubs_lentoni` le stesse due risalite portano a `C:\`, non
+a `C:\Users\gseid`, quindi il percorso puntava a `C:\Downloads\Claude - skill\...` - una
+cartella che non esiste. La riga subito sotto descriveva gia' in prosa il motivo esatto per
+cui questo non puo' funzionare ("i due non condividono più una cartella comune, quindi
+nessun percorso relativo può reggere in entrambi i contesti") - lezione imparata il
+02/09/2026 per i DATI che lo script legge (risolta li' con `LENTONI_BASE`), mai applicata
+al percorso dello SCRIPT stesso nella riga di comando qui sopra. Non si era ancora rotto
+per davvero solo perche' nessuno l'aveva rilanciato da `C:\dev` prima d'ora: uguale, nella
+forma, al bug di `genera-documenti.py` gia' raccontato sopra (fallisce in silenzio finche'
+qualcuno lo rilancia apposta).
+
+Corretto usando un percorso assoluto per lo script (`C:/Users/gseid/Downloads/Claude -
+skill/genera-documenti.py`), che non dipende piu' da dove vive il repository. Stessa
+correzione riportata nella skill Cowork `lentoni-dashboard`, che duplicava la riga
+identica. Nessun altro punto trovato: il resto delle citazioni di `Downloads` nel
+repository (qui sopra, e in `CLAUDE.md` sulle credenziali) sono gia' corrette - descrivono
+dov'era il progetto PRIMA, o dove vive tuttora lo script (che non s'e' mai spostato).
