@@ -7,15 +7,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg:#161616; --panel:#1e1e1e; --panel-2:#252525; --border:#35353a;
-    --text:#f2f0ec; --muted:#9a9a95; --accent:#2dd4bf; --accent-2:#5eead4;
-    --accent-dark:#146b61; --accent-rgb:45,212,191; --accent-2-rgb:94,234,212; --bg-rgb:22,22,22;
+    --bg:#0b0b12; --panel:#131320; --panel-2:#191929; --border:rgba(139,124,255,.16);
+    --text:#f1eeff; --muted:#9a94c2; --accent:#8b7cff; --accent-2:#22d3ee;
+    --accent-dark:#4c3fc7; --accent-rgb:139,124,255; --accent-2-rgb:34,211,238; --bg-rgb:11,11,18;
     --win:#33c17a; --loss:#e5566d; --tie:#e0b23f; --gold:#ffd966;
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth; scroll-padding-top:56px;}
   body{
-    margin:0; background:var(--bg); color:var(--text);
+    margin:0; color:var(--text);
+    background:
+      radial-gradient(560px 420px at 8% -6%, rgba(var(--accent-rgb),.14), transparent 60%),
+      radial-gradient(520px 400px at 100% 18%, rgba(var(--accent-2-rgb),.10), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     padding:24px 32px 60px;
   }
@@ -178,7 +183,7 @@
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
     padding:14px 16px; transition:transform .15s, box-shadow .15s, border-color .15s;
   }
-  .card:hover{transform:translateY(-2px); border-color:var(--accent-2); box-shadow:0 6px 18px rgba(0,0,0,.35);}
+  .card:hover{transform:translateY(-2px); border-color:var(--accent-2); box-shadow:0 6px 18px rgba(0,0,0,.35), 0 0 24px -6px rgba(var(--accent-rgb),.35);}
   .card .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;}
   .card .value{font-size:22px; font-weight:600; margin-top:4px;}
   .card .value.win{color:var(--win);}
@@ -275,11 +280,11 @@
     letter-spacing:.03em; padding:3px 8px; border-radius:20px;
   }
   .role-badge.forward{background:rgba(255,107,127,.18); color:#ff6b7f;}
-  .role-badge.midfielder{background:rgba(80,150,230,.18); color:#7fb3f0;}
+  .role-badge.midfielder{background:rgba(51,99,189,.18); color:#3363bd;}
   .role-badge.goalkeeper{background:rgba(242,193,78,.18); color:#f2c14e;}
-  .role-badge.esterni{background:rgba(168,120,230,.18); color:#c4a0f0;}
+  .role-badge.esterni{background:rgba(168,68,160,.18); color:#a844a0;}
   .role-badge.trequartista{background:rgba(255,159,67,.18); color:#ffb37a;}
-  .role-badge.defender{background:rgba(143,125,224,.18); color:#8f7de0;}
+  .role-badge.defender{background:rgba(166,121,58,.18); color:#a6793a;}
   .role-badge.unknown{background:var(--panel-2); color:var(--muted);}
   .match-row{cursor:pointer;}
   .match-detail{display:none; background:var(--panel-2);}
@@ -2183,8 +2188,27 @@ function computeBlendedScores(windowSize, weight){
         datasets: [{
           label: "Skill rating",
           data: punti.map(h => h.skill_rating),
-          borderColor: cssVar("--accent", "#2dd4bf"),
-          backgroundColor: `rgba(${cssVar("--accent-rgb", "45,212,191")},.18)`,
+          // Sfumatura viola->ciano invece di un colore piatto (restyling "Aurora Elettrica"
+          // del 30/09/2026): Chart.js chiama questa funzione ad ogni disegno, e chartArea
+          // non esiste ancora al primissimo giro di layout, quindi il ripiego resta un
+          // colore piatto finche' l'area non e' nota.
+          borderColor: (context) => {
+            const { ctx, chartArea } = context.chart;
+            if(!chartArea) return cssVar("--accent", "#8b7cff");
+            const g = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+            g.addColorStop(0, cssVar("--accent", "#8b7cff"));
+            g.addColorStop(1, cssVar("--accent-2", "#22d3ee"));
+            return g;
+          },
+          backgroundColor: (context) => {
+            const { ctx, chartArea } = context.chart;
+            const rgb = cssVar("--accent-2-rgb", "34,211,238");
+            if(!chartArea) return `rgba(${rgb},.18)`;
+            const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, `rgba(${rgb},.30)`);
+            g.addColorStop(1, `rgba(${rgb},0)`);
+            return g;
+          },
           tension: 0.25,
           fill: true,
           pointRadius: punti.length > 40 ? 0 : 3,
@@ -2253,7 +2277,7 @@ function computeBlendedScores(windowSize, weight){
     type: "bar",
     data: {
       labels,
-      datasets: [{ label: "Primi posti", data: values, backgroundColor: cssVar("--accent", "#2dd4bf"), borderRadius: 4 }]
+      datasets: [{ label: "Primi posti", data: values, backgroundColor: cssVar("--accent", "#8b7cff"), borderRadius: 4 }]
     },
     options: {
       responsive: true,
@@ -2611,9 +2635,9 @@ renderRoster();
     // Un <canvas> non legge var(...): i colori del tema si leggono UNA volta qui, con
     // cssVar(), invece che restare scritti a mano come prima del restyling grafite del
     // 24/09/2026 (era rosso e oro duplicati in tredici punti diversi di questa funzione).
-    const colBg = cssVar("--bg", "#161616"), colPanel2 = cssVar("--panel-2", "#252525");
-    const colAccent = cssVar("--accent", "#2dd4bf"), colAccentRgb = cssVar("--accent-rgb", "45,212,191");
-    const colAccent2 = cssVar("--accent-2", "#5eead4"), colAccent2Rgb = cssVar("--accent-2-rgb", "94,234,212");
+    const colBg = cssVar("--bg", "#0b0b12"), colPanel2 = cssVar("--panel-2", "#191929");
+    const colAccent = cssVar("--accent", "#8b7cff"), colAccentRgb = cssVar("--accent-rgb", "139,124,255");
+    const colAccent2 = cssVar("--accent-2", "#22d3ee"), colAccent2Rgb = cssVar("--accent-2-rgb", "34,211,238");
     const colText = cssVar("--text", "#f2f0ec"), colMuted = cssVar("--muted", "#9a9a95");
     const colWin = cssVar("--win", "#33c17a"), colTie = cssVar("--tie", "#e0b23f"), colLoss = cssVar("--loss", "#e5566d");
 
