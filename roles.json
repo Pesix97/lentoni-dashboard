@@ -1857,6 +1857,36 @@
       "quando": "28/09 00:48 ROD 3ERI FC",
       "giocatore": "ilmille",
       "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "46734522350139",
+      "quando": "29/09 23:47 B BURKINA FASO",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "46648823930218",
+      "quando": "30/09 00:12 Nk Sladojevci",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "46892537110386",
+      "quando": "30/09 00:30 RasenBallKomite",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "47094110250112",
+      "quando": "30/09 00:51 LA Bande FCC",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "47036289600490",
+      "quando": "30/09 01:09 GasoFC",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -2091,6 +2121,10 @@
     {
       "serata": "2026-09-28T21:42Z",
       "partite": 6
+    },
+    {
+      "serata": "2026-09-29T21:47Z",
+      "partite": 5
     }
   ],
   "_serate_chiuse": [
