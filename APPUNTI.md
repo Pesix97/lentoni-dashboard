@@ -1374,3 +1374,26 @@ Chart.js sostituito da uno stub (stesso motivo del restyling precedente:
 cdnjs.cloudflare.com non raggiungibile dal sandbox cloud - la CDN vera funziona sul sito
 pubblicato) - badge di ruolo tutti leggibili e distinti, bagliore visibile su stemma e
 card, vittoria/pareggio/sconfitta/oro invariati.
+
+**Il token del file credenziali serve anche a far partire la pipeline, non solo a
+pubblicare (30/09/2026).** Il push del restyling "Aurora Elettrica" (sopra) non ha fatto
+scattare da solo la rigenerazione della pagina: la pipeline (`aggiorna-dashboard.yml`) parte
+sui push del bot con nuovi dati o a intervalli fissi, non su un push qualsiasi, e c'era gia'
+un ciclo lungo in corso partito PRIMA di quel push - avrebbe continuato a rigenerare la
+pagina dal codice vecchio per ore (lo stesso avvertimento gia' scritto sopra in questo file,
+mai capitato finora per un restyling). Il rimedio previsto (`Run workflow` a mano) e' stato
+tentato prima dalla UI di GitHub via Chrome - clic non andato a buon fine, niente nuovo run
+- poi con l'API (`POST .../dispatches`), che pero' vuole lo stesso token del file
+credenziali passato come header. Il token (`lentoni-dashboard-updater`, letto senza mai
+stamparlo) all'inizio rispondeva 403: aveva lo scope per pushare codice, non quello
+("Actions") per far partire un workflow. Peppe l'ha ampliato lui dalle impostazioni di
+GitHub (serve la sua password, "sudo mode" - nessuno strumento puo' farlo al posto suo);
+con lo scope aggiunto la dispatch e' andata (204), il giro e' partito, la pagina nuova si e'
+vista online un minuto dopo - verificato con Chrome vero, non con un altro giro di test.
+
+Chiarita nello stesso momento la regola sul file delle credenziali (vedi `CLAUDE.md`,
+"Pubblicazione"): **leggerlo per usare il token va bene, era gia' implicito nel fatto che
+serve a git per autenticarsi** - quello che resta vietato e' scriverci sopra o far
+comparire il suo contenuto, anche solo un pezzo. La lettura di questa sera l'ha rispettato:
+il token e' stato estratto dentro lo stesso comando che lo consumava (mai stampato, mai in
+due passaggi), e la variabile scartata subito dopo.

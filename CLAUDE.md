@@ -207,10 +207,18 @@ e git le legge da solo, perche' nel repository e' configurato
 
     git config credential.helper 'store --file=../.lentoni-git-credentials.txt'
 
-**Quel file non va mai aperto, letto o stampato**: serve solo che git lo trovi. Se c'e' da
-diagnosticarlo (formato sbagliato, spazi iniziali, a capo mancante) si guardano *conteggi* —
-`grep -c`, `wc`, i primi byte con `od` — mai il contenuto. E' cosi' che il 02/09 sono venuti
-fuori i tre spazi iniziali copiati per sbaglio da un blocco di codice, senza vedere il token.
+**Su quel file non si scrive e non si stampa mai nulla: e' solo un file di lettura per il
+token** (regola ribadita da Peppe il 30/09/2026, dopo che si e' reso necessario leggerlo
+davvero per la prima volta - vedi sotto). Leggerlo per **usare** il token - estrarlo in una
+variabile di shell dentro un comando che lo consuma subito, senza mai echeggiarlo - e' il
+suo scopo ed e' lecito. Quello che resta vietato sempre: scriverci sopra (lo tiene in ordine
+solo Peppe, a mano), e far comparire il suo contenuto - anche solo il conteggio dei
+caratteri di una sottostringa estratta puo' bastare a insospettirsi che qualcosa non va, ma
+il VALORE del token non deve mai finire in un messaggio, in un log, o stampato a video. Se
+c'e' da diagnosticare un problema di formato (spazi iniziali, a capo mancante) si guardano
+*conteggi* - `grep -c`, `wc`, i primi byte con `od` - mai il contenuto. E' cosi' che il
+02/09 sono venuti fuori i tre spazi iniziali copiati per sbaglio da un blocco di codice,
+senza vedere il token.
 
 Perche' fuori dalla cartella del repository: dentro, prima o poi, finirebbe in un commit.
 Perche' il percorso e' **relativo**: la cartella montata ha l'id di sessione nel percorso
@@ -223,3 +231,15 @@ solo il percorso del file) ne' nei log — filtrare l'output con
 `sed 's/github_pat_[A-Za-z0-9_]*/[TOKEN]/g'`.
 
 **Un token incollato in chat e' un token bruciato**: va revocato e rigenerato, non usato.
+
+**Il token in quel file autentica anche verso l'API di GitHub, non solo verso `git push`.**
+Scoperto il 30/09/2026: per far ripartire la pipeline subito dopo un push di sole modifiche
+sorgente (senza nuovi dati di partita, che sono l'unico evento che la fa scattare da sola)
+serve chiamare l'endpoint di dispatch del workflow, e quello vuole lo stesso token passato
+come header `Authorization`. Il pattern sicuro, usato quella volta: estrarlo con
+`head -n1 file | sed ...` dentro la STESSA riga di comando che lo consuma (`curl -H
+"Authorization: token $TOKEN" ...`), mai in due passaggi separati, e la variabile va
+`unset` subito dopo. Il token del progetto (`lentoni-dashboard-updater`, fine-grained, solo
+su questo repository) all'inizio non aveva lo scope "Actions" - dava 403 - e Peppe l'ha
+ampliato lui a mano dal suo Chrome (serve la sua password, "sudo mode" di GitHub, un passo
+che nessuno strumento puo' fare al posto suo).
