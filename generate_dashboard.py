@@ -560,7 +560,7 @@ MODELLO = QUI / "modello"
 
 
 def carica_modello():
-    """Rimette insieme la pagina dai tre pezzi in modello/.
+    """Rimette insieme la pagina dai quattro pezzi in modello/.
 
     Fino al 23/08/2026 il modello era una stringa di 3711 righe dentro questo file, con
     dentro 2903 righe di JavaScript. Il problema non era la lunghezza: dentro una stringa
@@ -572,11 +572,21 @@ def carica_modello():
     leggere direttamente. Il risultato non cambia di un byte - index.html resta un unico
     file autonomo - e la separazione e' stata verificata confrontando gli hash prima e
     dopo lo spostamento.
+
+    Il quarto pezzo, chart.umd.min.js, e' arrivato il 30/09/2026: prima era un <script
+    src="..."> verso cdnjs.cloudflare.com, l'unica cosa nella pagina non autonoma per
+    davvero. Bloccato dalla rete sia del sandbox cloud che della VM locale durante una
+    verifica visiva, si e' scoperto per quella via - non perche' un utente vero non
+    riuscisse ad aprire la pagina, li' cdnjs funziona. Vendorizzato scaricandolo da
+    registry.npmjs.org (raggiungibile anche dove cdnjs non lo e') invece che da un altro
+    CDN: stessa versione (4.4.0), stesso comportamento, e ora un aggiornamento di versione
+    si fa aggiornando questo file, non aspettando che qualcuno se ne accorga.
     """
     pagina = (MODELLO / "pagina.html").read_text(encoding="utf-8")
     return (pagina
             .replace("__STILE__", (MODELLO / "stile.css").read_text(encoding="utf-8"))
-            .replace("__SCRIPT__", (MODELLO / "pagina.js").read_text(encoding="utf-8")))
+            .replace("__SCRIPT__", (MODELLO / "pagina.js").read_text(encoding="utf-8"))
+            .replace("__CHARTJS__", (MODELLO / "chart.umd.min.js").read_text(encoding="utf-8")))
 
 
 HTML_TEMPLATE = carica_modello()

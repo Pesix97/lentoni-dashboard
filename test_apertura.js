@@ -46,7 +46,15 @@ function verifica(descrizione, condizione, dettaglio) {
 }
 
 const errori = [];
-const dom = new JSDOM(fs.readFileSync(file, "utf-8"), {
+// Chart.js e' vendorizzato inline nella pagina dal 30/09/2026 (prima arrivava da un CDN
+// che qui non si raggiunge). Tolto qui PRIMA di dare la pagina a jsdom, che altrimenti lo
+// eseguirebbe per davvero: jsdom non implementa un <canvas> vero, e Chart.js vero prova
+// comunque a disegnare, stampando "Failed to create chart" invece di restare zitto. Non e'
+// un compromesso: i grafici non sono cio' che questo controllo verifica, e il guscio sotto
+// (mai sostituito, prima solo perche' il CDN non arrivava, ora a mano) fa lo stesso lavoro.
+const html = fs.readFileSync(file, "utf-8")
+  .replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/, "");
+const dom = new JSDOM(html, {
   runScripts: "dangerously",
   pretendToBeVisual: true,
   // Un URL vero e non about:blank: la pagina usa history.replaceState per ricordare quale
@@ -54,8 +62,6 @@ const dom = new JSDOM(fs.readFileSync(file, "utf-8"), {
   // fallimento del banco di prova e' peggio di nessun banco di prova.
   url: "https://pesix97.github.io/lentoni-dashboard/",
   beforeParse(w) {
-    // Chart.js arriva da un CDN che qui non si raggiunge: si sostituisce con un guscio.
-    // Non e' un compromesso: i grafici non sono cio' che questo controllo verifica.
     w.Chart = function () { return { destroy() {}, update() {} }; };
     w.Chart.register = () => {};
 

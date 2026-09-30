@@ -46,7 +46,12 @@ function verifica(descrizione, condizione, dettaglio) {
 }
 
 const nulla = () => {};
-const dom = new JSDOM(fs.readFileSync(file, "utf-8"), {
+// Chart.js e' vendorizzato inline dal 30/09/2026: tolto qui prima di dare la pagina a
+// jsdom, altrimenti girerebbe per davvero contro un <canvas> che jsdom non implementa
+// (vedi lo stesso commento, piu' esteso, in test_apertura.js).
+const html = fs.readFileSync(file, "utf-8")
+  .replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/, "");
+const dom = new JSDOM(html, {
   runScripts: "dangerously",
   pretendToBeVisual: true,
   url: "https://pesix97.github.io/lentoni-dashboard/",

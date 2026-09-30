@@ -395,9 +395,10 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `ingest.py` | Scrive i JSON scaricati nel database. Nessuna chiamata di rete. |
 | `avversari.py` | Raccoglie skill rating e record dei club affrontati. |
 | `generate_dashboard.py` | Legge il database e assembla `index.html` dai pezzi in `modello/`. |
-| `modello/pagina.html` | Struttura della pagina, con i segnaposto `__STILE__` e `__SCRIPT__`. |
+| `modello/pagina.html` | Struttura della pagina, con i segnaposto `__STILE__`, `__SCRIPT__` e `__CHARTJS__`. |
 | `modello/stile.css` | Tutto il CSS. |
 | `modello/pagina.js` | Tutta la logica che gira nel browser. **File .js vero**: `node --check` lo verifica. |
+| `modello/chart.umd.min.js` | Chart.js 4.4.0, vendorizzato (non più da CDN dal 30/09/2026 — vedi sotto). |
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. Con `--solo-avvio` segna solo «sono partito» ed esce, senza toccare la fonte. |
 | `potatura.py` | Toglie dal database il grezzo di EA che nessuno legge più. Era il **77%** del peso, e il database intero viene committato ad ogni giro con novità. |
 | `battito.py` | Lo stato dell'automazione, con la memoria dei guasti. Il ramo `stato` ha un commit solo per scelta, quindi il registro vive dentro il file: una voce per ogni **cambiamento**, non per ogni giro. |

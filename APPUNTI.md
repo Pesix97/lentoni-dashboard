@@ -1397,3 +1397,31 @@ serve a git per autenticarsi** - quello che resta vietato e' scriverci sopra o f
 comparire il suo contenuto, anche solo un pezzo. La lettura di questa sera l'ha rispettato:
 il token e' stato estratto dentro lo stesso comando che lo consumava (mai stampato, mai in
 due passaggi), e la variabile scartata subito dopo.
+
+**Chart.js vendorizzato nel repository, non più da CDN (30/09/2026).** Nato dalla domanda
+di Peppe su come restare efficienti dopo la sessione di stasera: l'unico vero collo di
+bottiglia rimasto era che Chart.js arrivava da `cdnjs.cloudflare.com`, bloccato sia dal
+sandbox cloud che dalla VM locale — per vedere un grafico vero serviva sempre passare dal
+sito già pubblicato con Chrome reale, mai prima. Scaricato da `registry.npmjs.org`
+(raggiungibile anche dove cdnjs non lo è) invece che da un altro CDN, stessa versione
+(4.4.0): `modello/chart.umd.min.js`, quarto pezzo del modello insieme a `pagina.html`,
+`stile.css` e `pagina.js`, montato con lo stesso meccanismo `__CHARTJS__`. `index.html`
+torna così ad essere autonomo per davvero, non quasi.
+
+Due correzioni necessarie per non rompere niente: `test_ruoli.js` cercava il primo
+`<script>` della pagina assumendo fosse quello dell'app — ora che ce ne sono due (Chart.js
+e l'app), trovava quello sbagliato e falliva su "Blocco non trovato: const DATA = {".
+Risolto dando un `id="lib-chartjs"` al tag di Chart.js, così il primo `<script>` senza
+attributi resta sempre quello dell'app. E siccome Chart.js ora gira per davvero dentro
+jsdom (prima jsdom non caricava proprio lo `<script src>` esterno), provava a disegnare
+contro un `<canvas>` che jsdom non implementa, stampando "Failed to create chart" — non un
+errore fatale, ma un rumore che prima non c'era. `test_apertura.js` e `test_tecnica.js`
+tolgono ora il blocco `<script id="lib-chartjs">` dalla pagina PRIMA di darla a jsdom,
+cosi' lo stesso guscio (`w.Chart = function(){...}`) già scritto per il CDN irraggiungibile
+torna a fare il suo lavoro, invariato.
+
+Verificato con uno screenshot reale (Playwright, sandbox cloud, senza alcun guscio questa
+volta): la pagina si apre offline, il grafico dello skill rating si disegna con la vera
+sfumatura viola-ciano — prima non era mai stato possibile controllarlo così, da nessuna
+parte tranne il sito già pubblicato. 105/105 Python, tutti i controlli `node` verdi senza
+più il warning di Chart.js.
