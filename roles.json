@@ -1887,6 +1887,24 @@
       "quando": "30/09 01:09 GasoFC",
       "giocatore": "Jysmu",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "54580298620175",
+      "quando": "01/10 22:37 GASGASFULLGAS",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "54502636800449",
+      "quando": "01/10 22:59 Shinti Cella",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "54572798220197",
+      "quando": "01/10 23:19 Casin FC",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
     }
   ],
   "_esclusioni_partita": [
@@ -2129,6 +2147,14 @@
     {
       "serata": "2026-09-24T22:52Z",
       "partite": 4
+    },
+    {
+      "serata": "2026-09-30T21:47Z",
+      "partite": 4
+    },
+    {
+      "serata": "2026-10-01T20:37Z",
+      "partite": 6
     }
   ],
   "_serate_chiuse": [
