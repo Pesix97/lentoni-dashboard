@@ -3226,8 +3226,10 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
         Dal ${new Date(sa.daQuando).toLocaleDateString("it-IT", { day:"2-digit", month:"long" })} il club ha
         giocato <strong style="color:var(--text);">${sa.attese}</strong> partite e ne abbiamo
         salvate <strong style="color:${coloreChiuso};">${sa.archiviateDaPrimoSnapshot}</strong> (${percChiuso}%).
-        ${sa.divario > 0 ? `Le altre <strong>${sa.divario}</strong> sono andate perse prima che
-          l'aggiornamento automatico diventasse abbastanza frequente: EA non le espone più.` : ``}
+        ${sa.divario > 0 ? `<br><span style="color:var(--muted);">Il contatore di EA ne conta
+          <strong>${sa.divario}</strong> in più di quelle che abbiamo in archivio. Non possiamo sapere
+          da qui perché: o sono uscite dalle ultime 10 che EA mostra prima che le scaricassimo, o EA le
+          ha contate senza mai pubblicarle nell'elenco (vittoria a tavolino, avversario disconnesso).</span>` : ``}
         <div style="background:var(--panel-2,rgba(255,255,255,.06)); border-radius:4px; height:8px; margin:10px 0;">
           <div style="width:${Math.min(100, percChiuso)}%; height:8px; border-radius:4px; background:${coloreChiuso};"></div>
         </div>
@@ -3260,12 +3262,16 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
       Dal ${new Date(sa.daQuando).toLocaleDateString("it-IT", { day:"2-digit", month:"long" })},
       da quando l'archivio è attivo, il club ha giocato <strong style="color:var(--text);">${sa.attese}</strong> partite
       e ne abbiamo salvate <strong style="color:${colore};">${sa.archiviateDaPrimoSnapshot}</strong> (${perc}%).
-      ${sa.divario > 0 ? `Le altre <strong>${sa.divario}</strong> sono andate perse prima che
-        l'aggiornamento automatico diventasse abbastanza frequente: EA non le espone più.` : ``}
-      ${inRegalo > 0 ? `<br><span style="color:var(--muted);">Le <strong>${inRegalo}</strong> che
-        mancano all'appello rispetto al totale erano già dentro la finestra di EA al primo
-        scaricamento: sono in archivio, ma non contano nella percentuale perché non è stata
-        l'automazione a salvarle.</span>` : ``}
+      ${sa.divario > 0 ? `<br><span style="color:var(--muted);">Il contatore di EA ne conta
+        <strong>${sa.divario}</strong> in più di quelle che abbiamo in archivio. Da qui non si può sapere
+        perché: o sono uscite dalle ultime 10 che EA mostra prima che le scaricassimo (può succedere solo
+        se l'aggiornamento resta fermo per più di circa 3 ore mentre si gioca), o EA le ha contate senza
+        mai pubblicarle nell'elenco (vittoria a tavolino, avversario disconnesso).</span>` : ``}
+      ${inRegalo > 0 ? `<br><span style="color:var(--muted);">In archivio c${inRegalo === 1 ? "'è" : "i sono"} anche
+        <strong>${inRegalo}</strong> partit${inRegalo === 1 ? "a giocata" : "e giocate"} prima del primo scaricamento:
+        ${inRegalo === 1 ? "era" : "erano"} già tra le ultime 10 di EA, quindi ${inRegalo === 1 ? "è" : "sono"} in archivio
+        ma ${inRegalo === 1 ? "resta fuori" : "restano fuori"} dalla percentuale (non le ha salvate l'automazione).
+        Per questo ${sa.giocateEA} giocate − ${inRegalo} = ${sa.attese} attese, non ${sa.giocateEA}.</span>` : ``}
       <div style="background:var(--panel-2,rgba(255,255,255,.06)); border-radius:4px; height:8px; margin:10px 0;">
         <div style="width:${Math.min(100, perc)}%; height:8px; border-radius:4px; background:${colore};"></div>
       </div>
