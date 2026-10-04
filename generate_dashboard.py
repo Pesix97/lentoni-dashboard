@@ -893,7 +893,8 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path):
               f"dal {sa['daQuando'][:10]} (divario storico {sa['divario']})")
         if sa.get("divarioRecente"):
             print(f"  ATTENZIONE: {sa['divarioRecente']} partite delle ultime 48 ore non sono in archivio. "
-                  f"Se il numero non scende entro il prossimo giro, sono andate perse.")
+                  f"Se il numero non scende entro il prossimo giro, EA le ha contate ma non le pubblica "
+                  f"(o sono uscite dalle ultime 10).")
     return data
 
 

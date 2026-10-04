@@ -1362,8 +1362,10 @@ niente che git non faccia già.
 ## Salute dell'archivio
 
 EA tiene un contatore cumulativo delle partite giocate che non perde mai nulla. La
-differenza tra quel numero e le partite effettivamente archiviate dice **quante ne sono
-andate perse**. La dashboard lo mostra nella sezione *Partite*, e il workflow lo scrive
+differenza tra quel numero e le partite effettivamente archiviate dice **quante ne mancano**,
+non perché: una partita mancante può essere uscita dalle ultime 10 che EA mostra, oppure essere
+stata contata da EA e mai pubblicata nell'elenco (vittoria a tavolino, avversario disconnesso).
+I dati non permettono di distinguere i due casi. La dashboard lo mostra nella sezione *Partite*, e il workflow lo scrive
 nel log ad ogni esecuzione.
 
 Un divario nelle ultime ore è normale: EA pubblica in ritardo. Un divario che resta anche

@@ -1416,3 +1416,25 @@ volta): la pagina si apre offline, il grafico dello skill rating si disegna con 
 sfumatura viola-ciano — prima non era mai stato possibile controllarlo così, da nessuna
 parte tranne il sito già pubblicato. 105/105 Python, tutti i controlli `node` verdi senza
 più il warning di Chart.js.
+
+## Didascalia della salute dell'archivio: non dire "perse" quando non lo sappiamo (04/10/2026)
+
+Il riquadro diceva che le partite mancanti «sono andate perse prima che l'aggiornamento
+diventasse abbastanza frequente». Il 03/10/2026 FC 27 mostrava 61 giocate per EA, 60 in
+archivio, 59 salvate dall'automazione, e la frase era falsa: il ciclo girava ogni 20
+minuti, il contatore era fermo da un giorno (quindi nessuna uscita dalla finestra delle
+ultime 10), e il conto V/P/S tornava esattamente fino alle 00:05 UTC, poi EA contava una
+vittoria (24 contro 23 in archivio) che non è mai comparsa nell'elenco partite, in una
+sera in cui fra le partite vicine non c'è spazio per una in più (18-24 minuti l'una
+dall'altra).
+
+I numeri: 61 = contatore EA; 60 = giocate dal primo scaricamento (61 meno la partita già
+dentro la finestra di EA al primo scaricamento); 59 = quelle salvate dall'automazione; la
+partita in più in archivio (60 totali) è quella «in regalo».
+
+Il riquadro ora dice solo ciò che i dati provano: quante ne mancano. Le cause possibili
+sono due (uscita dalle ultime 10, o contata da EA e mai pubblicata, per esempio vittoria a
+tavolino o avversario disconnesso) e **dai dati non si distinguono**. L'ipotesi sulla
+vittoria a tavolino è appunto un'ipotesi. Modificate: `modello/pagina.js` (due rami,
+titolo chiuso e normale), il messaggio di log in `generate_dashboard.py`, la sezione
+«Salute dell'archivio» del README.
