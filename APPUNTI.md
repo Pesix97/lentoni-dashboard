@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 06/09/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 04/10/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -115,6 +115,8 @@ nuovo e lo stesso id EA, è la stessa persona e si aggiunge la coppia in `NAME_A
 ---
 
 ## Programmato per settembre
+
+*Il passaggio a FC 27 è avvenuto il 18/09/2026; quello che segue è la storia della preparazione.*
 
 Tutto quello che è stato rimandato ha lo stesso motivo: **serve un archivio più grande**.
 Al 24/08 le partite archiviate erano 59 (erano 33 il 21/08), e a ~9 per sessione a
@@ -749,18 +751,7 @@ l'archivio hanno detto lo stesso numero: **zero partite perse**. La prova che ma
 manca solo la prova formale a macchina spenta, che è una formalità visto che tutto gira
 sui server di GitHub.
 
-**`test_la_guardia_regge_a_una_riga_ricostruita` non trova più partite da testare, e non
-è colpa del codice.** Notato il 24/09/2026 lavorando al restyling grafico: il test
-ricostruisce `matches_league.json` dal `raw_json` salvato in `lentoni.db` per il club
-`CLUB = 2703620` (FC 26, chiuso il 18/09/2026), ma `potatura.py` tiene il grezzo solo
-delle ultime 15 partite **in tutto il database**, non per club. A sei giorni dal
-passaggio a FC 27, quelle 15 sono ormai tutte partite del club nuovo: il `raw_json` di FC
-26 è uscito dalla finestra, la lista di partite ricostruibili è vuota, e il test fallisce
-con `AssertionError: set() is not true`. Non è una guardia rotta - è una guardia che
-misura un titolo chiuso con dati che *per progetto* non restano lì per sempre. Da
-decidere: puntare il test al club attivo del momento (perde il legame con la partita
-originale che lo ha fatto nascere), o dargli un fixture proprio invece di ricostruirlo dal
-database vero.
+**`test_la_guardia_regge_a_una_riga_ricostruita`: risolto il 27/09/2026 (`b6d3dd1`).** Il test ricostruiva il feed dal club FC 26, ma `potatura.py` tiene il grezzo solo delle ultime 15 partite in tutto il database, non per club: dopo il 18/09 il `raw_json` di FC 26 era uscito dalla finestra e il test falliva sempre con «feed delle partite vuoto». Ora `_ricostruisci_raw()` accetta un `club_id` e il test usa `CLUB_ATTIVO` (oggi 18510, FC 27). **Da ricordare:** `CLUB_ATTIVO` in `test_pipeline.py` va aggiornato a mano al prossimo passaggio di titolo.
 
 ---
 

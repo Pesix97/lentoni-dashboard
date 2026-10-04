@@ -1,6 +1,6 @@
 # Dashboard club "Lentoni" (EA FC, PS5)
 
-Statistiche del club Lentoni (clubId `2703620`, piattaforma `common-gen5` = PS5),
+Statistiche del club Lentoni (titolo attivo FC 27, clubId `18510`; FC 26, `2703620`, è archiviato; piattaforma `common-gen5` = PS5),
 raccolte dalle API pubbliche non ufficiali di EA e pubblicate come pagina web.
 
 **Dashboard online:** https://pesix97.github.io/lentoni-dashboard/
@@ -450,8 +450,8 @@ in quello nuovo.
 `generate_dashboard.py` genera `index.html` per l'`attivo` come sempre, e in più una
 pagina identica — stesso generatore, stesse sezioni — per ogni voce di `storico`, in
 `archivio/<titolo>.html` (es. `archivio/fc-26.html`). Ogni pagina porta in alto un menu a
-tendina che passa da un titolo all'altro con un link relativo; se `storico` è vuoto (come
-oggi) il menu non compare, e la pagina pubblicata non cambia di un byte.
+tendina che passa da un titolo all'altro con un link relativo; se `storico` è vuoto (com'era
+fino al 18/09/2026) il menu non compare, e la pagina pubblicata non cambia di un byte.
 
 **Dal 15/09/2026 ogni pagina d'archivio passa dal controllo di apertura per conto suo.**
 Fino a quella data `giro.sh` pubblicava `archivio/` in blocco, con la sola condizione che
