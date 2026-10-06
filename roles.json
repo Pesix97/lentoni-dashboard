@@ -1905,6 +1905,54 @@
       "quando": "01/10 23:19 Casin FC",
       "giocatore": "ilmille",
       "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "70762718640087",
+      "quando": "06/10 01:07 Virtus Volla",
+      "giocatore": "Pesix_97",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "70762718640087",
+      "quando": "06/10 01:07 Virtus Volla",
+      "giocatore": "FFLI_Adriano",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "70646348260362",
+      "quando": "05/10 23:56 GMD Team",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "70734367880300",
+      "quando": "06/10 00:22 Cavalionert",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "70954063340389",
+      "quando": "06/10 00:48 AMBREUZ",
+      "giocatore": "domenicocasaburi",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "70734367880300",
+      "quando": "06/10 00:22 Cavalionert",
+      "giocatore": "Ironman-6-6",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "70954063340389",
+      "quando": "06/10 00:48 AMBREUZ",
+      "giocatore": "Ironman-6-6",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "70646348260362",
+      "quando": "05/10 23:56 GMD Team",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -2158,6 +2206,10 @@
     },
     {
       "serata": "2026-10-02T22:31Z",
+      "partite": 6
+    },
+    {
+      "serata": "2026-10-05T21:23Z",
       "partite": 6
     }
   ],
