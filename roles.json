@@ -2295,6 +2295,18 @@
     {
       "serata": "2026-10-09T22:26Z",
       "partite": 4
+    },
+    {
+      "serata": "2026-10-08T20:20Z",
+      "partite": 6
+    },
+    {
+      "serata": "2026-10-11T22:03Z",
+      "partite": 4
+    },
+    {
+      "serata": "2026-10-12T20:55Z",
+      "partite": 6
     }
   ],
   "_serate_chiuse": [
