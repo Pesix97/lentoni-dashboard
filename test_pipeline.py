@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from hashlib import md5
 from pathlib import Path
 
@@ -109,6 +110,7 @@ class BaseConArchivio(unittest.TestCase):
 
         partite = [json.loads(r["raw_json"]) for r in con.execute(
             "SELECT raw_json FROM matches WHERE club_id=? AND raw_json IS NOT NULL "
+            "AND match_id NOT LIKE 'manuale-%' "   # le partite a mano non sono un feed EA
             "ORDER BY ts DESC LIMIT 10", (club_id,))]
         scrivi("matches_league.json", partite)
         scrivi("matches_playoff.json", [])
@@ -2097,6 +2099,86 @@ class TestBattito(unittest.TestCase):
         self.assertIn("exit 0", blocco[:400])
         self.assertLess(testo.index('"--solo-avvio"'), testo.index("curl -sS"),
                         "il modo solo-avvio deve uscire prima di toccare la fonte")
+
+
+class TestPartiteManuali(unittest.TestCase):
+    """Le partite che EA conta ma non pubblica, dichiarate a mano in roles.json (14/10/2026)."""
+
+    def _db(self):
+        sys.path.insert(0, str(QUI))
+        import ingest
+        self.ingest = ingest
+        con = sqlite3.connect(":memory:")
+        cur = con.cursor()
+        cur.executescript(ingest.SCHEMA)
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        voce = {"match_id": "manuale-prova", "club_id": 7, "inizio_utc": "2026-10-13T20:56:00+00:00",
+                "avversario": "Prova FC", "gol_fatti": 5, "gol_subiti": 1, "motivo": "test",
+                "giocatori": [
+                    {"nome": "A", "ea_player_id": "1", "gol": 4, "assist": 0, "voto": 10.0, "mom": 1},
+                    {"nome": "B", "ea_player_id": "2", "gol": 0, "assist": 0, "voto": 6.5}]}
+        self.roles = Path(self.tmp) / "roles.json"
+        self.roles.write_text(json.dumps({"partite_manuali": [voce]}), encoding="utf-8")
+        return con, cur
+
+    def test_inserisce_una_volta_sola_anche_se_rigira_a_ogni_ciclo(self):
+        con, cur = self._db()
+        self.assertEqual(self.ingest.applica_partite_manuali(cur, 7, self.roles), 1)
+        for _ in range(3):   # il ciclo gira ogni 20 minuti: niente doppioni, mai
+            self.ingest.applica_partite_manuali(cur, 7, self.roles)
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM matches").fetchone()[0], 1)
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM match_player_stats").fetchone()[0], 2)
+
+    def test_esito_dai_gol_e_statistiche_ignote_restano_vuote(self):
+        con, cur = self._db()
+        self.ingest.applica_partite_manuali(cur, 7, self.roles)
+        win, loss, tie, rc = cur.execute("SELECT win, loss, tie, result_code FROM matches").fetchone()
+        self.assertEqual((win, loss, tie, rc), (1, 0, 0, "1"))
+        riga = cur.execute("SELECT goals, rating, mom, shots, passes_made, tackles_made "
+                           "FROM match_player_stats WHERE player_name = 'A'").fetchone()
+        self.assertEqual(riga[:3], (4, 10.0, 1))
+        # Non si sa quanti tiri: NULL, non zero. Uno zero finto abbasserebbe le medie.
+        self.assertEqual(riga[3:], (None, None, None))
+
+    def test_non_finisce_nel_club_di_un_altro_titolo(self):
+        """L'ingest gira anche per lo storico (FC 26): la partita di FC 27 non deve comparirci."""
+        con, cur = self._db()
+        self.assertEqual(self.ingest.applica_partite_manuali(cur, 99, self.roles), 0)
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM matches").fetchone()[0], 0)
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM match_player_stats").fetchone()[0], 0)
+
+    def test_un_id_senza_il_prefisso_e_rifiutato(self):
+        con, cur = self._db()
+        dati = json.loads(self.roles.read_text(encoding="utf-8"))
+        dati["partite_manuali"][0]["match_id"] = "12345"
+        self.roles.write_text(json.dumps(dati), encoding="utf-8")
+        with self.assertRaises(SystemExit):
+            self.ingest.applica_partite_manuali(cur, 7, self.roles)
+
+    def test_se_ea_la_pubblica_poi_lo_dice(self):
+        con, cur = self._db()
+        cur.execute("INSERT INTO matches (match_id, club_id, match_type, ts, played_at, opponent_name, "
+                    "goals_for, goals_against) VALUES ('999', 7, 'leagueMatch', ?, 'x', 'prova fc', 5, 1)",
+                    (int(datetime(2026, 10, 13, 21, 10, tzinfo=timezone.utc).timestamp()),))
+        from contextlib import redirect_stdout
+        import io
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            self.ingest.applica_partite_manuali(cur, 7, self.roles)
+        self.assertIn("conta due volte", buf.getvalue())
+
+    def test_quelle_vere_hanno_il_ruolo_dichiarato_per_ogni_giocatore(self):
+        """Senza un'eccezione, il reparto di chi ha giocato 'da attaccante' ricadrebbe su quello
+        abituale, e la prestazione finirebbe nella classifica sbagliata."""
+        cfg = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        eccezioni = {(e["match_id"], e["giocatore"]) for e in cfg["eccezioni_partita"]}
+        for v in cfg.get("partite_manuali", []):
+            self.assertTrue(v["match_id"].startswith("manuale-"))
+            self.assertIn("club_id", v)
+            for g in v["giocatori"]:
+                with self.subTest(partita=v["match_id"], giocatore=g["nome"]):
+                    self.assertIn((v["match_id"], g["nome"]), eccezioni)
 
 
 if __name__ == "__main__":

@@ -3556,7 +3556,7 @@ function computeOutfieldLineup(){
               const [e, c] = esito(m);
               return `<tr>
                 <td data-label="Ora">${soloOra(m.played_at)}</td>
-                <td data-label="Avversario">${m.opponent_name || "—"}</td>
+                <td data-label="Avversario">${m.opponent_name || "—"}${String(m.match_id).startsWith("manuale-") ? ' <span class="pos-badge" title="Inserita a mano: EA la conta ma non l\'ha pubblicata">a mano</span>' : ""}</td>
                 <td data-label="Risultato" class="lb-value">${m.goals_for}-${m.goals_against}</td>
                 <td data-label="Esito"><span style="color:${c}; font-weight:600;">${e}</span></td>
               </tr>`;
@@ -3709,7 +3709,7 @@ function computeOutfieldLineup(){
       <tr class="match-row" data-idx="${i}">
         <td data-label="Data">${fmtDate(m.played_at)}</td>
         <td data-label="Tipo" class="pos-badge">${m.match_type}</td>
-        <td data-label="Avversario">${m.opponent_name || "-"}</td>
+        <td data-label="Avversario">${m.opponent_name || "-"}${String(m.match_id).startsWith("manuale-") ? ' <span class="pos-badge" title="Inserita a mano: EA la conta ma non l\'ha pubblicata">a mano</span>' : ""}</td>
         <td data-label="Risultato">${m.goals_for} - ${m.goals_against}</td>
         <td data-label="Esito"><span class="badge ${outcome}">${outcomeLabel}</span></td>
       </tr>

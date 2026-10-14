@@ -734,6 +734,77 @@ def recupera_dal_grezzo(cur, colonna, chiave_ea):
     return recuperate
 
 
+def applica_partite_manuali(cur, club_id, percorso=None):
+    """Inserisce nel database le partite dichiarate a mano in roles.json ("partite_manuali").
+
+    Nasce il 14/10/2026: EA conta una partita nel contatore del club ma non la pubblica mai
+    nell'elenco (vittoria a tavolino, avversario disconnesso: vista il 03 e il 13/10/2026),
+    e quindi nessun ingest puo' recuperarla. Peppe sa com'e' andata e la dichiara.
+
+    Sta qui, nell'ingest, e non nel generatore della pagina, per un motivo: avversari.py,
+    serata.py e i controlli leggono il database direttamente. Una riga che esiste solo nella
+    pagina darebbe conti diversi in posti diversi; una riga nel database li da' uguali ovunque.
+
+    Regole: solo cio' che e' stato dichiarato. Una statistica che non si conosce (tiri, passaggi,
+    contrasti) resta NULL e non diventa zero: uno zero finto abbasserebbe le medie. L'inserimento
+    e' idempotente (INSERT OR IGNORE sulla stessa chiave primaria). L'id comincia per "manuale-",
+    cosi' la pagina la etichetta e si distingue sempre da una partita EA. Se EA un giorno
+    pubblicasse la stessa partita (stesso avversario, entro un'ora) si avvisa nel log: la voce
+    a mano va allora tolta da roles.json, altrimenti la partita conta due volte.
+    """
+    percorso = Path(percorso) if percorso else Path(__file__).resolve().parent / "roles.json"
+    if not percorso.exists():
+        return 0
+    voci = json.loads(percorso.read_text(encoding="utf-8")).get("partite_manuali") or []
+    inserite = 0
+    for v in voci:
+        # Ogni titolo EA e' un club diverso: la partita appartiene a UN club, e va scritta
+        # solo li'. Senza questo filtro, l'ingest dello storico (FC 26) la duplicherebbe.
+        if int(v["club_id"]) != int(club_id):
+            continue
+        mid = str(v["match_id"])
+        if not mid.startswith("manuale-"):
+            raise SystemExit(f"partite_manuali: l'id {mid!r} deve cominciare per 'manuale-'")
+        inizio = datetime.fromisoformat(v["inizio_utc"])
+        ts = int(inizio.timestamp())
+        gf, gs = int(v["gol_fatti"]), int(v["gol_subiti"])
+        win, loss, tie = int(gf > gs), int(gf < gs), int(gf == gs)
+        cur.execute(
+            """INSERT OR IGNORE INTO matches
+               (match_id, club_id, match_type, ts, played_at, opponent_club_id, opponent_name,
+                goals_for, goals_against, result_code, win, loss, tie, raw_json)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (mid, club_id, v.get("tipo", "leagueMatch"), ts, inizio.astimezone(timezone.utc).isoformat(),
+             None, v["avversario"], gf, gs, str(1 if win else (2 if loss else 4)), win, loss, tie,
+             json.dumps({"manuale": True, "motivo": v.get("motivo")}, ensure_ascii=False)),
+        )
+        inserite += cur.rowcount
+        for g in v.get("giocatori", []):
+            # Controllo esplicito: la chiave primaria non basta a evitare i doppioni (vedi la
+            # guardia in ingest_matches) e questa funzione gira a ogni ciclo.
+            if cur.execute("SELECT 1 FROM match_player_stats WHERE match_id = ? AND club_id = ? "
+                           "AND player_name = ?", (mid, club_id, canonical_name(g["nome"]))).fetchone():
+                continue
+            cur.execute(
+                """INSERT OR IGNORE INTO match_player_stats
+                   (match_id, club_id, ea_player_id, player_name, pos, goals, assists, rating, mom)
+                   VALUES (?,?,?,?,?,?,?,?,?)""",
+                (mid, club_id, str(g["ea_player_id"]), canonical_name(g["nome"]), g.get("pos", "forward"),
+                 int(g.get("gol", 0)), int(g.get("assist", 0)), float(g["voto"]), int(g.get("mom", 0))),
+            )
+        doppie = cur.execute(
+            """SELECT match_id FROM matches WHERE club_id = ? AND match_id NOT LIKE 'manuale-%'
+               AND lower(opponent_name) = lower(?) AND ABS(ts - ?) <= 3600""",
+            (club_id, v["avversario"], ts),
+        ).fetchall()
+        if doppie:
+            print(f"  ATTENZIONE: la partita a mano {mid} sembra pubblicata da EA ({doppie[0][0]}): "
+                  f"togliere la voce da partite_manuali in roles.json, altrimenti conta due volte.")
+    if inserite:
+        print(f"  partite inserite a mano da roles.json: {inserite}")
+    return inserite
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--raw-dir", default="raw")
@@ -777,6 +848,8 @@ def main():
     ]:
         matches = load_json(raw_dir / fname)
         total_new_matches += ingest_matches(cur, matches, club_id, match_type)
+
+    total_new_matches += applica_partite_manuali(cur, club_id)
 
     con.commit()
 

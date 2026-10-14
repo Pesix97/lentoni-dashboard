@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 04/10/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 14/10/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -1438,3 +1438,17 @@ tavolino o avversario disconnesso) e **dai dati non si distinguono**. L'ipotesi 
 vittoria a tavolino è appunto un'ipotesi. Modificate: `modello/pagina.js` (due rami,
 titolo chiuso e normale), il messaggio di log in `generate_dashboard.py`, la sezione
 «Salute dell'archivio» del README.
+
+## Partite contate da EA ma mai pubblicate: la prima inserita a mano (14/10/2026)
+
+La sera del 13/10/2026 il contatore EA aveva una vittoria in più dell'archivio (la seconda
+dopo quella del 03/10), giocata fra le 22:56 e le 23:16 ora italiana, prima della prima
+partita archiviata (23:30). Peppe l'ha dichiarata: 5-1 contro gengiskan, 4 gol suoi e un
+autogol, voto 10 e migliore in campo; ilmille voto 6,5, 0 gol e 0 assist; entrambi
+attaccanti. Inserita con `partite_manuali` in `roles.json` (vedi README).
+
+Assunzioni da ricordare: inizio 22:56 (il messaggio diceva «fine 22:16», quasi certamente
+23:16); assist di Pesix_97 messi a 0 (non dichiarati); tiri, passaggi, contrasti vuoti.
+**La vittoria del 03/10 non è dichiarata**: servono avversario, gol e voti. Se EA
+pubblicasse mai una di queste partite, togliere la voce da `partite_manuali`.
+

@@ -392,7 +392,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `CLAUDE.md` | Le regole di lavoro. Letto automaticamente da Claude quando opera in questa cartella. |
 | `index.html` | La dashboard pubblicata. **Generata**, non modificarla a mano. |
 | `lentoni.db` | Database SQLite con tutto lo storico. |
-| `ingest.py` | Scrive i JSON scaricati nel database. Nessuna chiamata di rete. |
+| `ingest.py` | Scrive i JSON scaricati nel database. Nessuna chiamata di rete. Applica anche le **partite a mano** dichiarate in `roles.json` (vedi «Partite a mano»). |
 | `avversari.py` | Raccoglie skill rating e record dei club affrontati. |
 | `generate_dashboard.py` | Legge il database e assembla `index.html` dai pezzi in `modello/`. |
 | `modello/pagina.html` | Struttura della pagina, con i segnaposto `__STILE__`, `__SCRIPT__` e `__CHARTJS__`. |
@@ -408,7 +408,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
-| `test_pipeline.py` | 105 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo). |
+| `test_pipeline.py` | 111 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo). |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 113 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 9 controlli su una cosa sola: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le tre righe devono sommare alla colonna (180 casi: 12 giocatori × 3 finestre × 5 pesi) e la percentuale scritta in ogni riga deve essere quella che produce i punti a fianco. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
@@ -1403,3 +1403,20 @@ sovrascritto al primo aggiornamento.
   richiedono quel livello di dettaglio non sono realizzabili.
 - Uso non ufficiale delle API EA: fuori dai termini di servizio in senso stretto, anche se
   è la stessa tecnica usata da proclubstracker e simili.
+
+## Partite a mano
+
+Capita che EA **conti** una partita nel contatore di carriera (vittoria a tavolino, avversario
+disconnesso: è un'ipotesi) e **non la pubblichi mai** nell'elenco. Non c'è modo di
+recuperarla dall'API, quindi si dichiara a mano nella chiave `partite_manuali` di
+`roles.json` (club, avversario, orario di inizio in UTC, gol, giocatori con gol/assist/voto/MoM).
+
+Vive in `ingest.py` e non solo nella pagina perché `avversari.py`, `serata.py`, `ruoli.py` e
+gli altri moduli leggono il database direttamente. Ad ogni ciclo `applica_partite_manuali`
+la scrive se manca (idempotente, id che inizia con `manuale-`). Delle statistiche non
+dichiarate (tiri, passaggi, contrasti) resta **NULL**, mai zero: uno zero finto
+abbasserebbe le medie. I totali e le carte V/P/S non cambiano, vengono dai contatori EA che
+la contano già; cambiano lo storico, gli avversari, la serata e il «buco» nella salute
+dell'archivio. Nella pagina la riga porta il marchio «a mano». Per ogni giocatore serve
+anche un'eccezione di ruolo (`eccezioni_partita`) con lo stesso id, verificato da un test.
+Se EA un giorno la pubblica, `ingest` lo segnala: togliere la voce, altrimenti conta due volte.
