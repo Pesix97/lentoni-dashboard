@@ -2045,6 +2045,18 @@
       "quando": "13/10 22:56 gengiskan (a mano)",
       "giocatore": "ilmille",
       "gruppo": "ATTACCANTI"
+    },
+    {
+      "match_id": "98646899160225",
+      "quando": "13/10 23:49 Rn Boys FC",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "98646899160225",
+      "quando": "13/10 23:49 Rn Boys FC",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
     }
   ],
   "_esclusioni_partita": [
@@ -2169,8 +2181,24 @@
       "gol_subiti": 1,
       "motivo": "Vinta 5-1 la sera del 13/10/2026 (inizio 22:56 ora italiana): EA l'ha contata, il contatore delle vittorie e' salito, ma non l'ha mai pubblicata. Dichiarata da Peppe: 4 gol suoi e un autogol avversario, Pesix_97 migliore in campo.",
       "giocatori": [
-        {"nome": "Pesix_97", "ea_player_id": "1891140346", "pos": "forward", "gol": 4, "assist": 0, "voto": 10.0, "mom": 1},
-        {"nome": "ilmille", "ea_player_id": "1765650633", "pos": "forward", "gol": 0, "assist": 0, "voto": 6.5, "mom": 0}
+        {
+          "nome": "Pesix_97",
+          "ea_player_id": "1891140346",
+          "pos": "forward",
+          "gol": 4,
+          "assist": 0,
+          "voto": 10.0,
+          "mom": 1
+        },
+        {
+          "nome": "ilmille",
+          "ea_player_id": "1765650633",
+          "pos": "forward",
+          "gol": 0,
+          "assist": 0,
+          "voto": 6.5,
+          "mom": 0
+        }
       ]
     }
   ],
@@ -2353,6 +2381,10 @@
     {
       "serata": "2026-10-12T20:55Z",
       "partite": 6
+    },
+    {
+      "serata": "2026-10-13T20:56Z",
+      "partite": 5
     }
   ],
   "_serate_chiuse": [
