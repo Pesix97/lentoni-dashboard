@@ -1452,3 +1452,12 @@ Assunzioni da ricordare: inizio 22:56 (il messaggio diceva «fine 22:16», quasi
 **La vittoria del 03/10 non è dichiarata**: servono avversario, gol e voti. Se EA
 pubblicasse mai una di queste partite, togliere la voce da `partite_manuali`.
 
+## Ruoli di ilmillejr e m4tt1asgn8 assegnati (14/10/2026)
+
+Erano gli ultimi due "da assegnare". Peppe: il primo è centrocampista, il secondo difensore
+che gioca spesso a centrocampo. Messi in `roles.json` come CENTROCAMPISTI e DIFENSORI. Per
+m4tt1asgn8 il ruolo abituale è difensore, ma conta la posizione EA di ogni partita: le 33
+partite che EA gli ha dato da `midfielder` vanno ai centrocampisti, le 16 da `defender` ai
+difensori. Il nome in EA è `ilmillejr` (Peppe ha scritto "millejr"). Il testo del 27/09
+sopra, che parla di m4tt1asgn8 come "da assegnare", descrive la situazione di allora.
+

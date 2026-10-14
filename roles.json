@@ -89,6 +89,14 @@
     "eredes": {
       "gruppo": "ATTACCANTI",
       "etichetta_ea": "forward"
+    },
+    "ilmillejr": {
+      "gruppo": "CENTROCAMPISTI",
+      "etichetta_ea": "midfielder"
+    },
+    "m4tt1asgn8": {
+      "gruppo": "DIFENSORI",
+      "etichetta_ea": "defender"
     }
   },
   "_ex_giocatori": [
@@ -2412,7 +2420,12 @@
     "26/08, Braia FC il 03/09 - le tre 'midfielder' con minutaggio pieno e senza gia' un'altra",
     "eccezione; scartata quella contro 3LA JNBB, 21 secondi in campo). Quelle tre restano",
     "eccezioni_partita a CENTROCAMPISTI: il ruolo di base e' Attaccante, ma partita per partita",
-    "vince sempre la conferma di chi ha visto la partita, come per tutti gli altri."
+    "vince sempre la conferma di chi ha visto la partita, come per tutti gli altri.",
+    "",
+    "14/10/2026, su indicazione di Peppe: ilmillejr e' CENTROCAMPISTI; m4tt1asgn8 e' DIFENSORI di",
+    "base ma gioca spesso a centrocampo. Nessuna eccezione da scrivere per lui: le partite in cui",
+    "EA lo schiera 'midfielder' vanno gia' da sole fra i CENTROCAMPISTI (vince il dato EA della",
+    "singola partita), le altre restano fra i DIFENSORI. Prima erano entrambi 'da assegnare'."
   ],
   "_etichetta_ea": [
     "'etichetta_ea' e' l'etichetta che EA usa per questo giocatore quando gioca nel suo ruolo",
