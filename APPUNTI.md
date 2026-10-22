@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 14/10/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 22/10/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -509,10 +509,15 @@ identici, perché erano semplicemente le stesse dieci partite viste da angoli di
 
 ### 4. Idee proposte e mai realizzate
 
-**Riepilogo dell'ultima serata** in cima alla dashboard: com'è andata ieri notte senza
-doverlo chiedere. Non dipende dal campione, si può fare in qualsiasi momento.
+**Riepilogo dell'ultima serata: realizzato.** È la sezione «Novità dall'ultima serata»
+(`#novita`, `renderNews()` in `pagina.js`), seconda in pagina: confronta l'ultima serata con
+la penultima. Vedi README, «Novità dall'ultima serata». Trovato falso nella rilettura del
+22/10/2026: l'appunto lo dava ancora per mai fatto.
 
-**Traguardi**: chi sta per tagliare una cifra tonda (presenze, gol, assist).
+**Traguardi**: i badge a soglia fissa esistono già (`getAchievements()` e `ACHIEVEMENT_TIERS`
+in `pagina.js`, scheda giocatore: presenze, gol, assist, MOTM, percentuali, clean sheet).
+Resta da fare solo la parte «chi sta per tagliare una cifra tonda», cioè l'avvicinamento alla
+soglia.
 
 ### 5. Ripesare l'Indice di Forza sull'affidabilità misurata
 
