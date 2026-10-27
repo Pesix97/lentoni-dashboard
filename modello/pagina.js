@@ -1,6 +1,50 @@
 
 const DATA = __DATA_JSON__;
 
+// ---- I nomi che arrivano da fuori vengono neutralizzati QUI, una volta sola ----
+//
+// Trovato il 27/10/2026: la pagina inserisce HTML in oltre settanta punti, e i nomi ci
+// finivano dentro cosi' come arrivavano da EA. I gamertag hanno un alfabeto ristretto, ma i
+// nomi dei CLUB AVVERSARI li sceglie chiunque: un club chiamato <img src=x onerror=...>
+// avrebbe fatto eseguire codice a chiunque aprisse la dashboard. Al 27/10/2026 nessuno dei
+// 317 avversari conosciuti conteneva caratteri pericolosi - il buco era aperto, non usato.
+//
+// Perche' qui e non punto per punto: i punti sono decine e chi aggiunge una sezione nuova
+// dimenticherebbe l'escape alla prima occasione. Facendolo sui dati, prima di qualunque
+// disegno, ogni uso presente e futuro e' coperto. Per tutti i nomi che non contengono
+// & < > " ' (oggi: tutti) non cambia un carattere. Per uno che li contiene, nell'HTML si
+// legge giusto; in un canvas o in un campo di testo si leggerebbe l'entita' (&amp;): un
+// difetto estetico su un nome strano, contro un buco di sicurezza su tutti.
+//
+// Coperti: i campi con un nome (sotto) a qualunque profondita', e le CHIAVI dei dizionari
+// dei ruoli, che sono gamertag. test_sicurezza.js inietta nomi malevoli e controlla.
+const CAMPI_NOME = new Set(["player_name", "name", "opponent_name", "pro_name", "stad_name", "nome"]);
+function escHtml(s){
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+// Il contrario, per i pochi posti che scrivono testo e non HTML (un canvas, un titolo).
+function testoDaHtml(s){
+  return String(s).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&gt;/g, ">")
+                  .replace(/&lt;/g, "<").replace(/&amp;/g, "&");
+}
+(function neutralizzaNomi(x){
+  if(Array.isArray(x)){ x.forEach(neutralizzaNomi); return; }
+  if(!x || typeof x !== "object") return;
+  Object.keys(x).forEach(k => {
+    const v = x[k];
+    if(typeof v === "string"){ if(CAMPI_NOME.has(k)) x[k] = escHtml(v); }
+    else neutralizzaNomi(v);
+  });
+})(DATA);
+(function chiaviDeiRuoli(rg){
+  if(!rg) return;
+  ["players", "eaLabels", "exceptions"].forEach(k => {
+    if(!rg[k] || typeof rg[k] !== "object") return;
+    rg[k] = Object.fromEntries(Object.entries(rg[k]).map(([chiave, v]) => [escHtml(chiave), v]));
+  });
+})(DATA.roleGroups);
+
 // Un canvas (Chart.js o <canvas> diretto, es. la scheda da condividere) non capisce
 // "var(--accent)": vuole un colore vero. Prima ogni punto che disegnava su un canvas si
 // teneva una sua copia scritta a mano dei colori del tema - due giri sullo stesso rosso e
@@ -1106,13 +1150,40 @@ function computeBlendedScores(windowSize, weight){
   el.innerHTML = chips + `<span class="form-chip-info">${matches.length} partite tracciate, dalla più vecchia (sinistra) alla più recente (destra)</span>`;
 })();
 
+// ---- Disegnare quando serve, non tutto all'apertura (27/10/2026) ----
+//
+// Misurato in Chrome il 27/10/2026: lo script della pagina durava ~0,36 s, e il 60% erano
+// due grafici - l'andamento in home (~125 ms) e la distribuzione dei risultati in Riepilogo
+// (~100 ms) - piu' la scheda da condividere (~35 ms). Tutti disegnati all'apertura, anche
+// quando la pagina scelta era un'altra, prima che lo schermo mostrasse qualunque cosa. Su un
+// telefono, 4-5 volte piu' lento, voleva dire 1,5-2 secondi di schermo vuoto.
+//
+// Ora questi pezzi si registrano qui con la pagina in cui stanno, e partono la prima volta
+// che quella pagina si apre, DOPO che il browser ha disegnato la schermata: la parte alta
+// di home compare senza aspettarli, e Riepilogo disegna il suo grafico solo se lo si apre.
+// Le altre sezioni costano pochi millisecondi l'una e restano come prima.
+const IN_ATTESA = {};
+function disegnaQuando(pagina, fn){
+  (IN_ATTESA[pagina] = IN_ATTESA[pagina] || []).push(fn);
+}
+function eseguiInAttesa(pagina){
+  const lista = IN_ATTESA[pagina];
+  if(!lista || lista.length === 0) return;
+  IN_ATTESA[pagina] = [];
+  // Un fotogramma, poi un giro dell'event loop: il primo lascia disegnare la schermata,
+  // il secondo fa partire il lavoro subito dopo. Un errore in un pezzo non ferma gli altri.
+  requestAnimationFrame(() => setTimeout(() => lista.forEach(fn => {
+    try { fn(); } catch(e){ console.error(fn.name, e); }
+  }), 0));
+}
+
 // ---- History chart ----
 // I punti dello storico non sono equidistanti: ne viene salvato uno solo quando i dati
 // cambiano davvero, quindi una notte di gioco produce un punto ogni venti minuti e una
 // settimana di pausa nessuno. Su un asse temporale lineare le serate schiacciavano tutto
 // il resto; le etichette restano percio' categoriche, un punto per rilevazione, e il
 // filtro serve proprio a scegliere quanta storia guardare insieme.
-(function renderHistoryChart(){
+disegnaQuando("home", function renderHistoryChart(){
   const ctx = document.getElementById("chartHistory");
   const barraEl = document.getElementById("historyRange");
   const riepilogoEl = document.getElementById("historyRiepilogo");
@@ -1229,7 +1300,7 @@ function computeBlendedScores(windowSize, weight){
 
   disegnaBarra();
   disegna();
-})();
+});
 
 // ---- Finishes per division chart ----
 (function renderFinishesChart(){
@@ -1583,14 +1654,15 @@ renderRoster();
 })();
 
 // ---- Share card: immagine PNG generata su canvas, senza librerie esterne ----
-(function initShare(){
+disegnaQuando("home", function initShare(){
   const canvas = document.getElementById("shareCanvas");
   if(!canvas) return;
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   const club = DATA.club || {};
   const l = DATA.latest || {};
-  const clubName = (club.name || "Club").toUpperCase();
+  // Il nome e' stato neutralizzato per l'HTML (vedi in cima): in un canvas va riportato a testo.
+  const clubName = testoDaHtml(club.name || "Club").toUpperCase();
 
   function roundRect(x, y, w, h, r){
     ctx.beginPath();
@@ -1739,7 +1811,7 @@ renderRoster();
     try{ await navigator.clipboard.writeText(url); flash("Link copiato: " + url); }
     catch(e){ flash("Copia non riuscita, il link è " + url); }
   });
-})();
+});
 
 // ---- Indice di Forza (power ranking) ----
 (function renderPowerRanking(){
@@ -2786,7 +2858,7 @@ function computeOutfieldLineup(){
 })();
 
 // ---- Distribuzione risultati per margine di gol ----
-(function renderResultsDistribution(){
+disegnaQuando("riepilogo", function renderResultsDistribution(){
   const ctx = document.getElementById("chartResultsDist");
   const matches = DATA.matches || [];
   if(matches.length === 0){
@@ -2820,7 +2892,7 @@ function computeOutfieldLineup(){
       }
     }
   });
-})();
+});
 
 // ---- Avversari: bilancio contro ogni club affrontato ----
 (function renderOpponents(){
@@ -4146,6 +4218,7 @@ function showPage(pageKey){
   document.querySelectorAll("#navLinks a").forEach(l => l.classList.toggle("active", l.dataset.page === pageKey));
   window.scrollTo(0, 0);
   if(location.hash.slice(1) !== pageKey) history.replaceState(null, "", "#" + pageKey);
+  eseguiInAttesa(pageKey);
 }
 
 function openDrawer(){
@@ -4156,6 +4229,16 @@ function closeDrawer(){
   document.getElementById("sideDrawer").classList.remove("open");
   document.getElementById("drawerOverlay").classList.remove("open");
 }
+
+// Il menu per passare da un titolo all'altro (FC 27 / FC 26), scritto da
+// generate_dashboard.py. Sta qui, fra le parti che toccano la pagina, e non in cima:
+// test_ruoli.js esegue la parte alta del file fuori dal browser, dove document non c'e'.
+// Prima aveva un onchange nell'HTML, che la Content-Security-Policy
+// blocca (27/10/2026): l'ancora si porta dietro, cosi' si resta sulla stessa sezione.
+document.addEventListener("change", e => {
+  const sel = e.target;
+  if(sel && sel.id === "titoloSelect" && sel.value) location.href = sel.value + location.hash;
+});
 
 (function renderNav(){
   const el = document.getElementById("navLinks");

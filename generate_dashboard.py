@@ -18,6 +18,8 @@ season recap), costruite interamente dai dati già presenti nel DB
 locale — nessuna chiamata di rete aggiuntiva richiesta.
 """
 import argparse
+import base64
+import hashlib
 import html
 import json
 import posixpath
@@ -124,7 +126,8 @@ def href_relativo(da_file, a_file):
 def selettore_titoli_html(titoli, corrente_file):
     """Il menu a tendina in alto che passa da un titolo all'altro.
 
-    Non serve JavaScript oltre a un `location.href` sull'evento onchange: e' la stessa
+    Non serve JavaScript oltre a un `location.href` sull'evento change (in pagina.js, dal
+    27/10/2026: la CSP non ammette gestori scritti nell'HTML): e' la stessa
     filosofia di tutto il resto di questa funzione, una pagina statica per titolo con lo
     stesso identico generatore, cosi' le sezioni restano uguali per costruzione invece che
     per un controllo a parte. Vuoto (nessun menu) quando c'e' un solo titolo: scegliere fra
@@ -147,8 +150,9 @@ def selettore_titoli_html(titoli, corrente_file):
             href = html.escape(href_relativo(corrente_file, t["file"]))
             opzioni.append(f'<option value="{href}">{etichetta}</option>')
     return (
-        '<select id="titoloSelect" aria-label="Cambia titolo" '
-        'onchange="if(this.value) location.href=this.value+location.hash;">'
+        # Niente onchange qui: la Content-Security-Policy blocca i gestori scritti
+        # nell'HTML (27/10/2026). Il cambio di pagina lo fa pagina.js, cercando questo id.
+        '<select id="titoloSelect" aria-label="Cambia titolo">'
         + "".join(opzioni) + "</select>"
     )
 
@@ -592,6 +596,48 @@ def carica_modello():
 HTML_TEMPLATE = carica_modello()
 
 
+def con_politica_di_sicurezza(pagina):
+    """Aggiunge la Content-Security-Policy, calcolata sulla pagina appena montata.
+
+    Seconda difesa dietro l'escape dei nomi (27/10/2026): se un giorno un nome sfuggisse e
+    finisse nell'HTML come <img onerror=...>, il browser si rifiuterebbe di eseguirlo.
+    GitHub Pages non permette di impostare gli header, quindi la politica va in un <meta>.
+
+    La pagina non carica NIENTE dall'esterno: due <script> e uno <style>, tutti incorporati.
+    Gli script ammessi sono esattamente quei due, riconosciuti dall'impronta SHA-256 del loro
+    contenuto - che cambia a ogni pubblicazione, perche' i dati stanno dentro uno dei due:
+    per questo l'impronta si calcola qui, a ogni generazione, e non si scrive a mano.
+    Qualunque altro script, attributo onxxx o javascript: viene bloccato.
+
+    Gli stili restano 'unsafe-inline': la pagina usa centinaia di attributi style, e uno
+    stile iniettato non esegue codice. Immagini solo dalla pagina stessa, data: e blob: (la
+    scheda da condividere si disegna su un canvas e si scarica come blob).
+    """
+    impronte = []
+    for contenuto in re.findall(r"<script[^>]*>([\s\S]*?)</script>", pagina):
+        # Il browser calcola l'impronta sul testo dopo il parsing HTML, che trasforma ogni
+        # CRLF in LF: si fa lo stesso, cosi' l'impronta vale anche per una pagina scritta
+        # su Windows.
+        testo = contenuto.replace("\r\n", "\n").replace("\r", "\n")
+        digest = hashlib.sha256(testo.encode("utf-8")).digest()
+        impronte.append("'sha256-" + base64.b64encode(digest).decode("ascii") + "'")
+    politica = "; ".join([
+        "default-src 'none'",
+        "script-src " + " ".join(impronte),
+        "style-src 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "base-uri 'none'",
+        "form-action 'none'",
+        "object-src 'none'",
+    ])
+    meta = (f'<meta http-equiv="Content-Security-Policy" content="{politica}">\n'
+            '<meta name="referrer" content="no-referrer">\n')
+    segnaposto = '<meta charset="UTF-8">\n'
+    if segnaposto not in pagina:
+        raise SystemExit("modello senza <meta charset>: non so dove mettere la CSP")
+    return pagina.replace(segnaposto, segnaposto + meta, 1)
+
+
 DEFAULT_ROLE_GROUPS = {
     "order": ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "TREQUARTISTA", "ATTACCANTI", "PORTIERI"],
     "labels": {"DIFENSORI": "Difensori", "CENTROCAMPISTI": "Centrocampisti",
@@ -870,16 +916,24 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path):
     updated_at = data["history"][-1]["fetched_at"] if data["history"] else "-"
     min_games = MIN_GAMES_PER_TITOLO.get(data["titolo"], MIN_GAMES)
 
+    # I dati finiscono dentro un <script>: un nome che contenesse "</script>" chiuderebbe il
+    # blocco a meta' e il resto verrebbe letto come HTML. Ogni "<" diventa \u003c, che per
+    # JSON e JavaScript e' lo stesso carattere ma per il parser HTML non apre niente. Il nome
+    # del club va invece dritto nell'HTML (titolo, intestazione), quindi si fa l'escape HTML.
+    # Trovati il 27/10/2026, vedi "Sicurezza" nel README.
+    dati_js = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
     pagina_html = (
         HTML_TEMPLATE
-        .replace("__CLUB_NAME__", club_name)
+        .replace("__CLUB_NAME__", html.escape(club_name))
         .replace("__PLATFORM__", str(platform))
         .replace("__DIVISION__", str(division))
         .replace("__UPDATED_AT__", str(updated_at))
         .replace("__MIN_GAMES__", str(min_games))
         .replace("__SELETTORE_TITOLI__", selettore_titoli_html(titoli, corrente_file))
-        .replace("__DATA_JSON__", json.dumps(data, ensure_ascii=False))
+        .replace("__DATA_JSON__", dati_js)
     )
+
+    pagina_html = con_politica_di_sicurezza(pagina_html)
 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)

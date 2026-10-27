@@ -1556,3 +1556,19 @@ Peppe ha voluto che i gol subiti pesassero sul difensore anche dopo aver visto c
   tutti, e i gol subiti non vi comparivano: corretto lo stesso giorno, ora usa i pesi del
   reparto di ciascuno e mostra il quarto pezzo (README, «Il confronto testa a testa spiega
   il distacco»).
+
+## Sicurezza e velocità del sito (27/10/2026)
+
+Fatto e pubblicato lo stesso giorno: escape dei nomi che arrivano da fuori, blocco dei dati
+protetto, Content-Security-Policy, workflow con versioni fissate e permessi minimi, e i due
+grafici più pesanti (più la scheda da condividere) disegnati solo quando la loro pagina si
+apre. Tutto nel README, «Sicurezza» e «Velocità: disegnare quando serve».
+
+Da ricordare:
+
+- **la CSP blocca in silenzio**: un `onclick=` o uno script aggiunto senza passare dal
+  generatore non funzionano, e nessun test in jsdom se ne accorge. Il test Python vieta i
+  gestori nell'HTML, ma il controllo vero è aprire la pagina in Chrome;
+- `jsdom@30.1.1` e `actions/checkout` sono fissati: aggiornarli è una scelta da fare
+  apposta, provando i test con la versione nuova;
+- il task `lentoni-dashboard-update` in pausa va ancora tolto a mano dall'app (vedi sopra).

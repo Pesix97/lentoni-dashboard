@@ -16,11 +16,18 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Solo lettura: questi test non devono poter scrivere sul repository. Senza questa riga il
+# token avrebbe i permessi predefiniti del repository (27/10/2026).
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Fissata al commit, non all'etichetta: un'etichetta si puo' spostare, un commit no.
+      # 11d5960 = v4.4.0, la stessa che indicava "v4" il 27/10/2026.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Test della pipeline
         run: python3 -m unittest test_pipeline -v
@@ -34,14 +41,19 @@ jobs:
       # Serve jsdom: questi due montano la pagina in un motore HTML vero invece di leggerla
       # come testo. Sono le uniche reti che si accorgono di un guasto che vive dentro un
       # template letterale, cioe' in un pezzo di codice che nessun altro test esegue.
+      # Versione fissa: quella con cui i test sono stati provati. "jsdom" senza versione
+      # installava l'ultima uscita, cioe' codice che nessuno aveva mai visto (27/10/2026).
       - name: Installa jsdom
-        run: npm install --no-save --no-fund --no-audit jsdom
+        run: npm install --no-save --no-fund --no-audit jsdom@30.1.1
 
       - name: La pagina si apre davvero
         run: node test_apertura.js /tmp/prova.html
 
       - name: Il dettaglio della tecnica quadra con la colonna
         run: node test_tecnica.js /tmp/prova.html
+
+      - name: I nomi che arrivano da fuori restano testo
+        run: node test_sicurezza.js /tmp/prova.html
 
       - name: Sintassi degli script
         run: |

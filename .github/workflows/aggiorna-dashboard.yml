@@ -109,7 +109,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      # Fissata al commit (v4.4.0), non all'etichetta: vedi test.yml.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Il segno "sono partito", scritto PRIMA del ciclo e apposta in un passo separato.
       # Senza, un'esecuzione che muore prima del primo giro non lascia traccia da nessuna
@@ -133,7 +134,9 @@ jobs:
       # solo e salta il controllo invece di fallire.
       - name: Installa jsdom per il controllo di apertura
         continue-on-error: true
-        run: npm install --no-save --no-fund --no-audit jsdom
+        # Versione fissa: questo job puo' scrivere sul repository, e "jsdom" senza versione
+        # avrebbe installato qualunque cosa fosse uscita quel giorno (27/10/2026).
+        run: npm install --no-save --no-fund --no-audit jsdom@30.1.1
 
       - name: Ciclo di aggiornamento
         run: |

@@ -326,6 +326,63 @@ class TestDashboard(BaseConArchivio):
         self.assertEqual(ottenuto["latest"].get("skill_rating"),
                          atteso["latest"].get("skill_rating"))
 
+    def test_un_nome_con_script_non_chiude_il_blocco_dei_dati(self):
+        """Un nome avversario con </script> non deve poter uscire dal blocco dei dati.
+
+        I nomi dei club avversari li sceglie chiunque su EA. I dati finiscono dentro un
+        <script>: senza protezione, "</script>" nel nome chiudeva il blocco a meta' e quello
+        che seguiva veniva letto come HTML, cioe' codice di uno sconosciuto nella pagina.
+        Trovato il 27/10/2026 (nessun nome in archivio lo sfruttava). La parte "dentro la
+        pagina" - i nomi trasformati in HTML - la controlla test_sicurezza.js.
+        """
+        normale = self._genera(self.tmp / "normale.html")
+        veleno = "</script><script>window.__xss=1</script><img src=x onerror=alert(1)>"
+        con = sqlite3.connect(self.db)
+        mid = con.execute("SELECT match_id FROM matches WHERE club_id=? LIMIT 1", (CLUB,)).fetchone()[0]
+        con.execute("UPDATE matches SET opponent_name=? WHERE match_id=?", (veleno, mid))
+        con.commit()
+        con.close()
+        html_avvelenato = self._genera(self.tmp / "avvelenata.html")
+        # Il riferimento e' la pagina normale, non un numero scritto a mano: il veleno non
+        # deve aggiungere nemmeno un tag.
+        for tag in ("</script>", "<script", "<img"):
+            self.assertEqual(html_avvelenato.count(tag), normale.count(tag),
+                             f"il nome avversario ha aggiunto un {tag} alla pagina")
+        dati = self._dati(html_avvelenato)
+        self.assertIn(veleno, [m["opponent_name"] for m in dati["matches"]],
+                      "il nome deve restare intatto nei dati: va neutralizzato, non perso")
+
+    def test_la_politica_di_sicurezza_ammette_esattamente_gli_script_della_pagina(self):
+        """La CSP deve far girare i NOSTRI script e nient'altro (27/10/2026).
+
+        Le impronte si ricalcolano qui sull'HTML generato, con hashlib, senza passare dalla
+        funzione che le scrive: se un giorno la pagina cambiasse e la CSP no, il browser
+        bloccherebbe tutta la dashboard, e nessun test in jsdom se ne accorgerebbe (jsdom la
+        CSP non la applica). E nessun gestore on...= scritto nell'HTML: la CSP lo blocca, e
+        il comando smetterebbe di funzionare in silenzio - e' successo al menu dei titoli,
+        trovato provando la pagina in Chrome.
+        """
+        import base64
+        import hashlib
+        import re as _re
+        pagina = self._genera(self.tmp / "csp.html")
+        m = _re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]+)"', pagina)
+        self.assertIsNotNone(m, "manca la Content-Security-Policy")
+        self.assertLess(pagina.index(m.group(0)), pagina.index("<script"),
+                        "la CSP deve venire prima del primo script")
+        politica = m.group(1)
+        script_src = next(p for p in politica.split("; ") if p.startswith("script-src "))
+        ammessi = set(script_src.split()[1:])
+        trovati = set()
+        for corpo in _re.findall(r"<script[^>]*>([\s\S]*?)</script>", pagina):
+            testo = corpo.replace("\r\n", "\n")
+            trovati.add("'sha256-" + base64.b64encode(hashlib.sha256(testo.encode()).digest()).decode() + "'")
+        self.assertEqual(ammessi, trovati, "gli script ammessi devono essere esattamente quelli della pagina")
+        self.assertNotIn("'unsafe-inline'", script_src)
+        fuori_dagli_script = _re.sub(r"<script[^>]*>[\s\S]*?</script>", "", pagina)
+        gestori = _re.findall(r"<[a-zA-Z][^>]*\son[a-z]+\s*=", fuori_dagli_script)
+        self.assertEqual(gestori, [], "gestori di eventi scritti nell'HTML: la CSP li blocca")
+
     def test_roles_json_malformato_non_blocca_la_pubblicazione(self):
         """roles.json si modifica a mano: un refuso non deve fermare l'aggiornamento.
 
@@ -1343,8 +1400,11 @@ class TestPassaggioDiTitolo(BaseConArchivio):
 
         # Cambiare titolo da dentro una sezione (es. "#giocatori") deve restarci, non
         # riportare alla home dell'altro titolo - segnalato da Peppe il 06/09/2026.
-        self.assertIn("location.href=this.value+location.hash", html_nuovo,
-                      "il link del selettore non porta con se' la sezione aperta")
+        # Dal 27/10/2026 il cambio di pagina sta in pagina.js e non in un onchange nell'HTML,
+        # che la Content-Security-Policy bloccherebbe.
+        self.assertIn('sel.id === "titoloSelect" && sel.value) location.href = sel.value + location.hash',
+                      html_nuovo, "il link del selettore non porta con se' la sezione aperta")
+        self.assertNotIn("onchange=", html_nuovo, "un onchange nell'HTML viene bloccato dalla CSP")
 
 
 class TestPotatura(unittest.TestCase):

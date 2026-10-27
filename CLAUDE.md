@@ -95,9 +95,15 @@ python3 -m unittest test_pipeline
 node test_ruoli.js index.html
 node test_apertura.js index.html     # apre davvero la pagina: serve `npm install jsdom`
 node test_tecnica.js index.html      # il riquadro Tecnica somma al numero della colonna
+node test_sicurezza.js index.html    # un nome che arriva da fuori non diventa codice
 ```
 
-**Gli ultimi due non sono opzionali, e sono nati da guasti veri.** Il 29/08/2026 una
+**La Content-Security-Policy non la vede nessun test in jsdom.** Se si tocca come la pagina
+carica gli script, o si aggiunge un gestore di eventi, va aperta in un Chrome vero (anche
+headless, `--dump-dom`) e guardato il log: una violazione blocca il codice in silenzio.
+Vedi README, «Sicurezza».
+
+**`test_apertura.js` e `test_tecnica.js` non sono opzionali, e sono nati da guasti veri.** Il 29/08/2026 una
 dashboard inutilizzabile è finita online con tutti gli altri controlli verdi: una variabile
 scritta male dentro un template letterale, `ReferenceError` a runtime, niente menu e
 diciassette sezioni impilate. Sintassi giusta, ancore tutte presenti, 192 controlli passati.

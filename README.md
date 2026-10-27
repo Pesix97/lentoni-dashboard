@@ -408,10 +408,11 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. Con `--completa` misura tutte le voci, anche i pezzi della tecnica, con la divisione pari/dispari e un intervallo al 90% (ultimi risultati in `APPUNTI.md`, punto 5). |
-| `test_pipeline.py` | 111 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo). |
+| `test_pipeline.py` | 113 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 119 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
+| `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1362,6 +1363,64 @@ simulando un cambio di nome su due partite — segnalato correttamente.
 
 Il giorno che succede, la soluzione sarà una riga: rinominare a mano le righe vecchie, o
 aggiungere una mappa di alias.
+
+## Sicurezza
+
+Il sito è statico, ma mostra nomi che **non scriviamo noi**: i club avversari si chiamano
+come vuole chi li ha creati su EA. Il 27/10/2026 la pagina inseriva HTML in oltre settanta
+punti senza alcun escape, e i dati stavano in un `<script>` che un nome con `</script>`
+avrebbe chiuso a metà: un club chiamato `<img src=x onerror=…>` avrebbe eseguito il suo
+codice nel browser di chiunque aprisse la dashboard. Nessuno dei 317 avversari in archivio
+lo faceva. Le difese, dalla più interna:
+
+| Difesa | Dove | Cosa ferma |
+| --- | --- | --- |
+| `<` scritto come `\u003c` nei dati | `generate_dashboard.py` | un nome con `</script>` che chiude il blocco dei dati |
+| nomi neutralizzati appena caricati (`neutralizzaNomi`) | in cima a `pagina.js` | un nome che diventa HTML in una qualunque sezione, presente o futura |
+| Content-Security-Policy con le impronte dei due script | `<meta>` scritto dal generatore | qualunque codice che riuscisse comunque a entrare: script, `onerror`, `javascript:` |
+| `test_sicurezza.js`, due test in `test_pipeline.py` | test | che una delle tre smetta di funzionare |
+
+I nomi si neutralizzano **sui dati**, una volta sola, e non punto per punto: i punti sono
+decine, e chi aggiunge una sezione nuova dimenticherebbe l'escape alla prima occasione. Per
+i nomi senza `& < > " '` (al 27/10/2026, tutti) non cambia un carattere. Nei pochi posti che
+scrivono testo e non HTML (il canvas della scheda da condividere) si torna al testo con
+`testoDaHtml`.
+
+La CSP non ammette `'unsafe-inline'` per gli script: la pagina ha due `<script>` incorporati
+e sono ammessi solo quelli, per impronta SHA-256, ricalcolata a ogni generazione perché i dati
+cambiano. Di conseguenza **nessun gestore `on…=` può stare nell'HTML**: il menu dei titoli
+aveva un `onchange`, trovato provando la pagina in Chrome (jsdom la CSP non la applica), e
+ora lo gestisce `pagina.js`. Un test lo impedisce. GitHub Pages non permette di impostare
+header, per questo la politica sta in un `<meta>`.
+
+Nei workflow: `test.yml` ha permessi in sola lettura; `actions/checkout` è fissata al
+commit (v4.4.0) e `jsdom` alla versione 30.1.1, perché il job di aggiornamento può scrivere
+sul repository e prima installava qualunque versione fosse uscita quel giorno.
+
+`test_sicurezza.js` gira in `test.yml` a ogni modifica del codice, **non** in `giro.sh`:
+fallirebbe solo per una modifica sbagliata al codice, non per un nome avversario (quello è
+proprio il caso che le difese reggono), e il ciclo non deve fermarsi per un difetto dei test.
+
+## Velocità: disegnare quando serve
+
+Misurato in Chrome il 27/10/2026 sulla pagina vera: la rete non era il problema (219 KB
+compressi, risposta in 175 ms), lo era lo script che all'apertura costruisce la pagina. Il
+60% del suo tempo erano due grafici - l'andamento dello skill rating in home e la
+distribuzione dei risultati in Riepilogo - più la scheda da condividere.
+
+Ora quei tre pezzi si registrano con `disegnaQuando(pagina, …)` e partono la prima volta che
+la loro pagina si apre, **dopo** che il browser ha disegnato la schermata (`eseguiInAttesa`,
+chiamata da `showPage`). Il grafico di Riepilogo si disegna solo se si apre Riepilogo.
+
+| Chrome, stesso PC, pagina di FC 27 | prima | dopo |
+| --- | ---: | ---: |
+| fine dello script d'apertura (mediana di 7 prove) | 0,72 s | 0,17 s |
+| durata dello script | ~360 ms | 147 ms |
+
+Misurare con `--virtual-time-budget` di Chrome headless dà numeri falsi: il tempo che fa
+scorrere è virtuale. Le misure sopra sono a tempo reale. Le altre sezioni costano pochi
+millisecondi l'una e restano costruite all'apertura: spostarle tutte darebbe poco e
+cambierebbe molto codice.
 
 ## Il peso del repository
 
