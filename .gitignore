@@ -16,3 +16,7 @@ __pycache__/
 # Sul runner le installa il workflow, in locale si mettono a mano: non vanno versionate.
 node_modules
 package-lock.json
+
+# Copie di prova della pagina (es. controllo_tmp.html, finita online per errore il
+# 31/08/2026 con un commit fatto con "git add" su tutto, e rimossa il 27/10/2026).
+*_tmp.html

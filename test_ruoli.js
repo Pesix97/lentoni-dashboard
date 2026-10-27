@@ -674,11 +674,14 @@ console.log("\nConfronto testa a testa");
           if (rigaTech && dentroTendina) {
             const t = leggiPunti(rigaTech, nomeAlto)[0];
             const q = leggiPunti(dentroTendina, nomeAlto).reduce((a, b) => a + b, 0);
-            // Tolleranza 0.16 e non zero: si sommano tre numeri gia' arrotondati a un
-            // decimale, quindi fino a 0.05 ciascuno di scarto legittimo. Un'attribuzione
-            // davvero sbagliata produce scarti di oltre un punto, ben fuori da qui.
+            // Tolleranza 0.21 e non zero: si sommano fino a quattro numeri gia' arrotondati
+            // a un decimale (quattro con un difensore, dal 27/10/2026), quindi fino a 0.05
+            // ciascuno di scarto legittimo. ATTENZIONE: questo controllo non vede se la
+            // RIPARTIZIONE fra i pezzi e' giusta, solo che sommino - e sommano sempre, perche'
+            // i punti si ripartiscono in proporzione. La ripartizione la controlla
+            // test_tecnica.js contro i riquadri stampati (27/10/2026).
             const scartoPezzi = Math.abs(t - q);
-            if (scartoPezzi > 0.16) pezziSbagliati++;
+            if (scartoPezzi > 0.21) pezziSbagliati++;
             if (scartoPezzi > peggiorPezzi) peggiorPezzi = scartoPezzi;
           }
         }

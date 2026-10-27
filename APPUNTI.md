@@ -93,7 +93,10 @@ consultabile in qualsiasi momento su
 https://github.com/Pesix97/lentoni-dashboard/blob/stato/stato.json — trenta byte che
 dicono se l'automazione è viva.
 
-**Il vecchio task `lentoni-dashboard-update` è in pausa**, sostituito da GitHub Actions.
+**Il vecchio task `lentoni-dashboard-update` è in pausa**, sostituito da GitHub Actions. Il
+27/10/2026 si è provato a eliminarlo da una sessione dell'app desktop: l'elenco dei task
+pianificati risultava vuoto, come per le notifiche qui sotto. Va eliminato a mano dalla
+sezione "Scheduled" dell'app.
 Al 24/08 l'automazione ha quattro giorni di funzionamento verificato alle spalle: la rete
 di sicurezza ha esaurito il suo scopo e il task si può eliminare quando capita.
 
@@ -594,6 +597,71 @@ le 144 e le 275 partite a seconda del ritmo. È anche l'ultima occasione per rif
 misura su questo titolo: da FC 27 si riparte da zero, e i pesi tarati qui saranno l'unica
 eredità utile.
 Con 59 partite nessun indice regge davvero, incluso quello che proporrei io.
+
+**Rimisurato il 27/10/2026 su FC 27, con `affidabilita.py --completa`: 158 partite
+utilizzabili su 162, 14 giocatori.** Due cose nuove rispetto alle misure di agosto e
+settembre: ci sono anche l'efficienza tecnica e i suoi pezzi, e c'è la divisione
+**pari/dispari** (partite alternate, quindi senza i cambi di modulo e di rosa nel tempo),
+con un intervallo al 90% ricampionando i giocatori.
+
+```
+                            1a/2a meta  pari/disp   90% pari/disp      FC 26 pari/disp
+gol + assist a partita        +0.71      +0.88     +0.79 .. +0.96        +0.91
+media voto                    +0.67      +0.73     +0.47 .. +0.88        +0.79
+scarto voto vs compagni       +0.57      +0.56     +0.15 .. +0.82        +0.79
+% migliore in campo           +0.34      +0.50     +0.07 .. +0.89        +0.67
+efficienza tecnica            +0.57      +0.41     -0.10 .. +0.77        +0.75
+  passaggi riusciti %         +0.86      +0.69     +0.24 .. +0.91        +0.21
+  contrasti riusciti %        +0.91      +0.94     +0.85 .. +0.98        +0.93
+  tiri trasformati %          -0.21      -0.20     -0.66 .. +0.64        +0.56
+  gol subiti ogni 90'         -0.46      -0.48     -0.77 .. +0.16        -0.09
+```
+
+Cosa dicono, letti con l'intervallo accanto:
+
+- **gol + assist è la voce più solida**, in entrambi i titoli e in entrambe le divisioni: è
+  l'unica con l'intervallo tutto sopra +0.79. Oggi pesa il 30%, meno della media voto (35%).
+- **media voto** regge (+0.73), e lo **scarto vs compagni** non fa meglio di lei: l'idea di agosto
+  di sostituire l'una con l'altro non trova conferma su FC 27.
+- **l'efficienza tecnica su FC 27 è la voce meno stabile dell'indice** (+0.41, intervallo che
+  tocca lo zero), mentre su FC 26 reggeva (+0.75). Il motivo si vede nei pezzi: i **contrasti**
+  sono la cosa più stabile di tutta la tabella (+0.94), i **tiri trasformati** su FC 27 sono
+  rumore puro (−0.20) — e il tiro pesa il 45% della tecnica degli attaccanti e il 40% di
+  esterni e trequartista.
+- **i gol subiti ogni 90' non si confermano** (−0.48, su FC 26 −0.09): non sono una
+  caratteristica del giocatore che si ripete. È quello che la misura del 27/10 sulle reti
+  inviolate lasciava prevedere: un dato di squadra si ridistribuisce fra chi gioca. Sono
+  entrati nei pesi dei difensori per scelta del club, sapendolo.
+
+**Nessun peso è stato cambiato.** Le leve che i numeri indicano: alzare gol+assist rispetto
+alla media voto, e abbassare il tiro dentro la tecnica di attaccanti, esterni e
+trequartista. Con 14 giocatori l'intervallo resta largo: una riga che cambia segno fra due
+titoli (tiri, passaggi) non va presa come verità, solo come segnale da rimisurare.
+
+**Simulato lo stesso giorno, sulla classifica generale (finestra 30, forma al 50%):**
+
+| Variante | Pesi | Effetto |
+| --- | --- | --- |
+| B | gol+assist 35, media voto 30 | primi cinque identici; scambi solo fra vicini a pochi decimi; tutti scendono di 1–2 punti |
+| C | tiro più basso: attaccanti 55/15/30, esterni 45/25/30, centrocampisti 45/35/20, trequartista 60/10/30 | primi cinque identici; domenicocasaburi dall'11° al 9° |
+| D | B e C insieme | come B, più lo spostamento di C |
+
+Le voci vanno insieme (chi fa più gol+assist ha anche la media voto più alta), quindi
+spostare peso fra loro cambia poco l'ordine. **Deciso con Peppe il 27/10/2026: i pesi restano
+come sono.**
+
+**DA RIFARE IL 27/11/2026 (o alla prima conversazione dopo):** rieseguire
+`python3 affidabilita.py --completa` su FC 27 e confrontare con la tabella qui sopra. Le
+domande da fare ai numeri nuovi:
+
+- **i tiri trasformati** sono ancora rumore (oggi −0.20)? Se sì anche con un mese di partite
+  in più, la variante C ha una base vera e va riproposta;
+- **gol + assist** resta la voce più stabile, sopra la media voto?
+- **i gol subiti ogni 90'** dei difensori si confermano o restano negativi (oggi −0.48)?
+- l'**efficienza tecnica** nel suo insieme risale (oggi +0.41)?
+
+Poi rifare la simulazione delle varianti: cambiare i pesi ha senso solo se sposta qualcuno in
+alto in classifica, non per scambiare vicini a pochi decimi.
 
 ### Cosa si è misurato provando a tarare (24/08/2026)
 
@@ -1484,7 +1552,7 @@ Peppe ha voluto che i gol subiti pesassero sul difensore anche dopo aver visto c
   perdono un po' rispetto agli altri reparti. Se dà fastidio, la leva è la scala, non il peso;
 - la pagina d'archivio di FC 26 cambia anch'essa (stesso codice), con molte prestazioni senza
   gol subiti perché precedenti al 29/08/2026: per quelle il pezzo vale la media del club;
-- il confronto testa a testa spezza la tecnica sempre con i tre pezzi e i pesi dell'attacco
-  (`pezziTecnica`, `PESI_TECNICA`): era già così per i difensori prima di oggi, e i gol
-  subiti per ora non vi compaiono. Il totale torna comunque, perché i punti si ripartiscono
-  in proporzione.
+- il confronto testa a testa spezzava la tecnica con i tre pezzi e i pesi dell'attacco per
+  tutti, e i gol subiti non vi comparivano: corretto lo stesso giorno, ora usa i pesi del
+  reparto di ciascuno e mostra il quarto pezzo (README, «Il confronto testa a testa spiega
+  il distacco»).

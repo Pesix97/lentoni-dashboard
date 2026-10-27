@@ -419,16 +419,16 @@ function daScalaTecnica(quota, chiave){
 // finestra recente. Si mescolano le QUOTE - i valori gia' portati sulla loro scala - e non le
 // percentuali: e' l'unico modo perche' le tre righe sommino esattamente al numero nella
 // colonna. Una riga per pezzo, la percentuale che conta davvero, i punti che ne escono.
-function dettaglioTecnicaMista(tec, gruppo, colonne){
+// I quattro pezzi di un giocatore della classifica generale, con i pesi DEL SUO REPARTO e le
+// quote gia' mescolate fra storico e forma. E' l'unico posto in cui si fa questo conto: lo
+// usano sia il riquadro della colonna Tecnica sia il confronto testa a testa, che fino al
+// 27/10/2026 rifaceva il conto per conto suo con i pesi dell'attacco per tutti.
+function pezziTecnicaMisti(tec, gruppo){
   const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   const w = tec.pesoForma;
-  const pezzi = PEZZI_TECNICA_DETTAGLIO
-    .map(z => ({ ...z, peso: p[z.chiave] || 0 }))
-    .filter(z => z.chiave !== "difesa" || z.peso > 0);
-  let totale = 0;
-
-  const righe = pezzi.map(z => {
+  return PEZZI_TECNICA_DETTAGLIO.map(z => {
     const d = tec.pezzi[z.chiave];
+    const peso = p[z.chiave] || 0;
     const misto = d.forma !== null && w > 0;
     // Ogni lato viene smorzato con le PROPRIE prove prima di essere pesato.
     const quotaCar = suScalaTecnica(versoLaMediaTecnica(d.car, d.carTent, z.chiave), z.chiave);
@@ -436,7 +436,17 @@ function dettaglioTecnicaMista(tec, gruppo, colonne){
       ? suScalaTecnica(versoLaMediaTecnica(d.forma, d.formaTent, z.chiave), z.chiave)
       : 0;
     const quota = misto ? (1 - w) * quotaCar + w * quotaFor : quotaCar;
-    const punti = 100 * z.peso * quota;
+    return { ...z, peso, quota, punti: 100 * peso * quota };
+  });
+}
+
+function dettaglioTecnicaMista(tec, gruppo, colonne){
+  const pezzi = pezziTecnicaMisti(tec, gruppo)
+    .filter(z => z.chiave !== "difesa" || z.peso > 0);
+  let totale = 0;
+
+  const righe = pezzi.map(z => {
+    const { quota, punti } = z;
     totale += punti;
 
     return `<div class="tecq-riga">
@@ -2467,7 +2477,11 @@ function computeOutfieldLineup(){
     { k:"passaggi",  eti:"Passaggi riusciti",  su:"sui passaggi tentati" },
     { k:"tiro",      eti:"Realizzazione",      su:"gol sui tiri tentati" },
     { k:"contrasti", eti:"Contrasti vinti",    su:"sui contrasti tentati" },
+    // Dal 27/10/2026, solo per i difensori: compare solo se pesa per almeno uno dei due.
+    { k:"difesa",    eti:"Gol subiti ogni 90'", su:"in campo, meno sono meglio" },
   ];
+  // I gol subiti non sono una percentuale: due decimali e nessun "%".
+  const valoreH2H = (v, k) => k === "difesa" ? v.toFixed(2) : pc(v);
 
   // Minimo, mediana e massimo: senza questo riferimento "7.80 contro 7.50" non si puo'
   // leggere. La mediana e non la media, cosi' un solo valore estremo non la sposta. Si
@@ -2521,9 +2535,16 @@ function computeOutfieldLineup(){
             </strong>`;
   }
 
-  // I tre pezzi dell'efficienza tecnica, con quanti punti porta ciascuno. La somma torna
-  // esatta perche' la voce e' una combinazione lineare dei tre e nessuno viene piu'
+  // I pezzi dell'efficienza tecnica, con quanti punti porta ciascuno. La somma torna
+  // esatta perche' la voce e' una combinazione lineare dei pezzi e nessuno viene piu'
   // schiacciato ai bordi della scala: se un giorno non tornasse, il test se ne accorge.
+  //
+  // DIFETTO CORRETTO IL 27/10/2026: qui c'erano sempre i pesi dell'ATTACCO (PESI_TECNICA)
+  // e i grezzi mescolati, qualunque fosse il reparto dei due. Il totale tornava lo stesso -
+  // i punti si ripartiscono in proporzione - ma la ripartizione era falsa per chiunque non
+  // fosse attaccante: a un difensore i contrasti pesavano il 10% invece del 40%, e i gol
+  // subiti (30%) non c'erano proprio. Ora ogni giocatore porta i punti dei SUOI pezzi, gli
+  // stessi del riquadro della colonna Tecnica (pezziTecnicaMisti).
   function pezziTecnica(alto, basso, scale, totale){
     // I punti si ripartiscono in proporzione a quanto ciascun pezzo contribuisce alla
     // differenza di efficienza tecnica. E' esatto per costruzione: l'efficienza e' una
@@ -2533,10 +2554,15 @@ function computeOutfieldLineup(){
     // storica e quella di forma vengono normalizzate su intervalli che non coincidono, e
     // chi esce dai bordi viene schiacciato. Ripartire il totale realmente ottenuto assorbe
     // entrambe le cose senza inventare niente.
-    const contributi = PEZZI_TECNICA.map(p => ({
-      p, quota: PESI_TECNICA[p.k] * (alto.grezziMescolati[p.k] - basso.grezziMescolati[p.k]),
-      a: alto.grezziMescolati[p.k], b: basso.grezziMescolati[p.k],
-    }));
+    const puntiDi = s => new Map(pezziTecnicaMisti(s.tecnica, s.r.gruppo).map(z => [z.chiave, z]));
+    const A = puntiDi(alto), B = puntiDi(basso);
+    const contributi = PEZZI_TECNICA
+      .filter(p => A.get(p.k).peso > 0 || B.get(p.k).peso > 0)
+      .map(p => ({
+        p, quota: A.get(p.k).punti - B.get(p.k).punti,
+        pesoA: A.get(p.k).peso, pesoB: B.get(p.k).peso,
+        a: alto.grezziMescolati[p.k], b: basso.grezziMescolati[p.k],
+      }));
     const totQuote = contributi.reduce((t, c) => t + c.quota, 0);
     if(Math.abs(totQuote) < 1e-9) return "";
     const righe = contributi
@@ -2554,21 +2580,25 @@ function computeOutfieldLineup(){
               <div style="display:flex; justify-content:space-between; gap:10px; font-size:12px;">
                 <span>${r.p.eti}
                   <span style="color:var(--muted); font-size:10.5px;">
-                    — ${r.p.su}, pesa ${(100 * PESI_TECNICA[r.p.k]).toFixed(0)}%</span>
+                    — ${r.p.su}, pesa ${r.pesoA === r.pesoB
+                        ? (100 * r.pesoA).toFixed(0) + "%"
+                        : `${(100 * r.pesoA).toFixed(0)}% a ${alto.r.player_name}, ${(100 * r.pesoB).toFixed(0)}% a ${basso.r.player_name}`}</span>
                 </span>
                 ${etichettaPunti(r.diff, alto, basso, "12px")}
               </div>
               ${barraDivergente(r.diff, maxPezzo)}
               <div style="font-size:10.5px; color:var(--muted);">
-                <strong style="color:${r.diff >= 0 ? COL_PRO : COL_CONTRO};">${pc(r.a)}</strong>
-                contro ${pc(r.b)}
+                <strong style="color:${r.diff >= 0 ? COL_PRO : COL_CONTRO};">${valoreH2H(r.a, r.p.k)}</strong>
+                contro ${valoreH2H(r.b, r.p.k)}
               </div>
             </div>`).join("")}
           <div style="font-size:10.5px; color:var(--muted); padding-top:5px; opacity:.8;">
-            I tre sommano a ${somma >= 0 ? "+" : "−"}${Math.abs(somma).toFixed(1)} punti.
+            I ${righe.length === 4 ? "quattro" : "tre"} sommano a ${somma >= 0 ? "+" : "−"}${Math.abs(somma).toFixed(1)} punti.
             Nella rosa: passaggi ${pc(scale.passaggi.min)}–${pc(scale.passaggi.max)},
             realizzazione ${pc(scale.tiro.min)}–${pc(scale.tiro.max)},
-            contrasti ${pc(scale.contrasti.min)}–${pc(scale.contrasti.max)}.
+            contrasti ${pc(scale.contrasti.min)}–${pc(scale.contrasti.max)}${righe.some(r => r.p.k === "difesa")
+              ? `, gol subiti ogni 90' ${scale.difesa.min.toFixed(2)}–${scale.difesa.max.toFixed(2)}` : ""}.
+            I pesi sono quelli del reparto di ciascuno.
           </div>
         </div>
       </details>`;

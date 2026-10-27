@@ -131,7 +131,7 @@ setTimeout(() => {
     });
   });
   verifica(
-    `le tre righe sommano alla colonna (${combinazioni} casi: ${finestre.length} finestre x ${pesi.length} pesi)`,
+    `le righe sommano alla colonna (${combinazioni} casi: ${finestre.length} finestre x ${pesi.length} pesi)`,
     peggiore.scarto < 0.005,
     peggiore.scarto
       ? `${peggiore.chi} con finestra ${peggiore.finestra} e peso ${peggiore.peso}: ` +
@@ -321,6 +321,75 @@ setTimeout(() => {
     const uguali = attesi.size === conGol.size && [...attesi].every((n) => conGol.has(n));
     verifica("i gol subiti compaiono nel riquadro generale esattamente dei difensori abituali", uguali,
       `difensori abituali: ${[...attesi].join(", ") || "nessuno"}; con la riga: ${[...conGol].join(", ") || "nessuno"}`);
+  }
+
+  // 7. Il testa a testa spezza la tecnica con i pesi DEL REPARTO di ciascuno (27/10/2026).
+  //    Fino ad allora usava i pesi dell'attacco per tutti: il totale tornava lo stesso,
+  //    perche' i punti si ripartiscono in proporzione, e per questo il controllo "i pezzi
+  //    sommano alla riga" in test_ruoli.js non poteva accorgersene. Il riferimento qui sono
+  //    i riquadri STAMPATI nella classifica generale: il pezzo k del confronto deve valere
+  //    t * (punti_k di A - punti_k di B) / (tecnica di A - tecnica di B), dove t e' la riga
+  //    dell'efficienza tecnica nel confronto.
+  if (haGiocatori) {
+    console.log("\nIl testa a testa spezza la tecnica con i pesi di ciascuno");
+    const selA = w.document.getElementById("h2hA");
+    const selB = w.document.getElementById("h2hB");
+    const voci = w.document.getElementById("h2hVoci");
+    const ETI = { "Passaggi riusciti": "passaggi riusciti", "Contrasti vinti": "contrasti riusciti",
+                  "Realizzazione": "tiri trasformati", "Gol subiti ogni 90'": "gol subiti ogni 90'" };
+    const riquadro = (nome) => {
+      const tr = w.document.getElementById("tec-g-" + nome);
+      const m = new Map();
+      if (!tr) return m;
+      tr.querySelectorAll(".tecq-riga:not(.tecq-totale)").forEach((r) =>
+        m.set(r.querySelector(".tecq-eti").textContent.trim(), parseFloat(r.querySelector(".tecq-punti").textContent)));
+      return m;
+    };
+    const leggiPunti = (frammento, sinistra) =>
+      [...frammento.matchAll(/([+−])[\d.]*?([\d.]+) punti\s*<span[^>]*>\s*a ([^<]+?)\s*<\/span>/g)]
+        .map((m) => (m[3].trim() === sinistra ? 1 : -1) * Number(m[2]))
+        .concat([...frammento.matchAll(/>\s*pari\s*</g)].map(() => 0));
+    const difensori = (T.DATA.roster || []).filter((r) => r.gruppo === "DIFENSORI").map((r) => r.player_name);
+    const nomi = [...selA.options].map((o) => o.value);
+    let coppie = 0, senzaRiga = 0, sbagliati = 0, peggiore = { scarto: 0 };
+    difensori.forEach((d) => nomi.filter((n) => n !== d).forEach((x) => {
+      selA.value = d; selB.value = x;
+      selA.dispatchEvent(new w.Event("change"));
+      const h = voci.innerHTML;
+      const rigaTech = (h.match(/Efficienza tecnica([\s\S]*?)<details/) || [])[1];
+      const tendina = (h.match(/<details[\s\S]*?<\/details>/) || [])[0];
+      if (!rigaTech || !tendina) return;
+      const t = leggiPunti(rigaTech, d)[0];
+      const RA = riquadro(d), RB = riquadro(x);
+      const den = [...RA.values()].reduce((s, v) => s + v, 0) - [...RB.values()].reduce((s, v) => s + v, 0);
+      if (!tendina.includes("Gol subiti")) senzaRiga++;
+      if (Math.abs(den) < 3 || Math.abs(t) < 0.5) return;   // rapporto troppo sensibile agli arrotondamenti
+      coppie++;
+      tendina.split('<div style="padding:6px 0;">').slice(1).forEach((pezzo) => {
+        const eti = Object.keys(ETI).find((k) => pezzo.includes(k));
+        if (!eti) return;
+        const num = (RA.get(ETI[eti]) || 0) - (RB.get(ETI[eti]) || 0);
+        const atteso = t * num / den;
+        const visto = leggiPunti(pezzo, d)[0];
+        // Ogni riga del riquadro e' arrotondata a 0,05: 0,1 sul numeratore, fino a 0,4 sul
+        // denominatore (quattro righe per parte). Propagati sul rapporto, piu' 0,05 per
+        // l'arrotondamento del pezzo stampato e 0,05 su t.
+        const tolleranza = 0.1 + Math.abs(t) * (0.1 / Math.abs(den) + Math.abs(num) * 0.4 / (den * den));
+        const scarto = Math.abs(visto - atteso);
+        if (scarto > tolleranza) sbagliati++;
+        if (scarto > peggiore.scarto) peggiore = { scarto, d, x, eti, visto, atteso };
+      });
+    }));
+    if (difensori.length === 0) {
+      verifica("nessun difensore abituale in questo archivio: salto il confronto testa a testa", true);
+    } else {
+      verifica("con un difensore il testa a testa mostra i gol subiti", senzaRiga === 0,
+        `${senzaRiga} confronti senza la riga`);
+      verifica(`ogni pezzo del testa a testa torna con i riquadri stampati (${coppie} coppie)`,
+        coppie > 0 && sbagliati === 0,
+        peggiore.d ? `${sbagliati} fuori; peggiore ${peggiore.d} contro ${peggiore.x}, ${peggiore.eti}: ` +
+          `${peggiore.visto} invece di ${peggiore.atteso.toFixed(2)}` : `coppie controllate: ${coppie}`);
+    }
   }
 
   console.log(falliti === 0

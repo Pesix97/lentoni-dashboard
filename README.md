@@ -407,11 +407,11 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
-| `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. |
+| `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. Con `--completa` misura tutte le voci, anche i pezzi della tecnica, con la divisione pari/dispari e un intervallo al 90% (ultimi risultati in `APPUNTI.md`, punto 5). |
 | `test_pipeline.py` | 111 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo). |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
-| `test_ruoli.js` | 113 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
-| `test_tecnica.js` | 9 controlli su una cosa sola: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le tre righe devono sommare alla colonna (180 casi: 12 giocatori × 3 finestre × 5 pesi) e la percentuale scritta in ogni riga deve essere quella che produce i punti a fianco. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
+| `test_ruoli.js` | 119 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1176,7 +1176,17 @@ percentuali: con 541 partite contro 96 il più anziano vinceva sempre, anche ren
 Ora il distacco nell'Indice di Forza viene spezzato nelle voci che lo compongono, e i pezzi
 sommano esattamente al totale. Accanto a ogni voce ci sono i valori dei due giocatori e
 dove si collocano nella rosa: «7,80 contro 7,50» non si legge finché non sai che la rosa va
-da 6,80 a 8,00. L'efficienza tecnica si apre in una tendina nei suoi tre pezzi.
+da 6,80 a 8,00. L'efficienza tecnica si apre in una tendina nei suoi pezzi: tre, quattro
+quando c'è di mezzo un difensore (i gol subiti ogni 90').
+
+**Ogni pezzo usa i pesi del reparto di ciascuno dei due giocatori**, gli stessi del riquadro
+della colonna Tecnica (`pezziTecnicaMisti` in `pagina.js`). Fino al 27/10/2026 la tendina
+usava i pesi dell'attacco per tutti: il totale tornava lo stesso, perché i punti si
+ripartiscono in proporzione, ma la ripartizione era falsa per chiunque non fosse attaccante
+— rimettendo il vecchio calcolo, 47 pezzi su 12 coppie con un difensore escono sbagliati, uno
+anche di segno (+7,9 invece di −4,85). Il controllo che c'era guardava solo che i pezzi
+sommassero, e sommano sempre: per questo non se n'è mai accorto. Quello nuovo, in
+`test_tecnica.js`, confronta ogni pezzo con i riquadri stampati nella classifica generale.
 
 Il punto di vista è **il giocatore scelto a sinistra**, non chi sta più in alto in
 classifica: verde quando è lui in vantaggio in quella voce, rosso quando è in svantaggio.
