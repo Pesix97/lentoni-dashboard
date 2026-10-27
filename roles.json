@@ -2057,6 +2057,96 @@
       "quando": "13/10 23:49 Rn Boys FC",
       "giocatore": "ilmille",
       "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "131516973370084",
+      "quando": "23/10 22:12 IaTsI",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "131702497960138",
+      "quando": "23/10 22:31 touchemaglace",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "131702497960138",
+      "quando": "23/10 22:31 touchemaglace",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "131678738840003",
+      "quando": "23/10 22:53 Imbatonii",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "131678738840003",
+      "quando": "23/10 22:53 Imbatonii",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "131718886750254",
+      "quando": "23/10 23:11 Cappejj4 TEAM",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "131718886750254",
+      "quando": "23/10 23:11 Cappejj4 TEAM",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "132150134120211",
+      "quando": "23/10 23:32 sennhof",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "132150134120211",
+      "quando": "23/10 23:32 sennhof",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "131974896570242",
+      "quando": "23/10 23:54 yasmath",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "131974896570242",
+      "quando": "23/10 23:54 yasmath",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "132326049230269",
+      "quando": "24/10 00:11 sbrugna fc",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "132326049230269",
+      "quando": "24/10 00:11 sbrugna fc",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "132210615860297",
+      "quando": "24/10 00:34 Fc Bukkinari",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "132210615860297",
+      "quando": "24/10 00:34 Fc Bukkinari",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
     }
   ],
   "_esclusioni_partita": [
@@ -2421,6 +2511,10 @@
     {
       "serata": "2026-10-24T20:39Z",
       "partite": 4
+    },
+    {
+      "serata": "2026-10-23T20:12Z",
+      "partite": 10
     }
   ],
   "_serate_chiuse": [
