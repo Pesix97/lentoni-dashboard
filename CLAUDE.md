@@ -220,6 +220,17 @@ c'e' da diagnosticare un problema di formato (spazi iniziali, a capo mancante) s
 02/09 sono venuti fuori i tre spazi iniziali copiati per sbaglio da un blocco di codice,
 senza vedere il token.
 
+**Su Windows nativo il push va fatto escludendo Git Credential Manager** (trovato il
+27/10/2026, primo push da `C:\dev` invece che dalla VM). Git interroga gli helper in ordine,
+e quello di sistema (`manager`, in `C:/Program Files/Git/etc/gitconfig`) viene **prima** del
+file del progetto: fornisce una credenziale vecchia, GitHub risponde «Invalid username or
+token» e il file non viene mai letto. La riga che azzera l'elenco e lascia solo il file:
+
+    git -c credential.helper= -c "credential.helper=store --file=../.lentoni-git-credentials.txt" push origin main
+
+Non toccare la configurazione di sistema per risolverlo: il `-c` vale solo per quel comando.
+La dispatch della pipeline via API non ha questo problema, perche' legge il token dal file.
+
 Perche' fuori dalla cartella del repository: dentro, prima o poi, finirebbe in un commit.
 Perche' il percorso e' **relativo**: la cartella montata ha l'id di sessione nel percorso
 assoluto, che cambia ad ogni sessione nuova — quello relativo regge finche' i comandi
