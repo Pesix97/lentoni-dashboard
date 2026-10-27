@@ -779,9 +779,11 @@ Sostituire la percentuale di contrasti con i **contrasti vinti a partita** è st
 e **scartato dal club**: la voce si chiama efficienza e deve restare efficienza, chi tenta
 tanto e sbaglia tanto va penalizzato lo stesso.
 
-I pesi dei tre pezzi **cambiano con il reparto** — quattro tarature diverse, vedi
+I pesi dei pezzi **cambiano con il reparto** — una taratura per reparto, vedi
 [I pesi della tecnica sono quattro](#i-pesi-della-tecnica-sono-quattro-uno-per-reparto).
-È l'unico punto della dashboard dove i pesi dipendono dal ruolo.
+È l'unico punto della dashboard dove i pesi dipendono dal ruolo. Per i difensori c'è un
+quarto pezzo, i gol subiti ogni 90' in campo: vedi
+[Gol subiti dei difensori](#gol-subiti-dei-difensori-27102026).
 
 ### La ritaratura del 29/08/2026
 
@@ -1000,12 +1002,15 @@ Fino al 29/08/2026 le tarature erano **due**: i difensori e "tutti gli altri". M
 secondo gruppo metteva insieme un centrocampista e un attaccante, che con la palla fanno
 mestieri diversi — il primo la fa girare e recupera, il secondo la mette dentro.
 
-| Reparto | Passaggi | Contrasti | Tiro |
-| --- | ---: | ---: | ---: |
-| Difensori | 40% | **50%** | 10% |
-| Centrocampisti | 40% | 30% | 30% |
-| Esterni | 40% | 20% | 40% |
-| Attaccanti *(COC compreso)* | 45% | **10%** | 45% |
+| Reparto | Passaggi | Contrasti | Tiro | Gol subiti ogni 90' |
+| --- | ---: | ---: | ---: | ---: |
+| Difensori | 25% | **40%** | 5% | **30%** |
+| Centrocampisti | 40% | 30% | 30% | — |
+| Esterni | 40% | 20% | 40% | — |
+| Trequartista | 50% | **10%** | 40% | — |
+| Attaccanti | 45% | **10%** | 45% | — |
+
+Fino al 27/10/2026 i difensori avevano 40% / 50% / 10% e nessuna voce sui gol subiti.
 
 La regola del club: **i contrasti hanno il peso minimo solo per gli attaccanti**, e crescono
 scendendo verso la difesa. I passaggi sono il mestiere comune a tutti, quindi il loro peso
@@ -1051,6 +1056,58 @@ Esiste però `goalsconceded`, i gol subiti mentre il giocatore era in campo, ed 
 davvero (valori da 0 a 8). Lo stavamo buttando. **Dal 29/08 lo archiviamo**, e le 102
 prestazioni che avevano ancora il grezzo sono state recuperate. Non serve oggi: serve il 18
 settembre, quando i ruoli saranno stabili dal primo giorno.
+
+### Gol subiti dei difensori (27/10/2026)
+
+Il 06/09/2026 si era deciso di aggiungere le **reti inviolate individuali** ai pesi dei
+difensori al passaggio a FC 27, quando ci fossero stati abbastanza dati. Il 27/10/2026 i dati
+c'erano — 90 prestazioni da difensore in FC 27, tutte con `goals_conceded`, contro le 9 del
+06/09 — ma misurandoli è venuto fuori che la rete inviolata **non è una misura individuale**:
+
+| Misura, FC 27 al 27/10/2026 | Valore |
+| --- | --- |
+| `goals_conceded` uguale ai gol subiti dalla squadra | 1021 righe su 1044 (98%) |
+| partite con un difensore in cui il dato è identico per tutti i compagni | 50 su 53 |
+| reti inviolate dei difensori nate da un'uscita anticipata (squadra ha preso gol) | 2 su 18 |
+| differenze fra difensori oltre il caso (permutazione) | no, p = 0,16 |
+
+Peppe ha voluto comunque che i gol subiti pesassero sul difensore: dare alla difesa la
+responsabilità dei gol presi è una scelta del club, non una misura statistica, ed è
+dichiarata come tale. La forma scelta toglie le due distorsioni peggiori della rete inviolata:
+
+- **gol subiti ogni 90 minuti in campo** invece del sì/no: perdere 1-0 e 5-0 non valgono
+  uguale, e chi esce al 10' pesa un nono di partita. Si contano solo le righe con gol
+  subiti e almeno un secondo in campo (le partite inserite a mano non hanno né l'uno né
+  l'altro);
+- **smorzati verso la media del club** in proporzione alle partite da 90' giocate, come
+  passaggi e contrasti lo sono ai tentativi: con 5 partite il valore del giocatore conta
+  per metà (`TENTATIVI_CREDIBILI.difesa`).
+
+Scala **da 4 a 0**: zero gol subiti vale il massimo, quattro o più valgono zero (media del
+club al 27/10/2026: 2,52). Pesi del difensore 25 / 40 / 5 / 30, quelli già decisi il 06/09.
+
+Dove viene il dato:
+
+- nelle **classifiche per reparto**, dalle sole partite giocate in quel reparto;
+- nella **classifica generale**, la "carriera" è tutto l'archivio del titolo (EA non tiene i
+  gol subiti nella carriera) e la forma è la finestra scelta, come per gli altri pezzi;
+- la **formazione tipo** non lo usa: lì per decisione del club non si usano pesi di ruolo.
+
+Vale anche per la pagina d'archivio di FC 26, che si genera con lo stesso codice: lì molte
+prestazioni sono di prima del 29/08/2026, quando `goals_conceded` non si archiviava ancora, e
+per quelle il pezzo vale la media del club.
+
+Effetto misurato subito (27/10/2026, classifica dei difensori di FC 27, minimo 3 partite):
+ktm-008 resta primo; m4tt1asgn8 sale dal 6° al 5° e Smilzo_87 dall'8° al 6°; Maverik_44_ e
+YnotPa84 scendono di due posti; Jysmu resta ultimo ma con distacco maggiore (5,08 gol subiti
+ogni 90'). La tecnica di **tutti** i difensori scende, da 3 a 16 punti: a un difensore nella
+media del club (2,52 gol ogni 90') il pezzo dà 11 punti su 30. Nella classifica generale
+questo pesa sui difensori abituali rispetto agli altri reparti: m4tt1asgn8 passa da 54 a 50
+di tecnica e resta sesto.
+
+`test_tecnica.js` controlla i pesi, la direzione della scala (più gol, meno tecnica), che
+senza minuti si valga la media e non il massimo, che il valore di carriera sia quello delle
+righe grezze dell'archivio, e che la riga compaia solo nei riquadri dei difensori.
 
 ## Novità dall'ultima serata
 

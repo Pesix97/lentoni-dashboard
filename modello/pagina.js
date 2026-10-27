@@ -285,16 +285,21 @@ function suScala(valore, chiave){
 // Il trequartista (il COC, in gergo calcistico: EA lo etichetta "midfielder" come un
 // centrocampista puro, ma il suo mestiere e' un altro) ha condiviso questi pesi con gli
 // attaccanti fino all'8/09/2026. Da allora e' un reparto a se', vedi sotto.
+//
+// Il quarto pezzo, `difesa`, sono i gol subiti ogni 90 minuti in campo, e pesa solo per i
+// difensori (deciso da Peppe il 27/10/2026): 25 / 40 / 5 / 30. Per tutti gli altri vale
+// zero, quindi la loro tecnica resta esattamente quella di prima. Il perche' della misura
+// (e perche' non le reti inviolate) sta nel README, "Gol subiti dei difensori".
 const PESI_TECNICA_PER_REPARTO = {
-  DIFENSORI:      { passaggi: 0.40, contrasti: 0.50, tiro: 0.10 },
-  CENTROCAMPISTI: { passaggi: 0.40, contrasti: 0.30, tiro: 0.30 },
-  ESTERNI:        { passaggi: 0.40, contrasti: 0.20, tiro: 0.40 },
-  ATTACCANTI:     { passaggi: 0.45, contrasti: 0.10, tiro: 0.45 },
+  DIFENSORI:      { passaggi: 0.25, contrasti: 0.40, tiro: 0.05, difesa: 0.30 },
+  CENTROCAMPISTI: { passaggi: 0.40, contrasti: 0.30, tiro: 0.30, difesa: 0 },
+  ESTERNI:        { passaggi: 0.40, contrasti: 0.20, tiro: 0.40, difesa: 0 },
+  ATTACCANTI:     { passaggi: 0.45, contrasti: 0.10, tiro: 0.45, difesa: 0 },
   // Deciso da Peppe l'8/09/2026, quando il trequartista (il COC, per chi mastica di
   // calcio) e' diventato un reparto vero (prima ne condivideva i pesi con gli
   // attaccanti): passaggi ancora piu' centrali del reparto attacco (fa girare la
   // squadra), contrasti allo stesso minimo, tiro sacrificato di conseguenza.
-  TREQUARTISTA:   { passaggi: 0.50, contrasti: 0.10, tiro: 0.40 },
+  TREQUARTISTA:   { passaggi: 0.50, contrasti: 0.10, tiro: 0.40, difesa: 0 },
 };
 
 // Quando il reparto non si conosce si usa quello dell'attacco, che e' il piu' comune in
@@ -325,7 +330,26 @@ const PESI_TECNICA_DIFESA = PESI_TECNICA_PER_REPARTO.DIFENSORI;
 //
 // Cosi' "contrasti al 15%" diventa "un terzo della scala" invece di "quasi zero", e il
 // risultato esce gia' fra 0 e 100 per tutti i ruoli.
-const SCALE_TECNICA = { passaggi: [60, 90], contrasti: [5, 50], tiro: [10, 50] };
+//
+// I gol subiti vanno al contrario: meno e' meglio. La scala e' scritta da 4 a 0, e la
+// stessa formula (valore - min) / (max - min) da' 1 a zero gol e 0 da quattro in su. Al
+// 27/10/2026 la media del club era 2,52 gol ogni 90', i difensori di FC 27 fra 2,2 e 5,7.
+const SCALE_TECNICA = { passaggi: [60, 90], contrasti: [5, 50], tiro: [10, 50], difesa: [4, 0] };
+
+// I quattro pezzi, in ordine di riquadro. Etichetta e unita' servono ai dettagli: i primi
+// tre sono percentuali, i gol subiti no, e scriverci "%" accanto sarebbe falso.
+const PEZZI_TECNICA_DETTAGLIO = [
+  { chiave: "passaggi",  eti: "passaggi riusciti" },
+  { chiave: "contrasti", eti: "contrasti riusciti" },
+  { chiave: "tiro",      eti: "tiri trasformati" },
+  { chiave: "difesa",    eti: "gol subiti ogni 90'" },
+];
+// Due decimali per i gol subiti: con peso 30% e una scala di 4 gol, un centesimo vale
+// 0,075 punti, e test_tecnica.js ricalcola i punti dal valore scritto (tolleranza 0,15).
+// Con un decimale l'errore lecito arriverebbe a 0,375 e il controllo fallirebbe.
+function valorePezzo(v, chiave){
+  return chiave === "difesa" ? `${v.toFixed(2)}` : `${v.toFixed(1)}%`;
+}
 
 function suScalaTecnica(valore, chiave){
   const [min, max] = SCALE_TECNICA[chiave];
@@ -338,34 +362,37 @@ function suScalaTecnica(valore, chiave){
 //
 // Serve perche' la tecnica pesa il 30% dell'indice ed era l'unica voce che non si poteva
 // guardare: si vedeva il risultato senza sapere da cosa nascesse.
-function dettaglioTecnica(passaggi, contrasti, tiro, gruppo, colonne, tentativi){
+// `difesa` sono i gol subiti ogni 90' nel reparto: la riga compare solo dove pesa.
+function dettaglioTecnica(passaggi, contrasti, tiro, gruppo, colonne, tentativi, difesa){
   const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   const tent = tentativi || {};
-  const pezzi = [
-    { eti: "passaggi riusciti",  unita: "passaggi tentati", val: passaggi  || 0, peso: p.passaggi,  chiave: "passaggi" },
-    { eti: "contrasti riusciti", unita: "contrasti tentati", val: contrasti || 0, peso: p.contrasti, chiave: "contrasti" },
-    { eti: "tiri trasformati",   unita: "tiri",             val: tiro      || 0, peso: p.tiro,      chiave: "tiro" },
-  ];
+  const valori = { passaggi, contrasti, tiro, difesa };
+  const pezzi = PEZZI_TECNICA_DETTAGLIO
+    .map(z => ({ ...z, val: valori[z.chiave] || 0, peso: p[z.chiave] || 0 }))
+    .filter(z => z.chiave !== "difesa" || z.peso > 0);
   let totale = 0;
   let qualcunoSmorzato = false;
   const righe = pezzi.map(z => {
-    const n = tent[z.chiave];
+    // Per i gol subiti il "tentativo" sono i minuti in campo: senza, si vale la media del
+    // club. Un undefined qui darebbe invece zero gol subiti, cioe' il punteggio pieno.
+    const n = z.chiave === "difesa" ? (tent.difesa || 0) : tent[z.chiave];
     const contato = versoLaMediaTecnica(z.val, n, z.chiave);
     const quota = suScalaTecnica(contato, z.chiave);
     const punti = 100 * z.peso * quota;
     totale += punti;
-    if(n !== undefined && n !== null && Math.abs(contato - z.val) >= 1) qualcunoSmorzato = true;
+    const sensibile = z.chiave === "difesa" ? 0.05 : 1;
+    if(n !== undefined && n !== null && Math.abs(contato - z.val) >= sensibile) qualcunoSmorzato = true;
     // Si mostra il valore CONTATO, non quello grezzo: e' quello che genera i punti a fianco.
     return `<div class="tecq-riga">
       <span class="tecq-eti">${z.eti}</span>
-      <span class="tecq-val"><strong>${contato.toFixed(1)}%</strong></span>
+      <span class="tecq-val"><strong>${valorePezzo(contato, z.chiave)}</strong></span>
       <span class="tecq-barra"><i style="width:${(quota * 100).toFixed(1)}%"></i></span>
       <span class="tecq-peso">\u00d7${(z.peso * 100).toFixed(0)}%</span>
       <span class="tecq-punti">${punti.toFixed(1)}</span>
     </div>`;
   }).join("");
   const nota = qualcunoSmorzato
-    ? `<div class="tecq-nota">Percentuali gi\u00e0 corrette per il numero di prove.</div>`
+    ? `<div class="tecq-nota">Valori gi\u00e0 corretti per il numero di prove (per i gol subiti, per i minuti in campo).</div>`
     : "";
   return `<tr class="match-detail tecnica-detail"><td colspan="${colonne}"><div class="inner">
       <div class="tecq-titolo">Efficienza tecnica \u2014 pesi da ${GROUP_LABELS[gruppo] || "attaccante"}</div>
@@ -395,11 +422,9 @@ function daScalaTecnica(quota, chiave){
 function dettaglioTecnicaMista(tec, gruppo, colonne){
   const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   const w = tec.pesoForma;
-  const pezzi = [
-    { eti: "passaggi riusciti",  chiave: "passaggi",  peso: p.passaggi },
-    { eti: "contrasti riusciti", chiave: "contrasti", peso: p.contrasti },
-    { eti: "tiri trasformati",   chiave: "tiro",      peso: p.tiro },
-  ];
+  const pezzi = PEZZI_TECNICA_DETTAGLIO
+    .map(z => ({ ...z, peso: p[z.chiave] || 0 }))
+    .filter(z => z.chiave !== "difesa" || z.peso > 0);
   let totale = 0;
 
   const righe = pezzi.map(z => {
@@ -416,7 +441,7 @@ function dettaglioTecnicaMista(tec, gruppo, colonne){
 
     return `<div class="tecq-riga">
       <span class="tecq-eti">${z.eti}</span>
-      <span class="tecq-val"><strong>${daScalaTecnica(quota, z.chiave).toFixed(1)}%</strong></span>
+      <span class="tecq-val"><strong>${valorePezzo(daScalaTecnica(quota, z.chiave), z.chiave)}</strong></span>
       <span class="tecq-barra"><i style="width:${(quota * 100).toFixed(1)}%"></i></span>
       <span class="tecq-peso">×${(z.peso * 100).toFixed(0)}%</span>
       <span class="tecq-punti">${punti.toFixed(1)}</span>
@@ -431,7 +456,7 @@ function dettaglioTecnicaMista(tec, gruppo, colonne){
         <span class="tecq-barra"></span><span class="tecq-peso"></span>
         <span class="tecq-punti">${totale.toFixed(0)}</span>
       </div>
-      <div class="tecq-nota">Percentuali già corrette per il numero di prove e per il miscuglio
+      <div class="tecq-nota">Valori già corretti per il numero di prove e per il miscuglio
         storico/forma scelto sopra.</div>
     </div></td></tr>`;
 }
@@ -455,7 +480,37 @@ function dettaglioTecnicaMista(tec, gruppo, colonne){
 // Ogni percentuale viene quindi tirata verso la media del club in proporzione ai TENTATIVI,
 // non alle partite: quel che rende affidabile una percentuale e' il denominatore. Le soglie
 // sono l'ordine di grandezza in cui il dato smette di essere aneddotico.
-const TENTATIVI_CREDIBILI = { passaggi: 150, contrasti: 40, tiro: 25 };
+//
+// Per i gol subiti il denominatore sono i MINUTI, contati in partite intere da 90': con 5
+// partite il valore del giocatore conta per meta', con 24 (il difensore piu' presente al
+// 27/10/2026) per l'83%. Chi e' uscito al 10' pesa un nono di partita, ed e' cosi' che le
+// reti inviolate "regalate" da un'uscita anticipata smettono di contare.
+const TENTATIVI_CREDIBILI = { passaggi: 150, contrasti: 40, tiro: 25, difesa: 5 };
+
+// Gol subiti e minuti in campo, sommati sulle righe di partita che li hanno davvero. Le
+// partite inserite a mano non hanno ne' l'uno ne' l'altro, e chi ha 0 secondi in campo non
+// e' stato esposto a niente (c'e' una riga, al 27/10/2026, con 0 secondi e un gol subito).
+function sommaGolSubiti(acc, p){
+  if(p.goals_conceded === null || p.goals_conceded === undefined) return acc;
+  if(!(p.seconds_played > 0)) return acc;
+  acc.gol += p.goals_conceded;
+  acc.secondi += p.seconds_played;
+  return acc;
+}
+const golSubiti90 = acc => (acc.secondi > 0 ? acc.gol * 5400 / acc.secondi : 0);
+const partite90  = acc => acc.secondi / 5400;
+
+// EA non tiene i gol subiti nella carriera: la "carriera" di questo pezzo e' tutto
+// l'archivio del titolo, in qualunque ruolo. E' una misura di squadra in campo con lui,
+// quindi il ruolo della singola partita non la cambia.
+const GOL_SUBITI_ARCHIVIO = (function(){
+  const perNome = new Map();
+  Object.values(DATA.matchPlayers || {}).forEach(righe => (righe || []).forEach(p => {
+    if(!perNome.has(p.player_name)) perNome.set(p.player_name, { gol: 0, secondi: 0 });
+    sommaGolSubiti(perNome.get(p.player_name), p);
+  }));
+  return perNome;
+})();
 
 // La media del club, dai totali di CARRIERA: e' il riferimento piu' stabile che abbiamo
 // (decine di migliaia di passaggi) e non si sposta quando cambia l'archivio.
@@ -467,10 +522,14 @@ const MEDIE_TECNICA = (function(roster){
     cf += r.tackles_made || 0; ct += stima(r.tackles_made, r.tackle_success_rate);
     tf += r.goals || 0;        tt += stima(r.goals,        r.shot_success_rate);
   });
+  // I gol subiti dalla squadra ogni 90', su tutte le righe dell'archivio del titolo.
+  const club = [...GOL_SUBITI_ARCHIVIO.values()].reduce(
+    (t, a) => ({ gol: t.gol + a.gol, secondi: t.secondi + a.secondi }), { gol: 0, secondi: 0 });
   return {
     passaggi:  pt > 0 ? pf / pt * 100 : 75,
     contrasti: ct > 0 ? cf / ct * 100 : 20,
     tiro:      tt > 0 ? tf / tt * 100 : 35,
+    difesa:    club.secondi > 0 ? golSubiti90(club) : 2.5,
   };
 })(DATA.roster);
 
@@ -478,10 +537,13 @@ const MEDIE_TECNICA = (function(roster){
 // 7089 passaggi riusciti all'81% vogliono dire circa 8752 tentati.
 function tentativiDiCarriera(r){
   const stima = (fatti, perc) => (perc > 0 ? (fatti || 0) / (perc / 100) : 0);
+  const gs = GOL_SUBITI_ARCHIVIO.get(r.player_name) || { gol: 0, secondi: 0 };
   return {
     passaggi:  stima(r.passes_made,  r.pass_success_rate),
     contrasti: stima(r.tackles_made, r.tackle_success_rate),
     tiro:      stima(r.goals,        r.shot_success_rate),
+    // Questo invece non e' stimato: sono i minuti veri dell'archivio, in partite da 90'.
+    difesa:    partite90(gs),
   };
 }
 
@@ -492,16 +554,22 @@ function versoLaMediaTecnica(valore, tentativi, chiave){
   return c * (valore || 0) + (1 - c) * MEDIE_TECNICA[chiave];
 }
 
-function efficienzaTecnica(passaggi, contrasti, tiro, gruppo, tentativi){
+// `difesa` = gol subiti ogni 90', con tentativi.difesa = partite da 90' giocate. Se manca
+// il denominatore si vale la media del club (0 partite), MAI zero gol: versoLaMediaTecnica
+// senza tentativi restituisce il valore grezzo, e un grezzo assente vale 0, cioe' il
+// massimo della scala. E' lo stesso tipo di difetto silenzioso trovato il 31/08/2026.
+function efficienzaTecnica(passaggi, contrasti, tiro, gruppo, tentativi, difesa){
   const t = tentativi || {};
   const P = versoLaMediaTecnica(passaggi,  t.passaggi,  "passaggi");
   const C = versoLaMediaTecnica(contrasti, t.contrasti, "contrasti");
   const T = versoLaMediaTecnica(tiro,      t.tiro,      "tiro");
+  const D = versoLaMediaTecnica(difesa,    t.difesa || 0, "difesa");
   const p = PESI_TECNICA_PER_REPARTO[gruppo] || PESI_TECNICA;
   return 100 * (
     p.passaggi  * suScalaTecnica(P, "passaggi") +
     p.contrasti * suScalaTecnica(C, "contrasti") +
-    p.tiro      * suScalaTecnica(T, "tiro")
+    p.tiro      * suScalaTecnica(T, "tiro") +
+    (p.difesa || 0) * suScalaTecnica(D, "difesa")
   );
 }
 
@@ -522,6 +590,7 @@ function computeGroupScores(){
         agg[key] = { player_name: p.player_name, group, games: 0, sumRating: 0, sumGoals: 0,
           sumAssists: 0, sumMom: 0, sumWin: 0, sumPassesMade: 0, sumPassAttempts: 0,
           sumTacklesMade: 0, sumTackleAttempts: 0, sumShots: 0, sumRedCards: 0,
+          golSubiti: { gol: 0, secondi: 0 },
           unassigned: !GROUP_OF_PLAYER[p.player_name] };
       }
       const a = agg[key];
@@ -537,6 +606,7 @@ function computeGroupScores(){
       a.sumTackleAttempts+= p.tackle_attempts || 0;
       a.sumShots         += p.shots || 0;
       a.sumRedCards      += p.red_cards || 0;
+      sommaGolSubiti(a.golSubiti, p);
     });
   });
   return Object.values(agg).map(a => {
@@ -550,10 +620,13 @@ function computeGroupScores(){
       winRate:   (a.sumWin / a.games) * 100,
       // L'unico punto in cui i pesi della tecnica cambiano col ruolo: qui il reparto e'
       // quello in cui si e' davvero giocato quella partita, non quello abituale.
+      // I gol subiti sono quelli delle sole partite giocate IN QUESTO reparto.
       techEff:   efficienzaTecnica(passSuccess, tackleSuccess, shotSuccess, a.group,
-                   { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots }),
-      // I tre pezzi si conservano separati: la colonna Tecnica si apre e li mostra.
+                   { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots,
+                     difesa: partite90(a.golSubiti) }, golSubiti90(a.golSubiti)),
+      // I pezzi si conservano separati: la colonna Tecnica si apre e li mostra.
       passaggi: passSuccess, contrasti: tackleSuccess, tiro: shotSuccess,
+      difesa: golSubiti90(a.golSubiti), partite90Difesa: partite90(a.golSubiti),
       redRate:   a.sumRedCards / a.games,
     };
   });
@@ -672,6 +745,13 @@ function roleBadge(pos){
   return `<span class="role-badge ${cls}">${label}</span>`;
 }
 
+// I gol subiti "di carriera": tutto l'archivio del titolo (EA non li tiene nella carriera).
+// Il loro denominatore, le partite da 90', lo restituisce tentativiDiCarriera come `difesa`.
+function golSubitiCarriera(nome){
+  const acc = GOL_SUBITI_ARCHIVIO.get(nome) || { gol: 0, secondi: 0 };
+  return { valore: golSubiti90(acc), partite: partite90(acc) };
+}
+
 // ---- Indice di Forza: calcolo condiviso (usato dalla sezione dedicata E dalla card giocatore) ----
 function computePowerScores(roster){
   if(!roster || roster.length === 0) return [];
@@ -682,7 +762,7 @@ function computePowerScores(roster){
   // si confronta con tutta la rosa. Chi non ha ancora un ruolo assegnato usa il ripiego.
   const techEff = roster.map(r => efficienzaTecnica(
     r.pass_success_rate, r.tackle_success_rate, r.shot_success_rate, r.gruppo,
-    tentativiDiCarriera(r)));
+    tentativiDiCarriera(r), golSubitiCarriera(r.player_name).valore));
   const redRate = roster.map(r => r.games_played ? r.red_cards / r.games_played : 0);
 
   // Scale fisse, non piu' il minimo e massimo della rosa: cosi' il punteggio dice quanto
@@ -754,7 +834,8 @@ function computeFormScores(windowSize){
     (DATA.matchPlayers[m.match_id] || []).forEach(p => {
       if(!agg.has(p.player_name)){
         agg.set(p.player_name, { games:0, rating:0, goals:0, assists:0, mom:0, win:0,
-          passesMade:0, passAtt:0, tacklesMade:0, tackleAtt:0, shots:0, red:0 });
+          passesMade:0, passAtt:0, tacklesMade:0, tackleAtt:0, shots:0, red:0,
+          golSubiti: { gol: 0, secondi: 0 } });
       }
       const a = agg.get(p.player_name);
       a.games++;
@@ -769,6 +850,7 @@ function computeFormScores(windowSize){
       a.tackleAtt   += p.tackle_attempts || 0;
       a.shots       += p.shots || 0;
       a.red         += p.red_cards || 0;
+      sommaGolSubiti(a.golSubiti, p);
     });
   });
 
@@ -802,7 +884,8 @@ function computeFormScores(windowSize){
         // confrontabili. Corretto riusando lo stesso gruppo gia' risolto sul roster
         // (GRUPPO_BY_NAME) invece di ricalcolarlo qui con un ripiego che non c'entra.
         techEff:   efficienzaTecnica(pass, tackle, shot, GRUPPO_BY_NAME.get(name) || null,
-                     { passaggi: a.passAtt, contrasti: a.tackleAtt, tiro: a.shots }),
+                     { passaggi: a.passAtt, contrasti: a.tackleAtt, tiro: a.shots,
+                       difesa: partite90(a.golSubiti) }, golSubiti90(a.golSubiti)),
         // I tre pezzi si conservano anche separati: il testa a testa apre l'efficienza
         // tecnica per mostrare da quale dei tre nasce il distacco.
         passaggi: pass, contrasti: tackle, tiro: shot,
@@ -810,6 +893,7 @@ function computeFormScores(windowSize){
         // spiegare una percentuale recente usando i tentativi di tutta la carriera, cioe'
         // per non smorzarla affatto: e' il difetto trovato il 31/08/2026.
         tentPassaggi: a.passAtt, tentContrasti: a.tackleAtt, tentTiro: a.shots,
+        difesa: golSubiti90(a.golSubiti), tentDifesa: partite90(a.golSubiti),
         redRate:   a.red / a.games,
       };
     });
@@ -877,16 +961,21 @@ function computeBlendedScores(windowSize, weight){
       passaggi:  Math.max(tCarStimato.passaggi,  hasForm ? f.tentPassaggi : 0),
       contrasti: Math.max(tCarStimato.contrasti, hasForm ? f.tentContrasti : 0),
       tiro:      Math.max(tCarStimato.tiro,      hasForm ? f.tentTiro : 0),
+      // I minuti dell'archivio sono veri e la finestra ne e' un sottoinsieme: niente minimo.
+      difesa:    tCarStimato.difesa,
     };
+    const gsCar = golSubitiCarriera(g.player_name).valore;
     const carriera = {
       rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
-      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate, g.gruppo, tCar),
+      tech: efficienzaTecnica(g.pass_success_rate, g.tackle_success_rate, g.shot_success_rate, g.gruppo, tCar, gsCar),
       disc: g.red_cards / gp,
       passaggi: g.pass_success_rate, contrasti: g.tackle_success_rate, tiro: g.shot_success_rate,
+      difesa: gsCar,
     };
     const daForma = hasForm ? { rating: f.ratingAve, contrib: f.contrib, motm: f.motmRate,
                                 tech: f.techEff, disc: f.redRate,
-                                passaggi: f.passaggi, contrasti: f.contrasti, tiro: f.tiro } : null;
+                                passaggi: f.passaggi, contrasti: f.contrasti, tiro: f.tiro,
+                                difesa: f.difesa } : null;
     const grezzi = {};
     Object.keys(carriera).forEach(k => {
       grezzi[k] = hasForm ? (1 - pesoForma) * carriera[k] + pesoForma * daForma[k] : carriera[k];
@@ -926,6 +1015,8 @@ function computeBlendedScores(windowSize, weight){
                         hasForm ? f.contrasti : 0, hasForm ? f.tentContrasti : 0),
         tiro:      lato(g.shot_success_rate,   tCar.tiro,
                         hasForm ? f.tiro : 0,      hasForm ? f.tentTiro : 0),
+        difesa:    lato(gsCar,                 tCar.difesa,
+                        hasForm ? f.difesa : 0,    hasForm ? f.tentDifesa : 0),
       },
     };
     return {
@@ -1900,7 +1991,7 @@ renderRoster();
         <td data-label="Tecnica"><span class="tec-apri" data-tec="r-${group}-${a.player_name}">${a.techEff.toFixed(0)}</span></td>
         <td data-label="MOTM%">${a.motmRate.toFixed(0)}%</td>
       </tr>
-      ${dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, group, 10, { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots }).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-r-${group}-${a.player_name}"`)}`;
+      ${dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, group, 10, { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots, difesa: a.partite90Difesa }, a.difesa).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-r-${group}-${a.player_name}"`)}`;
     }).join("");
     const ignorate = (ranked[0] && ranked[0].metricheIgnorate) || [];
     const ETICHETTE = { rating:"media voto", contrib:"gol+assist", motm:"MOTM", tech:"efficienza tecnica" };

@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 22/10/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 27/10/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -468,6 +468,12 @@ pesava per un diciottesimo della media, non poco quando le partite sono ancora p
 105/105, README aggiornato al nuovo conteggio.
 
 ### 2. Pesi specifici per reparto nell'Indice di Forza
+
+**Fatto il 27/10/2026, in una forma diversa da quella decisa qui sotto.** Al posto delle reti
+inviolate individuali i difensori hanno i **gol subiti ogni 90' in campo** (25 / 40 / 5 / 30):
+misurando, la rete inviolata di EA coincide con quella della squadra nel 98% delle righe, e un
+sì/no premia anche chi esce prima della fine. Il perché e le misure stanno nel README, «Gol
+subiti dei difensori». Il testo qui sotto descrive la decisione del 06/09.
 
 Oggi il confronto tra pari ruolo corregge la **classifica**, non il **criterio**: un
 difensore è ancora valutato per il 30% su gol e assist, solo rispetto ad altri difensori.
@@ -1466,3 +1472,19 @@ partite che EA gli ha dato da `midfielder` vanno ai centrocampisti, le 16 da `de
 difensori. Il nome in EA è `ilmillejr` (Peppe ha scritto "millejr"). Il testo del 27/09
 sopra, che parla di m4tt1asgn8 come "da assegnare", descrive la situazione di allora.
 
+## Gol subiti ogni 90' nella tecnica dei difensori (27/10/2026)
+
+Peppe ha voluto che i gol subiti pesassero sul difensore anche dopo aver visto che sono, al
+98%, un dato di squadra. Scelta del club, dichiarata come tale: misure e motivazioni nel README
+(«Gol subiti dei difensori»). Da ricordare:
+
+- è ancora una misura di squadra in campo con lui: non dice di chi è la colpa di un gol;
+- la scala 4 → 0 dà 11 punti su 30 a un difensore nella media del club: la tecnica di tutti i
+  difensori è scesa (da 3 a 16 punti), e nella classifica generale i difensori abituali
+  perdono un po' rispetto agli altri reparti. Se dà fastidio, la leva è la scala, non il peso;
+- la pagina d'archivio di FC 26 cambia anch'essa (stesso codice), con molte prestazioni senza
+  gol subiti perché precedenti al 29/08/2026: per quelle il pezzo vale la media del club;
+- il confronto testa a testa spezza la tecnica sempre con i tre pezzi e i pesi dell'attacco
+  (`pezziTecnica`, `PESI_TECNICA`): era già così per i difensori prima di oggi, e i gol
+  subiti per ora non vi compaiono. Il totale torna comunque, perché i punti si ripartiscono
+  in proporzione.

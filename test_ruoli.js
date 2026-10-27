@@ -108,16 +108,18 @@ console.log("\nPesi dell'Indice di Forza");
     verifica(`la scala di ${k} e' fissa e crescente (${min} - ${max})`,
       typeof min === "number" && typeof max === "number" && max > min, `${min} - ${max}`);
   }
+  // I gol subiti (dal 27/10/2026) sono l'unica scala che scende: meno e' meglio.
   for (const [k, [min, max]] of Object.entries(SCALE_TECNICA)) {
-    verifica(`la sottoscala di ${k} e' fissa e crescente (${min} - ${max})`,
-      typeof min === "number" && typeof max === "number" && max > min, `${min} - ${max}`);
+    const verso = k === "difesa" ? max < min : max > min;
+    verifica(`la sottoscala di ${k} e' fissa e ${k === "difesa" ? "decrescente" : "crescente"} (${min} - ${max})`,
+      typeof min === "number" && typeof max === "number" && verso, `${min} - ${max}`);
   }
   // Dal 29/08/2026 i pesi della tecnica sono QUATTRO, uno per reparto: prima erano due,
   // "difensori" e "tutti gli altri", e quel secondo gruppo metteva insieme un centrocampista
   // e un attaccante, che con la palla fanno mestieri diversi.
   for (const [reparto, p] of Object.entries(PESI_TECNICA_PER_REPARTO)) {
-    const s = p.passaggi + p.contrasti + p.tiro;
-    verifica(`efficienza tecnica (${reparto}): i tre pezzi sommano a 1`,
+    const s = p.passaggi + p.contrasti + p.tiro + (p.difesa || 0);
+    verifica(`efficienza tecnica (${reparto}): i pezzi sommano a 1`,
       Math.abs(s - 1) < 1e-9, `sommano ${s.toFixed(3)}`);
   }
   // La regola del club: i contrasti calano scendendo verso l'attacco, il tiro cresce.
@@ -170,20 +172,26 @@ console.log("\nDettaglio dell'efficienza tecnica");
     let controllate = 0, sbagliate = 0, peggiore = 0;
     for (const gruppo of GROUP_ORDER) {
       for (const a of ALL.filter(x => x.group === gruppo)) {
-        const tent = { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots };
-        const html = dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10, tent);
+        const tent = { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots,
+                       difesa: a.partite90Difesa };
+        const html = dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, gruppo, 10, tent, a.difesa);
         const punti = [...html.matchAll(/tecq-punti">([\d.]+)</g)].map(m => parseFloat(m[1]));
-        if (punti.length !== 4) { sbagliate++; continue; }   // tre pezzi + totale
-        const somma = punti[0] + punti[1] + punti[2];
+        // tre pezzi + totale, quattro + totale per i difensori (gol subiti, dal 27/10/2026)
+        const attesi = (PESI_TECNICA_PER_REPARTO[gruppo] || {}).difesa ? 5 : 4;
+        if (punti.length !== attesi) { sbagliate++; continue; }
+        const totale = punti[punti.length - 1];
+        const somma = punti.slice(0, -1).reduce((t, v) => t + v, 0);
         const scarto = Math.abs(somma - a.techEff);
         if (scarto > peggiore) peggiore = scarto;
-        if (scarto > 0.15) sbagliate++;
+        // Ogni riga e' arrotondata a un decimale (fino a 0,05): con quattro righe il caso
+        // peggiore e' 0,2, con tre era 0,15. La soglia segue il numero di righe.
+        if (scarto > 0.05 * (punti.length - 1)) sbagliate++;
         // e il totale stampato deve essere quello della tabella, non un terzo numero
-        if (Math.abs(punti[3] - a.techEff) > 0.5) sbagliate++;
+        if (Math.abs(totale - a.techEff) > 0.5) sbagliate++;
         controllate++;
       }
     }
-    verifica(`i tre pezzi ricostruiscono l'efficienza tecnica (${controllate} righe)`,
+    verifica(`i pezzi ricostruiscono l'efficienza tecnica (${controllate} righe)`,
       sbagliate === 0 && controllate > 0, `${sbagliate} fuori, scarto massimo ${peggiore.toFixed(3)}`);
   }
 

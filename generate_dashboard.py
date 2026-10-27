@@ -374,7 +374,7 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
             """SELECT player_name, pos, archetype_id, goals, assists, rating,
                       shots, passes_made, pass_attempts, tackles_made,
                       tackle_attempts, saves, cleansheetsgk, cleansheetsdef,
-                      red_cards, mom, seconds_played,
+                      red_cards, mom, seconds_played, goals_conceded,
                       MIN(CASE WHEN ea_player_id LIKE 'recovered\\_%' ESCAPE '\\'
                                THEN 1 ELSE 0 END) AS _pref
                FROM match_player_stats WHERE match_id = ? AND club_id = ?

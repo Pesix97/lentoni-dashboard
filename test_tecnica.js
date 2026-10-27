@@ -82,6 +82,7 @@ setTimeout(() => {
   sc.textContent = `window.__T = {
     computeBlendedScores, suScalaTecnica, versoLaMediaTecnica,
     PESI_TECNICA_PER_REPARTO, PESI_TECNICA, FORM_WINDOWS,
+    efficienzaTecnica, MEDIE_TECNICA, DATA, sommaGolSubiti,
   };`;
   w.document.body.appendChild(sc);
   const T = w.__T;
@@ -95,10 +96,13 @@ setTimeout(() => {
   }
 
   // La stessa somma che disegna dettaglioTecnicaMista, rifatta qui in modo indipendente.
+  // Quattro pezzi dal 27/10/2026: il quarto (gol subiti ogni 90') pesa solo per i difensori.
+  const PEZZI = ["passaggi", "contrasti", "tiro", "difesa"];
   function sommaDettaglio(tec, gruppo) {
     const p = T.PESI_TECNICA_PER_REPARTO[gruppo] || T.PESI_TECNICA;
     const pesoW = tec.pesoForma;
-    return ["passaggi", "contrasti", "tiro"].reduce((tot, k) => {
+    return PEZZI.reduce((tot, k) => {
+      if (!p[k]) return tot;
       const d = tec.pezzi[k];
       const qCar = T.suScalaTecnica(T.versoLaMediaTecnica(d.car, d.carTent, k), k);
       const misto = d.forma !== null && pesoW > 0;
@@ -146,7 +150,7 @@ setTimeout(() => {
     verifica("qualcuno ha davvero una forma recente da mescolare", conForma.length > 0,
       `ne ha ${conForma.length}`);
     const tentativiDistinti = conForma.every((s) =>
-      ["passaggi", "contrasti", "tiro"].every((k) => {
+      PEZZI.every((k) => {
         const d = s.tecnica.pezzi[k];
         return d.formaTent !== null && d.formaTent !== undefined && d.formaTent <= d.carTent;
       }));
@@ -177,10 +181,14 @@ setTimeout(() => {
   verifica("il riquadro del dettaglio esiste nella pagina", !!primo);
   if (primo) {
     const righe = primo.querySelectorAll(".tecq-riga:not(.tecq-totale)").length;
-    verifica("il riquadro ha le tre righe dei pezzi", righe === 3, `ne ha ${righe}`);
+    verifica("il riquadro ha tre righe, quattro per un difensore", righe === 3 || righe === 4,
+      `ne ha ${righe}`);
     // La percentuale scritta nella riga deve essere quella che GENERA i punti a fianco: e'
     // la versione visibile dello stesso difetto: mostrare un numero e calcolarne un altro.
-    const SCALE = { "passaggi riusciti": [60, 90], "contrasti riusciti": [5, 50], "tiri trasformati": [10, 50] };
+    // Scritte qui a mano, non lette dalla pagina: e' il riferimento indipendente. I gol
+    // subiti vanno al contrario (4 -> 0); la stessa formula regge, con max - min negativo.
+    const SCALE = { "passaggi riusciti": [60, 90], "contrasti riusciti": [5, 50],
+                    "tiri trasformati": [10, 50], "gol subiti ogni 90'": [4, 0] };
     let incoerenti = 0;
     primo.querySelectorAll(".tecq-riga:not(.tecq-totale)").forEach((r) => {
       const eti = r.querySelector(".tecq-eti").textContent.trim();
@@ -202,7 +210,7 @@ setTimeout(() => {
       if (Math.abs(attesi - punti) > 0.15) incoerenti++;
     });
     verifica("la percentuale mostrata è quella che produce i punti", incoerenti === 0,
-      `${incoerenti} righe su 3`);
+      `${incoerenti} righe su ${righe}`);
 
     const totale = primo.querySelector(".tecq-totale .tecq-punti");
     const cella = w.document.querySelector("#powerTable tbody tr .tec-apri");
@@ -212,6 +220,107 @@ setTimeout(() => {
   }
   } else {
     verifica("nessun giocatore in questo archivio: salto i controlli sul riquadro del dettaglio", true);
+  }
+
+  // 6. I gol subiti dei difensori (27/10/2026). Ogni controllo parte da un riferimento che
+  //    non passa dal codice della pagina: i pesi scritti qui, le righe grezze di DATA.
+  console.log("\nI gol subiti ogni 90' dei difensori");
+  const P = T.PESI_TECNICA_PER_REPARTO;
+  const sommeOk = Object.entries(P).every(([, p]) =>
+    Math.abs(p.passaggi + p.contrasti + p.tiro + (p.difesa || 0) - 1) < 1e-9);
+  verifica("in ogni reparto i pesi della tecnica sommano a 100%", sommeOk);
+  verifica("i pesi dei difensori sono 25/40/5/30",
+    P.DIFENSORI.passaggi === 0.25 && P.DIFENSORI.contrasti === 0.40 &&
+    P.DIFENSORI.tiro === 0.05 && P.DIFENSORI.difesa === 0.30,
+    JSON.stringify(P.DIFENSORI));
+  verifica("fuori dalla difesa i gol subiti non pesano",
+    Object.entries(P).every(([g, p]) => g === "DIFENSORI" || !p.difesa));
+
+  // La direzione: piu' gol subiti, meno tecnica. Se la scala fosse girata al contrario
+  // tutto il resto passerebbe lo stesso, e premierebbe chi ne prende di piu'.
+  const base = { passaggi: 1000, contrasti: 100, tiro: 50, difesa: 50 };
+  const pochi = T.efficienzaTecnica(80, 25, 30, "DIFENSORI", base, 1.0);
+  const tanti = T.efficienzaTecnica(80, 25, 30, "DIFENSORI", base, 3.5);
+  verifica("un difensore che subisce meno gol ha piu' tecnica", pochi > tanti,
+    `1 gol/90' -> ${pochi.toFixed(2)}, 3,5 gol/90' -> ${tanti.toFixed(2)}`);
+  const attA = T.efficienzaTecnica(80, 25, 30, "ATTACCANTI", base, 1.0);
+  const attB = T.efficienzaTecnica(80, 25, 30, "ATTACCANTI", base, 3.5);
+  verifica("per un attaccante i gol subiti non cambiano niente", Math.abs(attA - attB) < 1e-9);
+
+  // Senza minuti in campo si vale la media del club, non zero gol (= punteggio pieno).
+  const senzaMinuti = T.efficienzaTecnica(80, 25, 30, "DIFENSORI",
+    { passaggi: 1000, contrasti: 100, tiro: 50 }, 0);
+  const allaMedia = T.efficienzaTecnica(80, 25, 30, "DIFENSORI",
+    { passaggi: 1000, contrasti: 100, tiro: 50, difesa: 1e9 }, T.MEDIE_TECNICA.difesa);
+  verifica("senza minuti in campo un difensore vale la media del club, non il massimo",
+    Math.abs(senzaMinuti - allaMedia) < 1e-6,
+    `senza minuti ${senzaMinuti.toFixed(2)}, alla media ${allaMedia.toFixed(2)}`);
+
+  // Le righe che non devono contare, provate una per una: sui dati veri la riga con 0
+  // secondi e un gol subito (27/10/2026) e' di qualcuno fuori rosa, quindi il confronto
+  // con l'archivio qui sotto non se ne accorgerebbe mai.
+  const acc = { gol: 0, secondi: 0 };
+  T.sommaGolSubiti(acc, { goals_conceded: 3, seconds_played: 0 });
+  T.sommaGolSubiti(acc, { goals_conceded: null, seconds_played: 5400 });
+  T.sommaGolSubiti(acc, { goals_conceded: 2 });
+  verifica("non contano le righe senza minuti in campo o senza gol subiti",
+    acc.gol === 0 && acc.secondi === 0, JSON.stringify(acc));
+  T.sommaGolSubiti(acc, { goals_conceded: 2, seconds_played: 2700 });
+  verifica("e una riga valida conta per il suo tempo", acc.gol === 2 && acc.secondi === 2700,
+    JSON.stringify(acc));
+
+  // Il valore di carriera contro le righe grezze dell'archivio, rifatto qui da capo:
+  // gol subiti diviso minuti, solo righe con entrambi i dati e almeno un secondo in campo.
+  if (haGiocatori) {
+    const grezzi = new Map();
+    Object.values(T.DATA.matchPlayers || {}).forEach((righe) => (righe || []).forEach((r) => {
+      if (r.goals_conceded == null || !(r.seconds_played > 0)) return;
+      const a = grezzi.get(r.player_name) || { g: 0, s: 0 };
+      a.g += r.goals_conceded; a.s += r.seconds_played;
+      grezzi.set(r.player_name, a);
+    }));
+    verifica("l'archivio porta davvero i gol subiti", grezzi.size > 0, `giocatori: ${grezzi.size}`);
+    const diversi = [];
+    T.computeBlendedScores(30, 0.5).forEach((s) => {
+      const a = grezzi.get(s.r.player_name);
+      const atteso = a ? a.g * 5400 / a.s : 0;
+      const d = s.tecnica.pezzi.difesa;
+      if (!d || Math.abs(d.car - atteso) > 1e-9) diversi.push(`${s.r.player_name}: ${d && d.car} vs ${atteso}`);
+    });
+    verifica("i gol subiti di carriera sono quelli delle righe dell'archivio", diversi.length === 0,
+      diversi.slice(0, 3).join("; "));
+
+    // Nella pagina: chi gioca in difesa ha la quarta riga, chi no non ce l'ha.
+    const dettDif = w.document.querySelectorAll('tr.tecnica-detail[id^="tec-r-DIFENSORI-"]');
+    const dettAltri = w.document.querySelectorAll('tr.tecnica-detail[id^="tec-r-"]:not([id^="tec-r-DIFENSORI-"])');
+    const conRiga = (tr) => [...tr.querySelectorAll(".tecq-eti")].some((e) => e.textContent.includes("gol subiti"));
+    verifica("nelle classifiche per reparto ogni difensore ha la riga dei gol subiti",
+      dettDif.length > 0 && [...dettDif].every(conRiga), `riquadri da difensore: ${dettDif.length}`);
+    verifica("e negli altri reparti la riga non compare", [...dettAltri].every((tr) => !conRiga(tr)));
+
+    // Ogni riquadro della classifica generale contro la SUA colonna, non solo il primo.
+    // (Confrontare le righe del riquadro con il suo totale non basterebbe: escono dallo
+    // stesso calcolo e tornano sempre - verificato togliendo la riga dei gol subiti.)
+    const celle = [...w.document.querySelectorAll('#powerTable tbody .tec-apri[data-tec^="g-"]')];
+    const storti = celle.filter((c) => {
+      const tr = w.document.getElementById("tec-" + c.dataset.tec);
+      const tot = tr && tr.querySelector(".tecq-totale .tecq-punti");
+      return !tot || tot.textContent.trim() !== c.textContent.trim();
+    });
+    verifica("nella classifica generale ogni riquadro ha il totale della sua colonna",
+      celle.length > 0 && storti.length === 0,
+      `${storti.length} su ${celle.length} non tornano` + (storti[0] ? ` (es. ${storti[0].dataset.tec})` : ""));
+
+    // Quanti riquadri devono avere i gol subiti lo dice roles.json (il reparto abituale
+    // scritto nella rosa), non la pagina: in FC 26 nessuno era difensore abituale.
+    const attesi = new Set((T.DATA.roster || []).filter((r) => r.gruppo === "DIFENSORI").map((r) => r.player_name));
+    const conGol = new Set(celle.filter((c) => {
+      const tr = w.document.getElementById("tec-" + c.dataset.tec);
+      return tr && [...tr.querySelectorAll(".tecq-eti")].some((e) => e.textContent.includes("gol subiti"));
+    }).map((c) => c.dataset.tec.slice(2)));
+    const uguali = attesi.size === conGol.size && [...attesi].every((n) => conGol.has(n));
+    verifica("i gol subiti compaiono nel riquadro generale esattamente dei difensori abituali", uguali,
+      `difensori abituali: ${[...attesi].join(", ") || "nessuno"}; con la riga: ${[...conGol].join(", ") || "nessuno"}`);
   }
 
   console.log(falliti === 0

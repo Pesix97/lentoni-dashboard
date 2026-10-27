@@ -200,8 +200,8 @@
         <br><br>
         <span style="display:block; font-family:ui-monospace,monospace; font-size:12px; line-height:1.9;
               margin:2px 0; color:var(--text);">
-          <span style="color:var(--muted);">reparto&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;passaggi&nbsp;&nbsp;contrasti&nbsp;&nbsp;tiro</span><br>
-          difensori&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>50%</strong>&nbsp;&nbsp;&nbsp;10%<br>
+          <span style="color:var(--muted);">reparto&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;passaggi&nbsp;&nbsp;contrasti&nbsp;&nbsp;tiro&nbsp;&nbsp;gol subiti</span><br>
+          difensori&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;25%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>40%</strong>&nbsp;&nbsp;&nbsp;&nbsp;5%&nbsp;&nbsp;&nbsp;<strong>30%</strong><br>
           centrocampisti&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30%&nbsp;&nbsp;&nbsp;30%<br>
           esterni&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;20%&nbsp;&nbsp;&nbsp;40%<br>
           trequartista&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;50%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>10%</strong>&nbsp;&nbsp;&nbsp;40%<br>
@@ -210,17 +210,23 @@
         <span style="color:var(--muted);">Il trequartista aveva gli stessi pesi degli attaccanti fino
         all'8/09/2026: da allora e' un reparto a se', con piu' peso sui passaggi.</span>
         <br><br>
-        Anche i tre pezzi hanno la loro scala (passaggi 60→90, contrasti 5→50, tiri 10→50): le percentuali di
-        EA non sono confrontabili fra loro, un 15% nei contrasti vale quanto un 75% nei passaggi.
+        <strong style="color:var(--text);">Per i difensori c'è un quarto pezzo: i gol subiti ogni 90 minuti
+        in campo.</strong> Meno ne prende la squadra mentre lui gioca, più punti: zero gol vale il massimo,
+        quattro o più valgono zero. Si contano i minuti veri, quindi chi esce prima della fine pesa per il
+        tempo giocato. Per gli altri reparti vale zero.
+        <br><br>
+        Anche i pezzi hanno la loro scala (passaggi 60→90, contrasti 5→50, tiri 10→50, gol subiti 4→0): le
+        percentuali di EA non sono confrontabili fra loro, un 15% nei contrasti vale quanto un 75% nei passaggi.
         <br><br>
         <strong style="color:var(--text);">E una percentuale vale quanto il suo denominatore.</strong> Sei gol
         su dieci tiri fa 60%, ma dieci tiri non provano niente: ogni pezzo viene quindi tirato verso la media
         del club in proporzione ai <em>tentativi</em>, non alle partite. Vale nei due sensi — chi ha 0% su due
-        tiri non è un incapace, e risale.
+        tiri non è un incapace, e risale. Per i gol subiti i tentativi sono i minuti: con cinque partite
+        intere il valore del giocatore conta per metà, il resto è la media del club.
         <br><br>
         Nel dettaglio la riga lo dice a parole: <em>«60% <span style="opacity:.6;">vale</span> 40% — su 10
         tiri»</em>. Dove le prove bastano, la seconda percentuale non compare proprio.
-        <strong style="color:var(--text);">Clicca il numero nella colonna Tecnica</strong> per vedere i tre
+        <strong style="color:var(--text);">Clicca il numero nella colonna Tecnica</strong> per vedere i
         pezzi, il peso che hanno per quel reparto e i punti che ne escono.
         <br><br>
         Il reparto è quello <strong style="color:var(--text);">abituale</strong> in questa classifica, quello
@@ -294,10 +300,11 @@
         svantaggiato: gol e assist pesano il 20% del punteggio. Qui invece ogni giocatore è
         <strong style="color:var(--text);">normalizzato dentro il proprio reparto</strong>, quindi un difensore compete
         solo con altri difensori. La formula è la stessa dell'Indice di Forza, con
-        <strong style="color:var(--text);">una sola differenza</strong>: per le partite giocate da difensore
-        l'efficienza tecnica pesa i contrasti al 50% invece che al 10%, perché lì un duello vinto conta
-        più di un tiro in porta. È l'unico punto della dashboard dove i pesi cambiano col ruolo, ed è
-        possibile solo qui perché è l'unico posto in cui il ruolo si conosce partita per partita.
+        <strong style="color:var(--text);">una sola differenza</strong>: i pesi dell'efficienza tecnica
+        seguono il reparto della <em>singola partita</em>, non quello abituale. Per le partite giocate da
+        difensore contano soprattutto i contrasti (40%) e i gol subiti ogni 90 minuti in campo (30%), e
+        quei gol subiti sono solo quelli delle partite giocate in difesa. È possibile solo qui perché è
+        l'unico posto in cui il ruolo si conosce partita per partita.
         <br><br>
         <strong style="color:var(--text);">Come viene deciso il ruolo.</strong> EA conosce solo quattro etichette
         (portiere/difensore/centrocampista/attaccante) e non sa distinguere un trequartista da un
