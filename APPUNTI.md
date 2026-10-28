@@ -1590,3 +1590,10 @@ il loro 0% di tiri ora conta per i tiri fatti davvero invece di valere la media 
 Le misure di affidabilità del punto 5 non ne risentono: `affidabilita.py` non usa il codice
 della pagina, rifà i conti dalle righe del database (verificato il 28/10/2026).
 
+## Passaggi tentati a partita nella sezione Giocatori (28/10/2026)
+
+Chiesto da Peppe: «passaggi per partita». Misurato prima (stabilissimo, +0,85, ma nessun
+legame con la vittoria, e premia gli attaccanti più dei centrocampisti) e deciso da Peppe:
+**solo un dato da guardare, non conta nell'indice**, e sui passaggi **tentati**. Colonna da
+aggiungere nella tabella Giocatori e casella nella scheda. Dettagli nel README.
+

@@ -413,7 +413,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_ruoli.js` | 119 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
-| `test_indice.js` | 19 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto». Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
+| `test_indice.js` | 22 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; e i passaggi tentati a partita, in tabella e in ogni scheda. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1144,6 +1144,28 @@ attaccante — e la riga lo scrive: «pesa 10% a uno, 30% all'altro».
 voci del testa a testa, quindi le voci sommavano al distacco al centesimo: i controlli di
 coerenza passavano tutti. Da qui `test_indice.js`, che rifà i conti per conto suo e diventa
 rosso su ognuna delle tre correzioni tolta da sola (provato).
+
+### Passaggi tentati a partita: un dato, non una voce (28/10/2026)
+
+Chiesto da Peppe come dato da guardare nella sezione Giocatori — colonna da aggiungere nella
+tabella e casella nella scheda — e **deliberatamente fuori dall'Indice di Forza**. Misurato
+prima di aggiungerlo, su FC 27:
+
+| | |
+| --- | --- |
+| stabilità (partite pari contro dispari) | +0,85, la più alta di tutte le voci |
+| legame con la vittoria | −0,02, nessuno |
+| passaggi riusciti a partita per posizione EA | attaccanti 16,5, centrocampisti 13,8, difensori 10,4 |
+
+Stabile e utile sono due cose diverse, come per i contrasti: descrive lo stile di gioco, e
+da noi chi passa di più sono gli attaccanti, non i centrocampisti. Come voce dell'indice
+avrebbe premiato attaccanti e trequartisti senza misurare niente che faccia vincere.
+
+**Tentati, non riusciti**: dice quanto uno è coinvolto nel gioco; la precisione sta già in
+«% Passaggi». EA non dà i tentati di carriera, quindi si stimano da riusciti e percentuale,
+con l'archivio come minimo (`tentativiDiCarriera`, la stessa regola dell'indice). Verificata
+contro i tentati contati davvero nelle partite di FC 27: scarto massimo 0,4 a partita. Per
+chi non è in rosa la scheda usa solo l'archivio, dove i tentati sono contati.
 
 ## Novità dall'ultima serata
 

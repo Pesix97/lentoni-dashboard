@@ -413,6 +413,51 @@ function puntiDaTesto(t, sinistra) {
   verifica("riquadro della Tecnica, pezzo per pezzo", errR.riquadro);
   verifica("ordine di ogni reparto", errR.ordine);
 
+  // ---- Passaggi tentati a partita (28/10/2026): un dato da guardare, fuori dall'indice.
+  // In rosa: tentati di carriera (stimati da riusciti e percentuale, mai meno di quelli
+  // contati in archivio) diviso le partite di carriera. Fuori rosa: solo l'archivio, contato.
+  console.log("\nGiocatori: passaggi tentati a partita");
+  const attesoPassaggi = new Map(roster.map(r => {
+    const arch = righePerNome.get(r.player_name) || [];
+    const tent = Math.max(stima(r.passes_made, r.pass_success_rate), somma(arch, p => p.pass_attempts || 0));
+    return [r.player_name, r.games_played ? tent / r.games_played : 0];
+  }));
+  const fuoriRosa = name => {
+    const righe = []; MATCHES.forEach(m => { const p = righeDi(m).find(x => x.player_name === name); if (p) righe.push(p); });
+    return righe.length ? somma(righe, p => p.pass_attempts || 0) / righe.length : null;
+  };
+  const errP = { colonna: [], ordine: [], scheda: [] };
+  const bottone = d.querySelector('#rosterColonne [data-col="pass_attempts_pg"]');
+  if (!bottone) errP.colonna.push("manca il bottone per aggiungere la colonna");
+  else {
+    bottone.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+    const valori = [];
+    d.querySelectorAll("#rosterTable tbody tr").forEach(tr => {
+      const td = tr.querySelector('td[data-label="Passaggi tentati a partita"]'), n = T(tr.querySelector(".player-link"));
+      if (!td) { errP.colonna.push(`${n}: colonna assente`); return; }
+      const att = attesoPassaggi.get(n); valori.push(num(T(td)));
+      if (att === undefined || Math.abs(num(T(td)) - att) > T1) errP.colonna.push(`${n}: stampato ${T(td)}, atteso ${att === undefined ? "non in rosa" : att.toFixed(2)}`);
+    });
+    if (valori.length !== attesoPassaggi.size) errP.colonna.push(`righe ${valori.length}, giocatori in rosa ${attesoPassaggi.size}`);
+    if (valori.some((v, i) => i > 0 && v > valori[i - 1])) errP.ordine.push(`non in ordine decrescente: ${valori.join(", ")}`);
+  }
+  // La scheda di ogni nome cliccabile della pagina, in rosa e fuori.
+  const nomiCliccabili = [...new Set([...d.querySelectorAll(".player-link[data-player]")].map(x => x.dataset.player))];
+  let schede = 0;
+  for (const n of nomiCliccabili) {
+    const link = d.querySelector(`.player-link[data-player="${n.replace(/"/g, '\\"')}"]`);
+    link.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+    const box = [...d.querySelectorAll(".pm-stat")].find(b => T(b.querySelector(".k")) === "Passaggi tentati a partita");
+    const att = attesoPassaggi.has(n) ? attesoPassaggi.get(n) : fuoriRosa(n);
+    if (att === null) continue;   // nessuna partita: la scheda non si apre, ed e' giusto
+    schede++;
+    if (!box) { errP.scheda.push(`${n}: casella assente`); continue; }
+    if (Math.abs(num(T(box.querySelector(".v"))) - att) > T1) errP.scheda.push(`${n}: scritto ${T(box.querySelector(".v"))}, atteso ${att.toFixed(2)}`);
+  }
+  verifica("colonna nella tabella Giocatori, per ogni giocatore", errP.colonna);
+  verifica("aggiunta la colonna, la tabella si ordina su di essa", errP.ordine);
+  verifica(`casella nella scheda di ogni giocatore (${schede} schede aperte)`, schede > 0 ? errP.scheda : ["nessuna scheda aperta"]);
+
   console.log(falliti === 0 ? "\nOgni numero torna con il ricalcolo indipendente." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);
 })();

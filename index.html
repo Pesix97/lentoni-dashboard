@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-tY8jW90BWVKmEQsLobUHDcRKoEE14Q+qVw4HL50NwW0='; style-src 'unsafe-inline'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-znbuKjuur/3xNpFCKdpsKYMWdbPbzRdsxVNZ2LE7gMs='; style-src 'unsafe-inline'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -1778,6 +1778,20 @@ function tentativiDiCarriera(r){
   };
 }
 
+// ---- Passaggi tentati a partita (28/10/2026) ----
+// Chiesto da Peppe come dato da guardare, NON come voce dell'indice: misurato, e' il numero
+// piu' stabile che abbiamo (pari/dispari +0,85) ma non ha nessun legame con la vittoria
+// (-0,02), e da noi passano di piu' gli attaccanti dei centrocampisti. Descrive lo stile.
+// Tentati, non riusciti: dice quanto uno e' coinvolto nel gioco, la precisione sta gia' in
+// "% Passaggi". EA non da' i tentati di carriera: si stimano da riusciti e percentuale, con
+// l'archivio come minimo (tentativiDiCarriera, la stessa regola dell'indice). Verificata il
+// 28/10/2026 contro i tentati contati davvero nelle partite di FC 27: scarto massimo 0,4.
+// Chi non e' in rosa ha solo le partite archiviate, e li' i tentati sono contati davvero.
+function passaggiTentatiAPartita(r){
+  if(r.parziale) return r.games_played ? r.pass_attempts / r.games_played : 0;
+  return r.games_played ? tentativiDiCarriera(r).passaggi / r.games_played : 0;
+}
+
 function versoLaMediaTecnica(valore, tentativi, chiave){
   // Senza il numero di tentativi non si puo' smorzare: si prende il valore com'e'.
   if(tentativi === null || tentativi === undefined) return valore || 0;
@@ -2523,6 +2537,7 @@ const STAT_DEFS = [
   { key: "red_cards", label: "Cartellini rossi", icon: "🟥", unit: "rossi", minGames: 0, awardTitle: "Re dei cartellini" },
   { key: "pass_success_rate", label: "% Passaggi riusciti", icon: "📡", unit: "%", minGames: MIN_GAMES_RATE, awardTitle: "Miglior % passaggi" },
   { key: "passes_made", label: "Passaggi totali", icon: "🔁", unit: "passaggi", minGames: 0, awardTitle: "Più passaggi effettuati" },
+  { key: "pass_attempts_pg", label: "Passaggi tentati a partita", icon: "📨", unit: "a partita", minGames: 0, compute: passaggiTentatiAPartita, decimals: 1 },
   { key: "tackle_success_rate", label: "% Contrasti vinti", icon: "🛡️", unit: "%", minGames: MIN_GAMES_RATE, awardTitle: "Miglior % contrasti" },
   { key: "tackles_made", label: "Contrasti totali", icon: "⚔️", unit: "contrasti", minGames: 0, awardTitle: "Più contrasti vinti" },
   { key: "shot_success_rate", label: "% Precisione tiro", icon: "🎯", unit: "%", minGames: MIN_GAMES_RATE, awardTitle: "Miglior % precisione tiro" },
@@ -5198,6 +5213,7 @@ function schedaDaPartite(name){
     man_of_the_match: somma(p => p.mom ? 1 : 0),
     red_cards: somma(p => p.red_cards),
     passes_made: somma(p => p.passes_made),
+    pass_attempts: pa,
     pass_success_rate: perc(somma(p => p.passes_made), pa),
     tackle_success_rate: perc(somma(p => p.tackles_made), ta),
     shot_success_rate: perc(gol, sh),
@@ -5231,12 +5247,14 @@ function openPlayerCard(name){
     ["Partite archiviate", r.games_played], ["Media voto", r.rating_ave],
     ["Gol", r.goals], ["Assist", r.assists], ["MOTM", r.man_of_the_match],
     ["Passaggi", r.passes_made], ["% Passaggi", pc(r.pass_success_rate)],
+    ["Passaggi tentati a partita", passaggiTentatiAPartita(r).toFixed(1)],
     ["Contrasti", r.tackles_made], ["% Contrasti", pc(r.tackle_success_rate)],
     ["% Tiro", pc(r.shot_success_rate)], ["Cartellini rossi", r.red_cards],
   ] : [
     ["Partite", r.games_played], ["Win %", r.win_rate + "%"], ["Media voto", r.rating_ave],
     ["Gol", r.goals], ["Assist", r.assists], ["MOTM", r.man_of_the_match],
-    ["Passaggi", r.passes_made], ["% Passaggi", r.pass_success_rate + "%"], ["% Contrasti", r.tackle_success_rate + "%"],
+    ["Passaggi", r.passes_made], ["% Passaggi", r.pass_success_rate + "%"],
+    ["Passaggi tentati a partita", passaggiTentatiAPartita(r).toFixed(1)], ["% Contrasti", r.tackle_success_rate + "%"],
     ["Contrasti", r.tackles_made], ["% Tiro", r.shot_success_rate + "%"], ["Cartellini rossi", r.red_cards],
   ];
   if(r.clean_sheets_gk > 0) stats.push(["Clean sheet (POR)", r.clean_sheets_gk]);
