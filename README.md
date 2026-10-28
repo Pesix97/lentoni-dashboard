@@ -413,6 +413,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_ruoli.js` | 119 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
+| `test_indice.js` | 19 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto». Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -725,6 +726,11 @@ Due dettagli utili. I test ricostruiscono i dati grezzi **dal database** invece 
 `raw/`, che non è versionato: girano ovunque, senza rete. E quelli JavaScript **estraggono
 le funzioni dalla pagina generata** ed eseguono quelle, non una copia che potrebbe
 divergere.
+
+`test_indice.js` fa apposta il contrario: **non usa niente della pagina** se non i dati e i
+numeri stampati, e rifà i conti per conto suo. Un test che esegue le funzioni della pagina
+verifica che siano coerenti fra loro; solo un riferimento scritto a parte può accorgersi che
+sbagliano tutte insieme.
 
 ---
 
@@ -1110,6 +1116,35 @@ di tecnica e resta sesto.
 senza minuti si valga la media e non il massimo, che il valore di carriera sia quello delle
 righe grezze dell'archivio, e che la riga compaia solo nei riquadri dei difensori.
 
+### Il ricalcolo indipendente (28/10/2026)
+
+Su richiesta di Peppe, un controllo intero dell'indice e del testa a testa: ogni numero
+rifatto in Python dai dati grezzi e dalle regole di questo README, senza il codice della
+pagina, e confrontato con quello stampato. I dati della pagina coincidevano col database;
+reparto per reparto tornava tutto. Tre difetti, tutti invisibili ai test che c'erano:
+
+| Difetto | Cosa succedeva | Effetto |
+| --- | --- | --- |
+| **MOTM della forma** | nella forma la quota di MOTM era una frazione (0,20) misurata sulla scala in percentuale (0–50): valeva quasi zero per tutti. Nello storico invece si moltiplicava per 100 | fino a 0,8 punti nella vista predefinita (ordine invariato), fino a 1,7 a sola forma, con qualche scambio di posizione |
+| **valori del testa a testa** | sotto i pezzi della tecnica comparivano le percentuali grezze, mentre i punti nascono da quelle corrette per il numero di prove. «Realizzazione 0,0% contro 29,0%» dava +1,6 a chi aveva lo 0%, perché lo 0% su pochi tiri vale la media del club | il 30% delle righe dava i punti a chi mostrava il valore peggiore |
+| **tentativi di carriera** | a 0% realizzati la stima dei tentativi vale zero, come se non si fosse mai tirato. La colonna Tecnica correggeva con i tentativi della finestra, l'indice no: due tecniche diverse per lo stesso giocatore | brizeer87 61,5 nell'indice e 60,6 in colonna; nel testa a testa le due differenze avevano segno opposto e la ripartizione capovolgeva **tutti** i pezzi |
+
+Correzioni: il MOTM della forma si moltiplica per 100 come nello storico; il testa a testa
+scrive i valori **contati**, gli stessi del riquadro della colonna Tecnica, e anche gli
+estremi della rosa in fondo; i tentativi di carriera sono la stima di EA ma **mai meno di
+quelli contati in tutto l'archivio del titolo**, la stessa regola per indice e colonna e
+indipendente dalla finestra scelta (lo storico resta storico).
+
+Dopo le correzioni, nel testa a testa a pesi uguali i punti vanno sempre a chi ha il valore
+migliore. Restano righe in cui vanno a chi ha il valore peggiore (il 26%), tutte con pesi
+diversi per i due — un centrocampista è premiato sui contrasti tre volte più di un
+attaccante — e la riga lo scrive: «pesa 10% a uno, 30% all'altro».
+
+**Perché nessun test l'aveva visto.** Il MOTM sbagliato entrava sia nel punteggio sia nelle
+voci del testa a testa, quindi le voci sommavano al distacco al centesimo: i controlli di
+coerenza passavano tutti. Da qui `test_indice.js`, che rifà i conti per conto suo e diventa
+rosso su ognuna delle tre correzioni tolta da sola (provato).
+
 ## Novità dall'ultima serata
 
 La sezione in cima confronta **l'ultima serata con la penultima**. Prima confrontava gli
@@ -1188,6 +1223,12 @@ ripartiscono in proporzione, ma la ripartizione era falsa per chiunque non fosse
 anche di segno (+7,9 invece di −4,85). Il controllo che c'era guardava solo che i pezzi
 sommassero, e sommano sempre: per questo non se n'è mai accorto. Quello nuovo, in
 `test_tecnica.js`, confronta ogni pezzo con i riquadri stampati nella classifica generale.
+
+Sotto ogni pezzo della tecnica si leggono i valori **che generano i punti**: già corretti
+per il numero di prove e mescolati fra storico e forma, come nel riquadro della colonna
+Tecnica. Fino al 28/10/2026 c'erano le percentuali grezze, e uno 0% su quattro tiri — che
+vale la media del club — sembrava regalare punti a chi l'aveva; vedi «Il ricalcolo
+indipendente».
 
 Il punto di vista è **il giocatore scelto a sinistra**, non chi sta più in alto in
 classifica: verde quando è lui in vantaggio in quella voce, rosso quando è in svantaggio.

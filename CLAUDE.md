@@ -96,7 +96,15 @@ node test_ruoli.js index.html
 node test_apertura.js index.html     # apre davvero la pagina: serve `npm install jsdom`
 node test_tecnica.js index.html      # il riquadro Tecnica somma al numero della colonna
 node test_sicurezza.js index.html    # un nome che arriva da fuori non diventa codice
+node test_indice.js index.html       # indice e testa a testa rifatti da zero, dai dati grezzi
 ```
+
+**`test_indice.js` è l'unico controllo che non parte dalla pagina.** Gli altri verificano
+che la pagina sia coerente con se stessa (i pezzi sommano al totale, il riquadro alla
+colonna), e un errore che sbaglia tutte le parti allo stesso modo li passa tutti. Il
+28/10/2026 nella forma il MOTM valeva zero per tutti da settimane, e il testa a testa
+sommava lo stesso al centesimo. Se si cambia di proposito un peso, una scala o una regola
+dell'indice, va cambiata anche lì: è voluto, una modifica ai pesi deve essere una decisione.
 
 **La Content-Security-Policy non la vede nessun test in jsdom.** Se si tocca come la pagina
 carica gli script, o si aggiunge un gestore di eventi, va aperta in un Chrome vero (anche

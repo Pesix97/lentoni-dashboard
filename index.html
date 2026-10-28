@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-Eooy+LoM3vMG+YVv4H53nWq3Xarqgp9xMwNWsI490Qw='; style-src 'unsafe-inline'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-tY8jW90BWVKmEQsLobUHDcRKoEE14Q+qVw4HL50NwW0='; style-src 'unsafe-inline'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -1740,15 +1740,39 @@ const MEDIE_TECNICA = (function(roster){
   };
 })(DATA.roster);
 
+// I tentativi contati davvero, partita per partita, in tutto l'archivio del titolo.
+const TENTATIVI_ARCHIVIO = (function(){
+  const perNome = new Map();
+  Object.values(DATA.matchPlayers || {}).forEach(righe => (righe || []).forEach(p => {
+    if(!perNome.has(p.player_name)) perNome.set(p.player_name, { passaggi: 0, contrasti: 0, tiro: 0 });
+    const t = perNome.get(p.player_name);
+    t.passaggi  += p.pass_attempts || 0;
+    t.contrasti += p.tackle_attempts || 0;
+    t.tiro      += p.shots || 0;
+  }));
+  return perNome;
+})();
+
 // EA non da' i tentativi di carriera, ma li da' indirettamente: riusciti e percentuale.
 // 7089 passaggi riusciti all'81% vogliono dire circa 8752 tentati.
+//
+// A 0% realizzati la stima vale zero ("nessun tentativo") anche quando i tentativi ci sono,
+// tutti falliti: chi non ha ancora segnato sembrava non aver mai tirato, e il suo 0% veniva
+// sostituito per intero dalla media del club. L'archivio e' un sottoinsieme della carriera e
+// i suoi tentativi sono contati davvero, quindi fanno da minimo. Fino al 28/10/2026 il minimo
+// si prendeva dalla FINESTRA della forma, e solo nella colonna Tecnica: l'indice usava la
+// stima nuda, e per brizeer87 (zero gol, 0% di tiri) la tecnica dell'indice era 61,5 e quella
+// della colonna 60,6. Nel testa a testa le due differenze avevano segno opposto, e la
+// ripartizione capovolgeva il segno di tutti i pezzi. Ora la regola e' una, e non dipende
+// dalla finestra scelta: lo storico resta storico.
 function tentativiDiCarriera(r){
   const stima = (fatti, perc) => (perc > 0 ? (fatti || 0) / (perc / 100) : 0);
   const gs = GOL_SUBITI_ARCHIVIO.get(r.player_name) || { gol: 0, secondi: 0 };
+  const arch = TENTATIVI_ARCHIVIO.get(r.player_name) || { passaggi: 0, contrasti: 0, tiro: 0 };
   return {
-    passaggi:  stima(r.passes_made,  r.pass_success_rate),
-    contrasti: stima(r.tackles_made, r.tackle_success_rate),
-    tiro:      stima(r.goals,        r.shot_success_rate),
+    passaggi:  Math.max(stima(r.passes_made,  r.pass_success_rate),   arch.passaggi),
+    contrasti: Math.max(stima(r.tackles_made, r.tackle_success_rate), arch.contrasti),
+    tiro:      Math.max(stima(r.goals,        r.shot_success_rate),   arch.tiro),
     // Questo invece non e' stimato: sono i minuti veri dell'archivio, in partite da 90'.
     difesa:    partite90(gs),
   };
@@ -2112,14 +2136,17 @@ function computeFormScores(windowSize){
     breakdown: {
       rating:  normWith(p.ratingAve, "rating"),
       contrib: normWith(p.contrib,   "contrib"),
-      motm:    normWith(p.motmRate,  "motm"),
+      // motmRate qui e' una FRAZIONE (0,20), la scala del MOTM e' in PERCENTUALE (0-50):
+      // va moltiplicata per 100 come fa lo storico. Fino al 28/10/2026 mancava, e nella forma
+      // il MOTM valeva quasi zero per tutti (trovato dal ricalcolo indipendente, test_indice.js).
+      motm:    normWith(p.motmRate * 100, "motm"),
       tech:    normWith(p.techEff,   "tech"),
       disc:    normWith(p.redRate,   "disc"),
     },
     score: Math.max(0, Math.min(100, 100 * (
       PESI_INDICE.rating  * normWith(p.ratingAve, "rating") +
       PESI_INDICE.contrib * normWith(p.contrib,   "contrib") +
-      PESI_INDICE.motm    * normWith(p.motmRate,  "motm") +
+      PESI_INDICE.motm    * normWith(p.motmRate * 100, "motm") +
       PESI_INDICE.tech    * normWith(p.techEff,   "tech") -
       PESI_INDICE.disc    * normWith(p.redRate,   "disc")
     ))),
@@ -2154,23 +2181,12 @@ function computeBlendedScores(windowSize, weight){
     // 7.10". La normalizzazione e' lineare, quindi mescolare i valori grezzi con lo stesso
     // peso da' esattamente lo stesso risultato che mescolare i normalizzati.
     const g = s.r, gp = g.games_played || 1;
-    // EA non manda i tentativi grezzi di carriera per il club, solo realizzati e
-    // percentuale: tentativiDiCarriera() li stima invertendo la percentuale, e a 0%
-    // realizzati e percentuale coincidono a zero - la stima non sa piu' distinguere
-    // "zero tentativi davvero" da "alcuni tentativi, tutti falliti". La finestra recente
-    // e' pero' un SOTTOINSIEME della carriera e i suoi tentativi sono contati per davvero
-    // dalle partite archiviate: se superano la stima, quel numero vero diventa il minimo.
-    // Trovato il 19/09/2026 aprendo la rosa di FC 27 a inizio stagione: prima, con la
-    // soglia dei 30 a svuotarla, questo ramo non veniva mai eseguito su un campione cosi'
-    // piccolo da avere davvero uno 0%.
-    const tCarStimato = tentativiDiCarriera(g);
-    const tCar = {
-      passaggi:  Math.max(tCarStimato.passaggi,  hasForm ? f.tentPassaggi : 0),
-      contrasti: Math.max(tCarStimato.contrasti, hasForm ? f.tentContrasti : 0),
-      tiro:      Math.max(tCarStimato.tiro,      hasForm ? f.tentTiro : 0),
-      // I minuti dell'archivio sono veri e la finestra ne e' un sottoinsieme: niente minimo.
-      difesa:    tCarStimato.difesa,
-    };
+    // I tentativi di carriera: stimati da EA, con l'archivio intero come minimo (vedi
+    // tentativiDiCarriera). Gli STESSI dell'indice storico: fino al 28/10/2026 qui il minimo
+    // veniva dalla finestra della forma, e colonna e indice usavano due tecniche diverse.
+    // Trovato il 19/09/2026 il caso dello 0% (la stima non distingue "nessun tentativo" da
+    // "tutti falliti"), corretto qui il 28/10/2026 una volta per tutte, nel posto giusto.
+    const tCar = tentativiDiCarriera(g);
     const gsCar = golSubitiCarriera(g.player_name).valore;
     const carriera = {
       rating: g.rating_ave, contrib: (g.goals + g.assists) / gp, motm: g.man_of_the_match / gp,
@@ -3770,7 +3786,13 @@ function computeOutfieldLineup(){
   // fosse attaccante: a un difensore i contrasti pesavano il 10% invece del 40%, e i gol
   // subiti (30%) non c'erano proprio. Ora ogni giocatore porta i punti dei SUOI pezzi, gli
   // stessi del riquadro della colonna Tecnica (pezziTecnicaMisti).
-  function pezziTecnica(alto, basso, scale, totale){
+  // I VALORI scritti sotto ogni pezzo sono quelli che generano i punti: gia' corretti per il
+  // numero di prove e mescolati fra storico e forma, gli stessi del riquadro della colonna
+  // Tecnica. Fino al 28/10/2026 qui c'erano le percentuali grezze, e nel 30% delle righe i
+  // punti andavano a chi mostrava il valore peggiore ("0,0% contro 29,0%, +1,6 a chi ha lo
+  // 0%"): il conto era giusto, ma lo 0% su quattro tiri vale la media del club, e la riga
+  // non lo diceva. Anche gli estremi della rosa in fondo sono calcolati sugli stessi valori.
+  function pezziTecnica(alto, basso, punteggi, totale){
     // I punti si ripartiscono in proporzione a quanto ciascun pezzo contribuisce alla
     // differenza di efficienza tecnica. E' esatto per costruzione: l'efficienza e' una
     // combinazione lineare dei tre, quindi i loro scarti pesati SONO la differenza.
@@ -3786,8 +3808,16 @@ function computeOutfieldLineup(){
       .map(p => ({
         p, quota: A.get(p.k).punti - B.get(p.k).punti,
         pesoA: A.get(p.k).peso, pesoB: B.get(p.k).peso,
-        a: alto.grezziMescolati[p.k], b: basso.grezziMescolati[p.k],
+        a: daScalaTecnica(A.get(p.k).quota, p.k), b: daScalaTecnica(B.get(p.k).quota, p.k),
       }));
+    // Gli estremi della rosa sugli stessi valori contati, non sui grezzi.
+    const contati = punteggi.map(puntiDi);
+    const estremi = k => {
+      const v = contati.map(m => daScalaTecnica(m.get(k).quota, k));
+      return { min: Math.min(...v), max: Math.max(...v) };
+    };
+    const scale = { passaggi: estremi("passaggi"), tiro: estremi("tiro"),
+                    contrasti: estremi("contrasti"), difesa: estremi("difesa") };
     const totQuote = contributi.reduce((t, c) => t + c.quota, 0);
     if(Math.abs(totQuote) < 1e-9) return "";
     const righe = contributi
@@ -3823,7 +3853,8 @@ function computeOutfieldLineup(){
             realizzazione ${pc(scale.tiro.min)}–${pc(scale.tiro.max)},
             contrasti ${pc(scale.contrasti.min)}–${pc(scale.contrasti.max)}${righe.some(r => r.p.k === "difesa")
               ? `, gol subiti ogni 90' ${scale.difesa.min.toFixed(2)}–${scale.difesa.max.toFixed(2)}` : ""}.
-            I pesi sono quelli del reparto di ciascuno.
+            I pesi sono quelli del reparto di ciascuno, e i valori sono già corretti per il
+            numero di prove: pochi tiri o pochi passaggi valgono quasi la media del club.
           </div>
         </div>
       </details>`;
@@ -3910,7 +3941,7 @@ function computeOutfieldLineup(){
         <div style="font-size:10px; color:var(--muted); opacity:.65; margin-top:2px;">
           di sola carriera (senza la forma recente): ${f(r.carrieraA)} contro ${f(r.carrieraB)}
         </div>` : ""}
-        ${r.v.k === "tech" ? pezziTecnica(alto, basso, scale, r.diff) : ""}
+        ${r.v.k === "tech" ? pezziTecnica(alto, basso, punteggi, r.diff) : ""}
       </div>`;
     }).join("");
 

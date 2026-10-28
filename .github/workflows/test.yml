@@ -55,6 +55,11 @@ jobs:
       - name: I nomi che arrivano da fuori restano testo
         run: node test_sicurezza.js /tmp/prova.html
 
+      # L'unico controllo che non si fida della pagina: rifa' l'Indice di Forza e il testa a
+      # testa da zero, dai dati grezzi, e confronta i numeri stampati (28/10/2026).
+      - name: L'Indice di Forza torna con il ricalcolo indipendente
+        run: node test_indice.js /tmp/prova.html
+
       - name: Sintassi degli script
         run: |
           bash -n giro.sh

@@ -1572,3 +1572,21 @@ Da ricordare:
 - `jsdom@30.1.1` e `actions/checkout` sono fissati: aggiornarli è una scelta da fare
   apposta, provando i test con la versione nuova;
 - il task `lentoni-dashboard-update` in pausa va ancora tolto a mano dall'app (vedi sopra).
+
+## Controllo intero dell'indice e del testa a testa (28/10/2026)
+
+Chiesto da Peppe: «ho bisogno di un check intero». Ricalcolo indipendente in Python dai dati
+grezzi, confrontato con ogni numero stampato (9 combinazioni della classifica, 720 coppie
+del testa a testa, 145 righe dei reparti). Trovati e corretti tre difetti — MOTM della forma
+a zero, valori grezzi sotto i pezzi del testa a testa, tentativi di carriera diversi fra
+indice e colonna: dettagli nel README, «Il ricalcolo indipendente». Il ricalcolo è diventato
+`test_indice.js` (in CI, non in `giro.sh`: come `test_sicurezza.js`, un difetto del test non
+deve fermare l'archiviazione).
+
+Effetto nella vista predefinita: ordine invariato, punteggi fino a +0,8 (ktm-008).
+Bagherese_95 e brizeer87, che non hanno ancora segnato, perdono 0,5 e 0,3 punti di storico:
+il loro 0% di tiri ora conta per i tiri fatti davvero invece di valere la media del club.
+
+Le misure di affidabilità del punto 5 non ne risentono: `affidabilita.py` non usa il codice
+della pagina, rifà i conti dalle righe del database (verificato il 28/10/2026).
+
