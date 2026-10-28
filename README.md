@@ -414,6 +414,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
 | `test_indice.js` | 22 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; e i passaggi tentati a partita, in tabella e in ogni scheda. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
+| `test_record.js` | 10 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1173,6 +1174,56 @@ avrebbe premiato attaccanti e trequartisti senza misurare niente che faccia vinc
 con l'archivio come minimo (`tentativiDiCarriera`, la stessa regola dell'indice). Verificata
 contro i tentati contati davvero nelle partite di FC 27: scarto massimo 0,4 a partita. Per
 chi non è in rosa la scheda usa solo l'archivio, dove i tentati sono contati.
+
+## Record e scalata (28/10/2026)
+
+Chiesti da Peppe per rendere la dashboard più appassionante: una sezione **Record** con i
+record della squadra e quelli personali dentro la squadra, la **scalata** (promozioni e
+retrocessioni come eventi), e un **resoconto della serata** a parole in cima alla home. Le
+rivalità con gli avversari sono state scartate dopo averle misurate: in FC 27 su 163 club
+affrontati se ne sono ritrovati 4, due volte ciascuno.
+
+**I premi individuali erano stati tolti il 23/08/2026** perché mettevano i giocatori in gara
+fra loro. I record personali sono una scelta diversa del club: si batte un numero, non un
+compagno, e ogni record dice quando e contro chi.
+
+| | Record |
+| --- | --- |
+| squadra | vittorie di fila, partite di fila senza perdere, partite di fila senza subire gol, vittoria più larga, più gol in una partita, più vittorie e più gol in una serata, skill rating più alto |
+| giocatori | gol, assist, gol+assist, voto, passaggi riusciti e contrasti vinti in una partita; gol in una serata; partite di fila a segno |
+
+Le regole: vale il valore più alto, e **a parità il record è di chi ci è arrivato prima** —
+chi lo raggiunge dopo lo eguaglia (per un giocatore che ripete la propria prestazione si
+scrive «ripetuto»). «Battuto nell'ultima serata» vuol dire che il record di adesso supera
+quello di prima della serata ed è stato fatto lì. Le serie di un giocatore contano le partite
+**giocate da lui**: un'assenza non interrompe la serie, una partita senza gol sì.
+
+### Quale partita ha portato una promozione
+
+EA conta promozioni e retrocessioni, e la partita che le ha portate si ricava da due dati,
+ognuno preso dove è affidabile: **quante** partite dal contatore di EA nella stessa
+istantanea, **quali** dall'orario — le ultime giocate prima di quella lettura. La prima
+versione usava solo l'orario, cioè le partite *fra* due letture, e la prima promozione di
+FC 27 restava senza partita: EA aggiorna i contatori qualche minuto dopo, e la partita delle
+22:38 cadeva prima della lettura delle 22:46. Contare soltanto non basta nemmeno: all'archivio
+manca una partita rispetto a EA, e contando si finiva su partite giocate *dopo* la lettura.
+È il guasto già scritto in CLAUDE.md — contatore di EA (pubblicazione) contro orario di gioco.
+Quando fra due letture le partite sono due, si indica la serata ma non la partita.
+
+**La divisione attuale non si sa, e la pagina non la inventa.** Il campo `best_division` di
+EA sembrava darla: con 6 promozioni, 1 retrocessione e un massimo in Divisione 3, l'unico
+percorso coerente portava alla Divisione 3. Verificato sullo storico prima di usarlo: il
+campo compare solo dal 15/10/2026, insieme alle partite dei playoff, e va e viene fra 0 e 3.
+È un dato delle coppe. Si dice quindi quanto si è saliti rispetto alla partenza (oggi 5
+divisioni sopra), che è vero. Lo stesso campo finisce nell'intestazione della pagina come
+«Divisione 3»: vedi APPUNTI.
+
+### Il resoconto della serata
+
+Un messaggio a parole in cima alla home, non altri numeri: quante partite e come sono
+andate, il migliore della serata (la media voto più alta fra chi ha giocato almeno metà
+delle partite; a parità più gol e assist), i record battuti o eguagliati, una promozione o
+una retrocessione, una serie aperta che valga la pena dire. I dettagli restano nelle Novità.
 
 ## Novità dall'ultima serata
 

@@ -60,6 +60,9 @@ jobs:
       - name: L'Indice di Forza torna con il ricalcolo indipendente
         run: node test_indice.js /tmp/prova.html
 
+      - name: Record, scalata e resoconto tornano con il ricalcolo
+        run: node test_record.js /tmp/prova.html
+
       - name: Sintassi degli script
         run: |
           bash -n giro.sh

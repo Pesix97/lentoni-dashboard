@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-qrDxmKERVcJgm2Zpi/tmbOMCDpyStT36iAPxtm9YAc8='; style-src 'unsafe-inline'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-zAlN1/YfXaZLBDLvpSab883A+2mbDPWPW1+EIeEqwts='; style-src 'unsafe-inline'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -656,6 +656,16 @@
   .tecq-riga{ grid-template-columns:1fr auto 46px; gap:8px; }
   .tecq-barra, .tecq-peso{ display:none; }
 }
+
+/* Record e resoconto della serata (28/10/2026) */
+.record-nuovo{display:inline-block; font-size:11px; font-weight:600; color:var(--gold); border:1px solid var(--gold);
+  border-radius:4px; padding:1px 7px; white-space:nowrap;}
+.record-pari{display:inline-block; font-size:11px; color:var(--muted); border:1px solid var(--border, rgba(255,255,255,.2));
+  border-radius:4px; padding:1px 7px; white-space:nowrap;}
+.resoconto{border-left:3px solid var(--accent-2);}
+.calDay{position:relative;}
+.calEvento{position:absolute; top:1px; right:3px; font-size:10px; font-weight:800; color:var(--gold); line-height:1;}
+
 </style>
 </head>
 <body>
@@ -690,6 +700,10 @@
     <div class="sub">PS5 / Xbox Series · PC · Divisione 3 · Aggiornato al 2026-10-28T00:43:54.653538+00:00</div>
   </div>
 </div>
+
+<section id="resoconto">
+  <div id="resocontoBody"></div>
+</section>
 
 <section id="overview">
   <div class="grid-cards" id="cards"></div>
@@ -802,6 +816,29 @@
     <div id="h2hVoci"></div>
     <div id="h2hNote" style="margin-top:12px;"></div>
   </div>
+</section>
+
+<section id="record">
+  <h2>Record <span class="h2-sub">— della squadra e dei giocatori, in questo titolo</span></h2>
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Vale il valore più alto. <strong style="color:var(--text);">A parità il record è di chi ci è
+        arrivato prima</strong>: chi lo raggiunge dopo lo eguaglia, e compare sotto.
+        <br><br>
+        Le serie (vittorie, partite senza perdere, gol di fila) si contano sulle partite in ordine.
+        «Partite di fila a segno» conta le partite giocate da quel giocatore: una sera di assenza non
+        interrompe la serie, una partita senza gol sì. Una serie ancora aperta si vede accanto al record.
+        <br><br>
+        Le partite in cui qualcuno si è disconnesso subito (0 secondi in campo) non contano, come nel
+        resto della dashboard.
+      </div>
+    </div>
+  </details>
+  <div id="recordScalata"></div>
+  <div id="recordSquadra"></div>
+  <div id="recordPersonali"></div>
 </section>
 
 <section id="forza">
@@ -2293,6 +2330,245 @@ function computeBlendedScores(windowSize, weight){
   return [...conForma, ...senzaForma.map(p => ({ ...p, fuoriClassifica: true }))];
 }
 
+// ---- Record della squadra e dei giocatori, e la scalata della stagione (28/10/2026) ----
+//
+// Chiesti da Peppe per rendere la dashboard piu' appassionante: record di squadra, record
+// personali dentro la squadra, promozioni e retrocessioni come eventi, e un resoconto della
+// serata in cima alla home. I premi individuali erano stati tolti il 23/08/2026 perche'
+// mettevano i giocatori in gara fra loro; i record personali sono una scelta del club
+// diversa: si batte un numero, non un compagno, e ogni record dice quando e contro chi.
+//
+// Tutto si calcola da cio' che la pagina ha gia': le partite del titolo, le righe dei
+// giocatori, le serate e le istantanee del club. Questa parte non tocca la pagina: e' qui,
+// prima delle sezioni, perche' test_ruoli.js e test_record.js la possano eseguire fuori dal
+// browser.
+//
+// Le regole, uguali per ogni record:
+//   - vale il valore piu' alto; a parita' il record e' di chi ci e' arrivato PRIMA, e chi lo
+//     raggiunge dopo lo "eguaglia";
+//   - "battuto ieri sera" vuol dire che il record di adesso supera quello che c'era prima
+//     dell'ultima serata, e che e' stato fatto in quella serata;
+//   - una serie (vittorie, imbattibilita', gol di fila...) si conta sulle partite in ordine;
+//     quella ancora aperta si mostra accanto al record come "in corso".
+// Le prestazioni con 0 secondi in campo (disconnessioni) non arrivano fin qui: le toglie il
+// generatore (README, "Prestazioni che non contano").
+
+const PARTITE_CRONO = [...(DATA.matches || [])]
+  .sort((a, b) => String(a.played_at || "").localeCompare(String(b.played_at || "")));
+const SERATA_DI_PARTITA = new Map();
+(DATA.serate || []).forEach(s => (s.matchIds || []).forEach(id => SERATA_DI_PARTITA.set(id, s)));
+const PARTITA_PER_ID = new Map((DATA.matches || []).map(m => [m.match_id, m]));
+
+// Il giorno di una partita e' quello della sua serata: una partita all'una di notte appartiene
+// alla sera prima, come nella sezione Serate.
+function giornoDellaPartita(id){
+  const s = SERATA_DI_PARTITA.get(id);
+  if(s) return s.giorno;
+  const m = PARTITA_PER_ID.get(id);
+  return m && m.played_at ? m.played_at.slice(8, 10) + "/" + m.played_at.slice(5, 7) : "?";
+}
+function controChi(m){ return `${m.goals_for}-${m.goals_against} contro ${m.opponent_name}`; }
+
+// Una serie: le partite consecutive che rispettano una condizione. Ogni serie e' un candidato,
+// e l'ultima, se arriva fino all'ultima partita, e' ancora aperta.
+function serieDi(partite, condizione, nome){
+  const out = [];
+  let corsa = [];
+  const chiudi = (aperta) => {
+    if(!corsa.length) return;
+    const a = corsa[0], b = corsa[corsa.length - 1];
+    out.push({ valore: corsa.length, nome: nome || null, istante: b.played_at, ultima: b.match_id,
+      quando: giornoDellaPartita(a.match_id) === giornoDellaPartita(b.match_id) ? giornoDellaPartita(b.match_id)
+            : `dal ${giornoDellaPartita(a.match_id)} al ${giornoDellaPartita(b.match_id)}`,
+      dettaglio: "", aperta });
+    corsa = [];
+  };
+  partite.forEach(m => { if(condizione(m)) corsa.push(m); else chiudi(false); });
+  chiudi(true);
+  return out;
+}
+
+// Le serate presenti in un elenco di partite, ognuna con le SOLE partite dell'elenco (cosi'
+// il record "prima dell'ultima serata" non vede l'ultima serata).
+function serateDi(partite){
+  const per = new Map();
+  partite.forEach(m => {
+    const s = SERATA_DI_PARTITA.get(m.match_id);
+    const k = s ? s.chiave : m.match_id;
+    if(!per.has(k)) per.set(k, { serata: s, partite: [] });
+    per.get(k).partite.push(m);
+  });
+  return [...per.values()];
+}
+
+function righeDi(partite){
+  const out = [];
+  partite.forEach(m => (DATA.matchPlayers[m.match_id] || []).forEach(p => out.push({ m, p })));
+  return out;
+}
+
+const DEFINIZIONI_RECORD = [
+  // ---- Squadra
+  { chiave: "serieVittorie", tipo: "squadra", eti: "Vittorie di fila", unita: "",
+    candidati: P => serieDi(P, m => !!m.win) },
+  { chiave: "imbattibilita", tipo: "squadra", eti: "Partite di fila senza perdere", unita: "",
+    candidati: P => serieDi(P, m => !m.loss) },
+  { chiave: "porteInviolate", tipo: "squadra", eti: "Partite di fila senza subire gol", unita: "",
+    candidati: P => serieDi(P, m => (m.goals_against || 0) === 0) },
+  { chiave: "vittoriaLarga", tipo: "squadra", eti: "Vittoria più larga", unita: " gol di scarto",
+    candidati: P => P.filter(m => m.win).map(m => ({ valore: (m.goals_for || 0) - (m.goals_against || 0),
+      nome: null, istante: m.played_at, ultima: m.match_id, quando: giornoDellaPartita(m.match_id),
+      dettaglio: controChi(m) })) },
+  { chiave: "golPartita", tipo: "squadra", eti: "Più gol in una partita", unita: " gol",
+    candidati: P => P.map(m => ({ valore: m.goals_for || 0, nome: null, istante: m.played_at,
+      ultima: m.match_id, quando: giornoDellaPartita(m.match_id), dettaglio: controChi(m) })) },
+  { chiave: "vittorieSerata", tipo: "squadra", eti: "Più vittorie in una serata", unita: "",
+    candidati: P => serateDi(P).map(({ serata, partite }) => {
+      const ult = partite[partite.length - 1];
+      const v = partite.filter(m => m.win).length;
+      return { valore: v, nome: null, istante: ult.played_at, ultima: ult.match_id,
+        quando: serata ? serata.giorno : giornoDellaPartita(ult.match_id),
+        dettaglio: `${v} su ${partite.length}` };
+    }) },
+  { chiave: "golSerata", tipo: "squadra", eti: "Più gol in una serata", unita: " gol",
+    candidati: P => serateDi(P).map(({ serata, partite }) => {
+      const ult = partite[partite.length - 1];
+      return { valore: partite.reduce((t, m) => t + (m.goals_for || 0), 0), nome: null,
+        istante: ult.played_at, ultima: ult.match_id,
+        quando: serata ? serata.giorno : giornoDellaPartita(ult.match_id),
+        dettaglio: `in ${partite.length} partite` };
+    }) },
+  // Lo skill rating non e' un dato di partita: lo si legge dalle istantanee del club, fino al
+  // limite di tempo dato (per il confronto con "prima dell'ultima serata").
+  { chiave: "skillRating", tipo: "squadra", eti: "Skill rating più alto", unita: "",
+    candidati: (P, limite) => (DATA.history || [])
+      .filter(h => h.skill_rating && (!limite || h.fetched_at < limite))
+      .map(h => ({ valore: h.skill_rating, nome: null, istante: h.fetched_at, ultima: null,
+        quando: new Date(h.fetched_at).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }),
+        dettaglio: "" })) },
+  // ---- Personali
+  ...[
+    ["golGiocatore",       "Gol in una partita",            " gol",   p => p.goals || 0],
+    ["assistGiocatore",    "Assist in una partita",         " assist", p => p.assists || 0],
+    ["gaGiocatore",        "Gol + assist in una partita",   "",       p => (p.goals || 0) + (p.assists || 0)],
+    ["votoGiocatore",      "Voto più alto in una partita",  "",       p => p.rating || 0],
+    ["passaggiGiocatore",  "Passaggi riusciti in una partita", "",    p => p.passes_made || 0],
+    ["contrastiGiocatore", "Contrasti vinti in una partita", "",      p => p.tackles_made || 0],
+  ].map(([chiave, eti, unita, f]) => ({ chiave, tipo: "personale", eti, unita,
+    candidati: P => righeDi(P).map(({ m, p }) => ({ valore: f(p), nome: p.player_name, istante: m.played_at,
+      ultima: m.match_id, quando: giornoDellaPartita(m.match_id), dettaglio: controChi(m) })) })),
+  { chiave: "golSerataGiocatore", tipo: "personale", eti: "Gol in una serata", unita: " gol",
+    candidati: P => {
+      const out = [];
+      serateDi(P).forEach(({ serata, partite }) => {
+        const per = new Map();
+        partite.forEach(m => (DATA.matchPlayers[m.match_id] || []).forEach(p => {
+          if(!per.has(p.player_name)) per.set(p.player_name, { gol: 0, n: 0, ultima: m });
+          const x = per.get(p.player_name); x.gol += p.goals || 0; x.n++; x.ultima = m;
+        }));
+        per.forEach((x, nome) => out.push({ valore: x.gol, nome, istante: x.ultima.played_at,
+          ultima: x.ultima.match_id, quando: serata ? serata.giorno : giornoDellaPartita(x.ultima.match_id),
+          dettaglio: `in ${x.n} partite` }));
+      });
+      return out;
+    } },
+  // Partite di fila a segno: si contano le partite GIOCATE da lui, in ordine. Una sera di
+  // assenza non interrompe la serie, una partita giocata senza segnare si'.
+  { chiave: "serieGolGiocatore", tipo: "personale", eti: "Partite di fila a segno", unita: "",
+    candidati: P => {
+      const per = new Map();
+      P.forEach(m => (DATA.matchPlayers[m.match_id] || []).forEach(p => {
+        if(!per.has(p.player_name)) per.set(p.player_name, []);
+        per.get(p.player_name).push({ ...m, _gol: p.goals || 0 });
+      }));
+      const out = [];
+      per.forEach((lst, nome) => serieDi(lst, x => x._gol > 0, nome).forEach(c => out.push(c)));
+      return out;
+    } },
+];
+
+// I record calcolati su un elenco di partite (in ordine cronologico) e, per lo skill rating,
+// sulle istantanee fino a un certo istante.
+function calcolaRecord(partite, limite){
+  return DEFINIZIONI_RECORD.map(d => {
+    const c = d.candidati(partite, limite).filter(x => x.valore > 0)
+      .sort((a, b) => String(a.istante).localeCompare(String(b.istante)));
+    if(!c.length) return { ...d, vuoto: true };
+    const massimo = Math.max(...c.map(x => x.valore));
+    const tutti = c.filter(x => x.valore === massimo);
+    // Una serie aperta di squadra: quella che arriva all'ultima partita. Per i giocatori non
+    // si mostra (sarebbero una per testa).
+    const aperta = d.tipo === "squadra" ? c.find(x => x.aperta) : null;
+    return { ...d, valore: massimo, primo: tutti[0], pari: tutti.slice(1), aperta: aperta || null };
+  });
+}
+
+// L'ultima serata, e i record com'erano prima che cominciasse.
+const ULTIMA_SERATA = (DATA.serate || [])[0] || null;
+const INIZIO_ULTIMA = ULTIMA_SERATA
+  ? (ULTIMA_SERATA.matchIds || []).map(id => (PARTITA_PER_ID.get(id) || {}).played_at).filter(Boolean).sort()[0] || null
+  : null;
+const RECORD = calcolaRecord(PARTITE_CRONO, null);
+const RECORD_PRIMA = INIZIO_ULTIMA
+  ? calcolaRecord(PARTITE_CRONO.filter(m => !(ULTIMA_SERATA.matchIds || []).includes(m.match_id)), INIZIO_ULTIMA)
+  : [];
+
+// Che cosa e' successo ai record nell'ultima serata: battuti (il valore e' salito ed e' stato
+// fatto ieri sera) o eguagliati (stesso valore, raggiunto ieri sera da qualcun altro).
+const NOVITA_RECORD = (function(){
+  if(!INIZIO_ULTIMA) return [];
+  const prima = new Map(RECORD_PRIMA.map(r => [r.chiave, r]));
+  const out = [];
+  RECORD.forEach(r => {
+    if(r.vuoto) return;
+    const p = prima.get(r.chiave);
+    const pv = p && !p.vuoto ? p.valore : 0;
+    if(r.valore > pv && r.primo.istante >= INIZIO_ULTIMA){
+      out.push({ record: r, esito: "battuto", primaValore: pv || null, primaChi: p && !p.vuoto ? p.primo : null });
+    } else if(p && !p.vuoto && r.valore === pv){
+      const nuovi = r.pari.filter(x => x.istante >= INIZIO_ULTIMA);
+      if(nuovi.length) out.push({ record: r, esito: "eguagliato", da: nuovi });
+    }
+  });
+  return out;
+})();
+
+// ---- Promozioni e retrocessioni ----
+// EA conta le promozioni e le retrocessioni del club. Quale partita le ha portate si ricava da
+// DUE informazioni, ognuna presa dove e' affidabile:
+//   - QUANTE: il contatore delle partite di EA nella stessa istantanea in cui compare la
+//     promozione (di solito una partita in piu' della lettura precedente);
+//   - QUALI: le ultime partite giocate PRIMA di quella lettura, per orario.
+// Non basta l'orario da solo: EA aggiorna i contatori qualche minuto dopo la partita, e la
+// partita che ha portato la prima promozione (22:38) cade prima della lettura precedente
+// (22:46). E non basta il conteggio da solo: all'archivio manca una partita rispetto a EA, e
+// contando si finisce su partite giocate DOPO la lettura. E' il guasto gia' scritto in
+// CLAUDE.md: contatore di EA (pubblicazione) confrontato con l'orario della partita (gioco).
+// Verificato evento per evento il 28/10/2026. La DIVISIONE
+// ATTUALE invece non si sa: il campo "best_division" che EA manda e' un dato dei playoff (compare
+// solo dal 15/10/2026, insieme alle partite di coppa, e va e viene fra 0 e 3). Verificato il
+// 28/10/2026 prima di usarlo: ricavarne la divisione sarebbe stato un numero plausibile e falso.
+// Quello che si sa davvero e' di quante divisioni si e' saliti rispetto alla partenza.
+const EVENTI_DIVISIONE = (function(){
+  const h = DATA.history || [];
+  const out = [];
+  for(let i = 1; i < h.length; i++){
+    const a = h[i - 1], b = h[i];
+    const dp = (b.promotions || 0) - (a.promotions || 0);
+    const dr = (b.relegations || 0) - (a.relegations || 0);
+    if(dp <= 0 && dr <= 0) continue;
+    const quante = Math.max(1, (b.games_played || 0) - (a.games_played || 0));
+    const partite = PARTITE_CRONO.filter(m => m.played_at <= b.fetched_at).slice(-quante);
+    const serate = [...new Set(partite.map(m => SERATA_DI_PARTITA.get(m.match_id)).filter(Boolean))];
+    const ev = { da: a.fetched_at, a: b.fetched_at, partite, serata: serate.length === 1 ? serate[0] : null,
+                 serate, ultima: partite[partite.length - 1] || null };
+    for(let k = 0; k < dp; k++) out.push({ ...ev, tipo: "promozione" });
+    for(let k = 0; k < dr; k++) out.push({ ...ev, tipo: "retrocessione" });
+  }
+  return out;
+})();
+const SALDO_DIVISIONI = EVENTI_DIVISIONE.reduce((t, e) => t + (e.tipo === "promozione" ? 1 : -1), 0);
+
 // ---- Cards ----
 (function renderCards(){
   const l = DATA.latest || {};
@@ -2834,6 +3110,164 @@ renderRoster();
       </div>` : ""}
     <div class="empty" style="text-align:left; padding:10px 0 0;">
       Ultima serata ${quando(ultima)} · precedente ${quando(precedente)}.
+    </div>`;
+})();
+
+// ---- La sezione Record (28/10/2026) ----
+// I numeri vengono da calcolaRecord() piu' in alto; qui si disegnano soltanto. Ogni riga porta
+// data-record con la chiave del record: test_record.js la usa per confrontare cio' che e'
+// stampato con il suo ricalcolo.
+const ESITO_RECORD = new Map(NOVITA_RECORD.map(n => [n.record.chiave, n]));
+function valoreRecord(r, v){
+  return r.chiave === "votoGiocatore" ? Number(v).toFixed(1) : String(v);
+}
+(function renderRecord(){
+  const scalataEl = document.getElementById("recordScalata");
+  const squadraEl = document.getElementById("recordSquadra");
+  const personaliEl = document.getElementById("recordPersonali");
+  if(!squadraEl || !personaliEl) return;
+
+  const ultimo = (DATA.history || [])[(DATA.history || []).length - 1] || {};
+  const primo = (DATA.history || [])[0] || {};
+  if(scalataEl){
+    const promo = EVENTI_DIVISIONE.filter(e => e.tipo === "promozione").length;
+    const retro = EVENTI_DIVISIONE.length - promo;
+    // Se l'archivio e' nato a stagione gia' cominciata, gli eventi di prima non si vedono:
+    // EA li conta lo stesso, e lo si dice invece di far tornare i conti per finta.
+    const primaDellArchivio = (primo.promotions || 0) + (primo.relegations || 0) > 0;
+    const quando = e => e.serata ? e.serata.giorno
+      : e.serate.length > 1 ? `fra il ${e.serate[0].giorno} e il ${e.serate[e.serate.length - 1].giorno}`
+      : new Date(e.a).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
+    const conChi = e => e.partite.length === 1 ? ` · ${controChi(e.partite[0])}` : "";
+    scalataEl.innerHTML = `
+      <div class="panel" style="margin-bottom:16px;">
+        <h3 style="margin:0 0 6px; font-size:15px;">📈 La scalata</h3>
+        <div style="font-size:14px; margin-bottom:10px;" id="recordSaldo">
+          ${EVENTI_DIVISIONE.length === 0
+            ? "Nessuna promozione o retrocessione in archivio, per ora."
+            : `<strong>${promo}</strong> ${promo === 1 ? "promozione" : "promozioni"} e
+               <strong>${retro}</strong> ${retro === 1 ? "retrocessione" : "retrocessioni"}:
+               ${SALDO_DIVISIONI > 0 ? `<strong>${SALDO_DIVISIONI} ${SALDO_DIVISIONI === 1 ? "divisione" : "divisioni"} sopra</strong> quella di partenza`
+                 : SALDO_DIVISIONI < 0 ? `<strong>${-SALDO_DIVISIONI} sotto</strong> quella di partenza`
+                 : "alla stessa divisione di partenza"}.`}
+        </div>
+        ${EVENTI_DIVISIONE.length ? `<div style="display:flex; flex-direction:column; gap:4px; font-size:13px;">
+          ${EVENTI_DIVISIONE.map(e => `<div data-evento="${e.tipo}">
+            ${e.tipo === "promozione" ? "⬆️ <strong>Promozione</strong>" : "⬇️ <strong>Retrocessione</strong>"}
+            <span style="color:var(--muted);"> — ${quando(e)}${conChi(e)}</span></div>`).join("")}
+        </div>` : ""}
+        <div style="font-size:11.5px; color:var(--muted); margin-top:10px; line-height:1.5;">
+          EA dice quante promozioni e retrocessioni ci sono state, non in che divisione si gioca adesso:
+          per questo si conta la salita rispetto alla partenza.${primaDellArchivio
+            ? ` L'archivio è cominciato a stagione già avviata: gli eventi di prima non compaiono qui.` : ""}
+        </div>
+      </div>`;
+  }
+
+  function tabella(tipo, titolo){
+    const righe = RECORD.filter(r => r.tipo === tipo);
+    return `<div class="panel" style="margin-bottom:16px;">
+      <h3 style="margin:0 0 10px; font-size:15px;">${titolo}</h3>
+      <div class="table-wrap"><table class="responsive-table">
+        <thead><tr><th>Record</th><th>Valore</th>${tipo === "personale" ? "<th>Chi</th>" : ""}<th>Quando</th><th></th></tr></thead>
+        <tbody>${righe.map(r => {
+          if(r.vuoto) return `<tr data-record="${r.chiave}"><td data-label="Record">${r.eti}</td>
+            <td data-label="Valore" colspan="${tipo === "personale" ? 4 : 3}" style="color:var(--muted);">ancora nessuno</td></tr>`;
+          const n = ESITO_RECORD.get(r.chiave);
+          const segno = !n ? ""
+            : n.esito === "battuto" ? `<span class="record-nuovo">battuto nell'ultima serata</span>`
+            : `<span class="record-pari">eguagliato nell'ultima serata</span>`;
+          // Chi eguaglia: per la squadra quando, per i giocatori chi (mai il detentore stesso,
+          // che se ripete la prestazione la "ripete").
+          const altri = [...new Set(r.pari.filter(x => x.nome && x.nome !== r.primo.nome).map(x => x.nome))];
+          const ripetuto = r.pari.filter(x => x.nome && x.nome === r.primo.nome).length;
+          const pari = !r.pari.length ? ""
+            : r.tipo === "squadra" ? `<div style="font-size:11px; color:var(--muted);">eguagliato ${r.pari.map(x => x.quando).join(", ")}</div>`
+            : `<div style="font-size:11px; color:var(--muted);">${[
+                altri.length ? "eguagliato da " + altri.join(", ") : "",
+                ripetuto ? `ripetuto da lui ${ripetuto === 1 ? "un'altra volta" : "altre " + ripetuto + " volte"}` : ""
+              ].filter(Boolean).join(" · ")}</div>`;
+          const aperta = r.aperta && r.aperta !== r.primo && r.aperta.valore > 0
+            ? `<div style="font-size:11px; color:var(--muted);">in corso: ${r.aperta.valore}</div>`
+            : r.aperta && r.aperta === r.primo ? `<div style="font-size:11px; color:var(--muted);">ancora in corso</div>` : "";
+          return `<tr data-record="${r.chiave}">
+            <td data-label="Record">${r.eti}</td>
+            <td data-label="Valore"><strong>${valoreRecord(r, r.valore)}</strong>${r.unita}${aperta}</td>
+            ${tipo === "personale" ? `<td data-label="Chi"><span class="player-link" data-player="${r.primo.nome}">${r.primo.nome}</span>${pari}</td>` : ""}
+            <td data-label="Quando">${r.primo.quando}${r.primo.dettaglio ? `<div style="font-size:11px; color:var(--muted);">${r.primo.dettaglio}</div>` : ""}${tipo === "squadra" ? pari : ""}</td>
+            <td data-label="">${segno}</td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table></div>
+    </div>`;
+  }
+  squadraEl.innerHTML = tabella("squadra", "🛡️ Della squadra");
+  personaliEl.innerHTML = tabella("personale", "⭐ Dei giocatori");
+})();
+
+// ---- Il resoconto della serata, in cima alla home (28/10/2026) ----
+// Un messaggio a parole, non altri numeri: com'e' andata, chi e' stato il migliore, quali record
+// sono caduti, se si e' saliti o scesi di divisione. I dettagli restano nelle Novita' qui sotto.
+// Il migliore della serata: la media voto piu' alta fra chi ha giocato almeno meta' delle
+// partite (una partita sola non e' una serata); a parita', piu' gol e assist.
+(function renderResoconto(){
+  const el = document.getElementById("resocontoBody");
+  if(!el || !ULTIMA_SERATA) return;
+  const partite = (ULTIMA_SERATA.matchIds || []).map(id => PARTITA_PER_ID.get(id)).filter(Boolean);
+  if(!partite.length) return;
+  const v = partite.filter(m => m.win).length, p = partite.filter(m => m.loss).length;
+  const n = partite.length - v - p;
+  const gf = partite.reduce((t, m) => t + (m.goals_for || 0), 0);
+  const gs = partite.reduce((t, m) => t + (m.goals_against || 0), 0);
+  const per = new Map();
+  partite.forEach(m => (DATA.matchPlayers[m.match_id] || []).forEach(x => {
+    if(!per.has(x.player_name)) per.set(x.player_name, { nome: x.player_name, n: 0, voto: 0, gol: 0, assist: 0, mom: 0 });
+    const a = per.get(x.player_name);
+    a.n++; a.voto += x.rating || 0; a.gol += x.goals || 0; a.assist += x.assists || 0; a.mom += x.mom ? 1 : 0;
+  }));
+  const migliore = [...per.values()].filter(a => a.n >= Math.ceil(partite.length / 2))
+    .map(a => ({ ...a, media: a.voto / a.n }))
+    .sort((x, y) => y.media - x.media || (y.gol + y.assist) - (x.gol + x.assist))[0] || null;
+  const parti = (k, uno, tanti) => `${k} ${k === 1 ? uno : tanti}`;
+  const esito = [v ? parti(v, "vinta", "vinte") : null, n ? parti(n, "pareggiata", "pareggiate") : null,
+                 p ? parti(p, "persa", "perse") : null].filter(Boolean).join(", ");
+  const righe = [];
+  righe.push(`<div data-riga="esito">⚽ <strong>${parti(partite.length, "partita", "partite")}</strong>: ${esito} · ${gf} gol fatti, ${gs} subiti.</div>`);
+  if(migliore){
+    const cosa = [migliore.gol ? parti(migliore.gol, "gol", "gol") : null,
+                  migliore.assist ? parti(migliore.assist, "assist", "assist") : null,
+                  migliore.mom ? `${migliore.mom === 1 ? "una volta" : migliore.mom + " volte"} migliore in campo` : null].filter(Boolean);
+    righe.push(`<div data-riga="migliore">⭐ Il migliore: <strong><span class="player-link" data-player="${migliore.nome}">${migliore.nome}</span></strong>
+      — media ${migliore.media.toFixed(2)} in ${parti(migliore.n, "partita", "partite")}${cosa.length ? ", " + cosa.join(", ") : ""}.</div>`);
+  }
+  NOVITA_RECORD.forEach(x => {
+    const r = x.record, chi = r.tipo === "personale";
+    if(x.esito === "battuto"){
+      const prima = x.primaValore ? ` (prima ${valoreRecord(r, x.primaValore)}${chi && x.primaChi ? ", di " + x.primaChi.nome : ""})` : "";
+      righe.push(`<div data-riga="record" data-record="${r.chiave}">🏆 Record battuto${chi ? ` da <strong>${r.primo.nome}</strong>` : ""}:
+        ${r.eti.toLowerCase()}, <strong>${valoreRecord(r, r.valore)}</strong>${r.unita}${prima}.</div>`);
+    } else {
+      const chi2 = [...new Set(x.da.map(d => d.nome).filter(Boolean))].filter(nm => nm !== r.primo.nome);
+      righe.push(`<div data-riga="record" data-record="${r.chiave}">🤝 Record eguagliato${chi2.length ? ` da <strong>${chi2.join(", ")}</strong>` : ""}:
+        ${r.eti.toLowerCase()}, <strong>${valoreRecord(r, r.valore)}</strong>${r.unita}.</div>`);
+    }
+  });
+  EVENTI_DIVISIONE.filter(e => e.serata && e.serata.chiave === ULTIMA_SERATA.chiave).forEach(e => {
+    righe.push(e.tipo === "promozione"
+      ? `<div data-riga="divisione">⬆️ <strong>Promozione!</strong> Il club sale di divisione${e.partite.length === 1 ? ` con il ${controChi(e.partite[0])}` : ""}.</div>`
+      : `<div data-riga="divisione">⬇️ <strong>Retrocessione</strong>: il club scende di una divisione${e.partite.length === 1 ? ` con il ${controChi(e.partite[0])}` : ""}.</div>`);
+  });
+  // Le serie di squadra ancora aperte, quando valgono la pena di essere dette.
+  const aperta = k => { const r = RECORD.find(x => x.chiave === k); return r && !r.vuoto && r.aperta ? { r, n: r.aperta.valore } : null; };
+  const sv = aperta("serieVittorie"), si = aperta("imbattibilita");
+  if(sv && sv.n >= 2) righe.push(`<div data-riga="serie">🔥 Serie aperta: <strong>${sv.n} vittorie di fila</strong> (record ${sv.r.valore}).</div>`);
+  else if(si && si.n >= 3) righe.push(`<div data-riga="serie">🧱 Serie aperta: <strong>${si.n} partite senza perdere</strong> (record ${si.r.valore}).</div>`);
+
+  el.innerHTML = `
+    <div class="panel resoconto">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">🌙 L'ultima serata · ${ULTIMA_SERATA.giorno}, ${ULTIMA_SERATA.inizio}–${ULTIMA_SERATA.fine}</div>
+      <div style="display:flex; flex-direction:column; gap:6px; font-size:14px; line-height:1.5;">${righe.join("")}</div>
+      <div style="margin-top:10px; font-size:12px;"><span class="vai-a" data-vai="record">Tutti i record →</span></div>
     </div>`;
 })();
 
@@ -4930,6 +5364,9 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
           <strong style="font-size:16px;">${s.giorno}</strong>
           <span style="font-size:12px; color:var(--muted);">${quando(s)}</span>
           ${badge}
+          ${EVENTI_DIVISIONE.filter(e => e.serata && e.serata.chiave === s.chiave).map(e => e.tipo === "promozione"
+            ? `<span class="record-nuovo" data-evento="promozione">⬆️ promozione</span>`
+            : `<span class="record-pari" data-evento="retrocessione">⬇️ retrocessione</span>`).join(" ")}
         </div>
         ${s.inizioIncerto ? `<div style="font-size:12px; color:var(--muted); margin:-4px 0 12px; line-height:1.5;">
           È la prima serata dell'archivio, e quasi certamente non è intera: le partite giocate prima
@@ -5048,7 +5485,12 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
       // sola: badge quadrato dorato invece che cerchietto rosso, non solo il numero.
       const multi = c.sessioni.length > 1 ? " multi" : "";
       const attiva = c.giorno === scelto ? " active" : "";
-      return `<span class="calDay haPartite${multi}${attiva}" data-g="${c.giorno}">${c.numGiorno}` +
+      // Una promozione o una retrocessione in una delle sessioni del giorno: una freccia sul
+      // numero, cosi' i momenti della scalata si trovano nel calendario (28/10/2026).
+      const ev = EVENTI_DIVISIONE.filter(e => e.serata && c.sessioni.some(s => s.chiave === e.serata.chiave));
+      const freccia = ev.length
+        ? `<span class="calEvento" data-evento="${ev[0].tipo}" title="${ev.map(e => e.tipo).join(", ")}">${ev[0].tipo === "promozione" ? "⬆" : "⬇"}</span>` : "";
+      return `<span class="calDay haPartite${multi}${attiva}" data-g="${c.giorno}">${freccia}${c.numGiorno}` +
         `<span class="badge">${c.partite}</span></span>`;
     }).join("");
 
@@ -5377,8 +5819,8 @@ document.addEventListener("keydown", (e) => {
 // le sezioni di riepilogo generale (overview, forma, andamento); tutte le
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
-  overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
-  giocatori: "giocatori",
+  resoconto: "home", overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
+  giocatori: "giocatori", record: "record",
   forza: "forza", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
   osservatore: "osservatore", serate: "serate", partite: "partite",
@@ -5394,6 +5836,7 @@ const PAGINE_TRASLOCATE = {
 const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
   { key: "giocatori", icon: "🧑‍🤝‍🧑", label: "Giocatori" },
+  { key: "record", icon: "🏆", label: "Record" },
   { key: "forza", icon: "💪", label: "Indice di Forza" },
   { key: "formazione", icon: "⚽", label: "Formazione" },
   { key: "riepilogo", icon: "🎁", label: "Riepilogo" },

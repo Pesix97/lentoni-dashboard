@@ -40,6 +40,10 @@
   </div>
 </div>
 
+<section id="resoconto">
+  <div id="resocontoBody"></div>
+</section>
+
 <section id="overview">
   <div class="grid-cards" id="cards"></div>
 </section>
@@ -151,6 +155,29 @@
     <div id="h2hVoci"></div>
     <div id="h2hNote" style="margin-top:12px;"></div>
   </div>
+</section>
+
+<section id="record">
+  <h2>Record <span class="h2-sub">— della squadra e dei giocatori, in questo titolo</span></h2>
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Vale il valore più alto. <strong style="color:var(--text);">A parità il record è di chi ci è
+        arrivato prima</strong>: chi lo raggiunge dopo lo eguaglia, e compare sotto.
+        <br><br>
+        Le serie (vittorie, partite senza perdere, gol di fila) si contano sulle partite in ordine.
+        «Partite di fila a segno» conta le partite giocate da quel giocatore: una sera di assenza non
+        interrompe la serie, una partita senza gol sì. Una serie ancora aperta si vede accanto al record.
+        <br><br>
+        Le partite in cui qualcuno si è disconnesso subito (0 secondi in campo) non contano, come nel
+        resto della dashboard.
+      </div>
+    </div>
+  </details>
+  <div id="recordScalata"></div>
+  <div id="recordSquadra"></div>
+  <div id="recordPersonali"></div>
 </section>
 
 <section id="forza">

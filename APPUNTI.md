@@ -1608,3 +1608,15 @@ due disconnessioni (0 secondi, voto 3,0) si tolgono anche dalla carriera, come p
 **Da valutare**: un avviso automatico quando un nome di `ex_giocatori` torna a comparire
 nelle partite del titolo attivo. Oggi nessuno se ne accorge finché non lo nota qualcuno.
 
+## Record, scalata e resoconto della serata (28/10/2026)
+
+Chiesto da Peppe: qualcosa che renda tutto più appassionante. Proposte misurate prima (le
+rivalità non reggono: 4 avversari ritrovati su 163; le coppie affiatate sono probabilmente
+rumore), poi fatte le tre scelte da lui: sezione **Record** (squadra e personali), **scalata**
+con promozioni e retrocessioni, **resoconto della serata in home** — niente bot Telegram.
+Dettagli e regole nel README, «Record e scalata». Nuovo `test_record.js`, in CI.
+
+**Da decidere**: l'intestazione della pagina scrive «Divisione 3», ma quel numero è il
+`best_division` di EA, un dato dei playoff (verificato il 28/10/2026), non la divisione in cui
+si gioca. Toglierlo o sostituirlo con «5 divisioni sopra la partenza»: chiedere a Peppe.
+

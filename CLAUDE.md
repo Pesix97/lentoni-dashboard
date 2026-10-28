@@ -97,6 +97,7 @@ node test_apertura.js index.html     # apre davvero la pagina: serve `npm instal
 node test_tecnica.js index.html      # il riquadro Tecnica somma al numero della colonna
 node test_sicurezza.js index.html    # un nome che arriva da fuori non diventa codice
 node test_indice.js index.html       # indice e testa a testa rifatti da zero, dai dati grezzi
+node test_record.js index.html       # record, scalata e resoconto della serata rifatti da zero
 ```
 
 **`test_indice.js` è l'unico controllo che non parte dalla pagina.** Gli altri verificano
