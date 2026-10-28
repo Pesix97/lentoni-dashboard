@@ -38,6 +38,10 @@
     "goalkeeper": "PORTIERI"
   },
   "giocatori": {
+    "VRT_ernestino": {
+      "gruppo": "CENTROCAMPISTI",
+      "etichetta_ea": "midfielder"
+    },
     "ilmille": {
       "gruppo": "CENTROCAMPISTI",
       "etichetta_ea": "midfielder"
@@ -114,7 +118,6 @@
   "ex_giocatori": [
     "VRT_Lo_Ziio_87",
     "CinghioKart7",
-    "VRT_ernestino",
     "Upipp",
     "ASRT_Filiphil23"
   ],

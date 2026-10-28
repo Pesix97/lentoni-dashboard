@@ -410,7 +410,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. Con `--completa` misura tutte le voci, anche i pezzi della tecnica, con la divisione pari/dispari e un intervallo al 90% (ultimi risultati in `APPUNTI.md`, punto 5). |
 | `test_pipeline.py` | 113 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
-| `test_ruoli.js` | 119 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
+| `test_ruoli.js` | 120 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
 | `test_indice.js` | 22 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; e i passaggi tentati a partita, in tabella e in ogni scheda. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
@@ -655,6 +655,13 @@ il primo aggiornamento le riscriverebbe.
 
 Non è una cancellazione: lo storico resta, e togliendo un nome dalla lista il giocatore
 ricompare com'era.
+
+**La lista non si aggiorna da sola, nemmeno quando qualcuno torna.** VRT_ernestino era stato
+segnato come ex giocatore il 21/08/2026, durante FC 26; in FC 27 è tornato a giocare dal
+02/10/2026 ed è rimasto nascosto per quasi un mese — 48 partite, 18 delle ultime 30, sesto
+nell'Indice di Forza una volta rimesso in rosa. Se n'è accorto Peppe guardando la sezione
+Giocatori il 28/10/2026. Gli altri quattro ex giocatori della lista sono davvero usciti:
+nessuna partita in FC 27, non più fra i membri.
 
 ---
 

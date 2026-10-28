@@ -1597,3 +1597,14 @@ legame con la vittoria, e premia gli attaccanti più dei centrocampisti) e decis
 **solo un dato da guardare, non conta nell'indice**, e sui passaggi **tentati**. Colonna da
 aggiungere nella tabella Giocatori e casella nella scheda. Dettagli nel README.
 
+## VRT_ernestino rimesso in rosa (28/10/2026)
+
+Segnalato da Peppe: mancava fra i giocatori. Era in `ex_giocatori` dal 21/08/2026 (FC 26),
+ma in FC 27 gioca dal 02/10/2026: 48 partite, ancora membro del club secondo EA. Tolto dalla
+lista e assegnato ai **Centrocampisti** (scelta di Peppe; EA lo segna «midfielder» in 46
+partite su 48). Entra sesto nell'Indice di Forza. In rosa risultano 46 partite e non 48: le
+due disconnessioni (0 secondi, voto 3,0) si tolgono anche dalla carriera, come per tutti.
+
+**Da valutare**: un avviso automatico quando un nome di `ex_giocatori` torna a comparire
+nelle partite del titolo attivo. Oggi nessuno se ne accorge finché non lo nota qualcuno.
+
