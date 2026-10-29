@@ -157,6 +157,55 @@
   </div>
 </section>
 
+<section id="carriera">
+  <h2>Carriera <span class="h2-sub">— nel club: tutti i titoli insieme, o uno alla volta</span></h2>
+  <details class="spiega">
+    <summary>Come funziona</summary>
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="font-size:12px; color:var(--muted); line-height:1.5;">
+        Per ognuno di chi è nel club oggi, le cifre che EA tiene per il club di ogni titolo.
+        <strong style="color:var(--text);">Totale</strong> le mette insieme: presenze, gol, assist e
+        premi si sommano; la media voto e la % vittorie si pesano sulle partite; le percentuali di
+        passaggi, contrasti e tiro si rifanno dai riusciti e dai tentati. Scegliendo un titolo si vede
+        solo quello.
+        <br><br>
+        Le partite in cui qualcuno si è disconnesso subito (0 secondi in campo) non contano, come nel
+        resto della dashboard.
+      </div>
+    </div>
+  </details>
+  <div class="panel">
+    <input type="text" class="filter" id="carrieraFilter" placeholder="Filtra giocatore...">
+    <div class="filter-bar" id="carrieraTitoli">
+      <span class="pos-badge">Titolo:</span>
+    </div>
+    <div class="filter-bar" id="carrieraQuickFilters">
+      <span class="pos-badge">Ordina per:</span>
+      <span class="filter-btn" data-key="games_played">Partite giocate</span>
+      <span class="filter-btn" data-key="goals">Gol fatti</span>
+      <span class="filter-btn" data-key="assists">Assist fatti</span>
+      <span class="filter-btn" data-key="rating_ave">Media migliore</span>
+    </div>
+    <div class="filter-bar" id="carrieraColonne">
+      <span class="pos-badge">Aggiungi colonne:</span>
+    </div>
+    <div class="table-wrap">
+      <table id="carrieraTable" class="responsive-table">
+        <thead><tr id="carrieraHead">
+          <th class="col-rango">#</th>
+          <th data-key="player_name">Giocatore</th>
+          <th data-key="gruppo">Ruolo</th>
+          <th data-key="games_played">PG</th>
+          <th data-key="goals">Gol</th>
+          <th data-key="assists">Assist</th>
+          <th data-key="rating_ave">Media</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 <section id="record">
   <h2>Record <span class="h2-sub">— della squadra e dei giocatori, in questo titolo</span></h2>
   <details class="spiega">

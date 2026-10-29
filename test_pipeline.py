@@ -1407,6 +1407,81 @@ class TestPassaggioDiTitolo(BaseConArchivio):
         self.assertNotIn("onchange=", html_nuovo, "un onchange nell'HTML viene bloccato dalla CSP")
 
 
+class TestCarriera(BaseConArchivio):
+    """La carriera di ognuno, titolo per titolo (29/10/2026).
+
+    EA non rispetta il fatto che una carriera puo' solo crescere: ogni tanto restituisce
+    valori piu' bassi del giro prima, e il 18/09/2026, all'uscita di FC 27, ha azzerato a
+    una partita la carriera di FC 26 di chi era passato al club nuovo. La rosa usava
+    l'ultima lettura: Pesix_97 risultava con 1 partita in FC 26 invece di 491, e i sei
+    giocatori principali erano spariti dalla pagina d'archivio. La regola giusta e' la
+    lettura con piu' partite.
+    """
+
+    def _gd(self):
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+        return gd
+
+    def test_la_rosa_usa_la_lettura_con_piu_partite(self):
+        # Riferimento indipendente: le letture grezze, e per ognuno quella con piu' partite.
+        con = sqlite3.connect(self.db)
+        letture = con.execute("SELECT player_name, games_played, goals, assists, fetched_at "
+                              "FROM member_stats_history WHERE club_id=?", (CLUB,)).fetchall()
+        attese = {}
+        for nome, pg, g, a, quando in letture:
+            if nome not in attese or (pg, quando) > (attese[nome][0], attese[nome][3]):
+                attese[nome] = (pg, g, a, quando)
+        con.close()
+        # Senza esclusioni e senza voto sentinella la rosa non viene corretta: si confronta
+        # la lettura scelta, non le correzioni (che hanno i loro test).
+        dati = self._gd().build_data(str(self.db), club_id=CLUB, voto_sentinella=None)
+        diversi = [(r["player_name"], (r["games_played"], r["goals"], r["assists"]),
+                    attese[r["player_name"]][:3])
+                   for r in dati["roster"]
+                   if (r["games_played"], r["goals"], r["assists"]) != attese[r["player_name"]][:3]]
+        self.assertEqual(diversi, [])
+        # Il caso che l'ha fatto nascere: in FC 26 Pesix_97 non ha una partita sola.
+        pesix = next((r for r in dati["roster"] if r["player_name"] == "Pesix_97"), None)
+        if pesix:
+            self.assertGreater(pesix["games_played"], 100)
+
+    def test_una_lettura_azzerata_non_cancella_la_carriera(self):
+        """Una lettura nuova e piu' bassa (come quella del 18/09/2026) non vince."""
+        con = sqlite3.connect(self.db)
+        nome, pg = con.execute(
+            "SELECT player_name, MAX(games_played) FROM member_stats_history WHERE club_id=? "
+            "GROUP BY player_name ORDER BY 2 DESC LIMIT 1", (CLUB,)).fetchone()
+        con.execute("INSERT INTO member_stats_history (club_id, fetched_at, player_name, "
+                    "games_played, goals, assists, rating_ave, pro_name) "
+                    "VALUES (?, '2099-01-01T00:00:00+00:00', ?, 1, 0, 0, 5.0, 'x')", (CLUB, nome))
+        con.commit(); con.close()
+        dati = self._gd().build_data(str(self.db), club_id=CLUB, voto_sentinella=None)
+        r = next(r for r in dati["roster"] if r["player_name"] == nome)
+        self.assertEqual(r["games_played"], pg, "l'ultima lettura azzerata ha vinto sulla carriera vera")
+
+    def test_la_carriera_mette_insieme_i_titoli_di_chi_e_nel_club(self):
+        gd = self._gd()
+        titoli = gd.elenco_titoli({"club_id": CLUB_ATTIVO, "titolo": "FC 27",
+                                   "storico": [{"club_id": CLUB, "titolo": "FC 26"}]})
+        dati = [gd.build_data(str(self.db), club_id=t["club_id"]) for t in titoli]
+        c = gd.carriera_nel_club(titoli, dati)
+        self.assertEqual(c["titoli"], ["FC 26", "FC 27"], "i titoli vanno in ordine di tempo")
+        self.assertEqual(sorted(c["giocatori"]), sorted(r["player_name"] for r in dati[0]["roster"]),
+                         "ci sono solo, e tutti, quelli della rosa del titolo attivo")
+        per_titolo = {"FC 27": {r["player_name"]: r for r in dati[0]["roster"]},
+                      "FC 26": {r["player_name"]: r for r in dati[1]["roster"]}}
+        sbagliati = []
+        for nome, per in c["giocatori"].items():
+            for t, rosa in per_titolo.items():
+                r = rosa.get(nome)
+                atteso = r["games_played"] if r and (r["games_played"] or 0) > 0 else None
+                visto = per.get(t, {}).get("games_played")
+                if atteso != visto:
+                    sbagliati.append((nome, t, visto, atteso))
+        self.assertEqual(sbagliati, [])
+
+
 class TestPotatura(unittest.TestCase):
     """La potatura del grezzo, aggiunta il 28/08/2026.
 

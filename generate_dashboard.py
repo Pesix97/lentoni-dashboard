@@ -285,27 +285,35 @@ def build_data(db_path, club_id=None, esclusi=None, righe_escluse=None,
     )
     latest_club = history[-1] if history else {}
 
-    # ultimo snapshot per giocatore (per fetched_at piu' recente)
+    # La carriera di ogni giocatore: la lettura con PIU' PARTITE, non l'ultima.
+    #
+    # Trovato il 29/10/2026 preparando la sezione Carriera. Una carriera puo' solo crescere,
+    # ma EA non lo rispetta: in tutti e due i titoli restituisce ogni tanto valori piu' bassi
+    # del giro prima (da 4 partite a 1, da 355 a 354) che poi tornano normali; e il 18/09/2026,
+    # all'uscita di FC 27, ha AZZERATO a una partita la carriera di FC 26 di chi era passato
+    # al club nuovo. Pesix_97 aveva 491 partite, l'ultima lettura ne dice 1: con la soglia di
+    # 30 partite i sei giocatori principali erano spariti dalla rosa della pagina di FC 26.
+    # La lettura con piu' partite e' quella vera; a parita' vale la piu' recente, cosi' sul
+    # titolo attivo resta l'ultima com'era prima.
     roster = fetch_all(
         cur,
-        """SELECT m.player_name, m.pro_name, m.favorite_position, m.pro_pos,
-                  m.pro_height, m.pro_nationality, m.games_played, m.win_rate,
-                  m.goals, m.assists, m.rating_ave, m.pass_success_rate,
-                  m.tackle_success_rate, m.shot_success_rate, m.passes_made,
-                  m.tackles_made, m.man_of_the_match, m.red_cards,
-                  m.clean_sheets_def, m.clean_sheets_gk, m.pro_overall,
-                  m.prev_goals_trend
-           FROM member_stats_history m
-           JOIN (
-             SELECT player_name, MAX(fetched_at) AS max_fetched
-             FROM member_stats_history
-             WHERE club_id = ?
-             GROUP BY player_name
-           ) latest
-           ON m.player_name = latest.player_name AND m.fetched_at = latest.max_fetched
-           WHERE m.club_id = ? AND (m.games_played > 0 OR m.pro_name != '')
-           ORDER BY m.goals DESC""",
-        (club_id, club_id),
+        """SELECT player_name, pro_name, favorite_position, pro_pos,
+                  pro_height, pro_nationality, games_played, win_rate,
+                  goals, assists, rating_ave, pass_success_rate,
+                  tackle_success_rate, shot_success_rate, passes_made,
+                  tackles_made, man_of_the_match, red_cards,
+                  clean_sheets_def, clean_sheets_gk, pro_overall,
+                  prev_goals_trend
+           FROM (
+             SELECT m.*, ROW_NUMBER() OVER (
+                      PARTITION BY m.player_name
+                      ORDER BY m.games_played DESC, m.fetched_at DESC) AS posto
+             FROM member_stats_history m
+             WHERE m.club_id = ?
+           )
+           WHERE posto = 1 AND (games_played > 0 OR pro_name != '')
+           ORDER BY goals DESC""",
+        (club_id,),
     )
     roster = [r for r in roster if r["player_name"] not in esclusi]
     for r in roster:
@@ -866,7 +874,35 @@ def carica_pagellone_fc26():
         return None
 
 
-def genera_pagina(club, titoli, corrente_file, db_path, out_path):
+# ---- La carriera nel club, titolo per titolo (29/10/2026) ----
+# Chiesta da Peppe: per ognuno di chi e' nel club oggi, quanto ha fatto in ogni titolo e il
+# totale. Le cifre sono quelle della rosa di ciascun titolo, gia' pulite: la lettura con piu'
+# partite (vedi sopra, l'azzeramento del 18/09/2026) e senza le partite scartate. Il totale
+# lo fa la pagina, cosi' come le medie: una media voto o una percentuale non si sommano.
+CAMPI_CARRIERA = ("games_played", "goals", "assists", "rating_ave", "man_of_the_match",
+                  "red_cards", "win_rate", "passes_made", "pass_success_rate",
+                  "tackles_made", "tackle_success_rate", "shot_success_rate",
+                  "clean_sheets_def")
+
+
+def carriera_nel_club(titoli, dati_per_titolo):
+    """`titoli` come li da' elenco_titoli() (l'attivo per primo, poi dal piu' recente);
+    `dati_per_titolo` le rispettive build_data(). Restituisce i titoli in ordine di tempo e,
+    per chi e' nella rosa del titolo attivo, le cifre di ogni titolo in cui ha giocato."""
+    ordine = list(range(len(titoli) - 1, 0, -1)) + [0]   # dal piu' vecchio all'attivo
+    membri = [r["player_name"] for r in dati_per_titolo[0]["roster"]]
+    giocatori = {}
+    for nome in membri:
+        per = {}
+        for i in ordine:
+            r = next((x for x in dati_per_titolo[i]["roster"] if x["player_name"] == nome), None)
+            if r and (r.get("games_played") or 0) > 0:
+                per[titoli[i]["titolo"]] = {k: r.get(k) for k in CAMPI_CARRIERA}
+        giocatori[nome] = per
+    return {"titoli": [titoli[i]["titolo"] for i in ordine], "giocatori": giocatori}
+
+
+def genera_pagina(club, titoli, corrente_file, db_path, out_path, data=None, carriera=None):
     """Costruisce la pagina di UN titolo (quello in `club`) e la scrive in `out_path`.
 
     Stessa funzione per il titolo attivo e per ognuno di quelli archiviati: e' il motivo
@@ -875,10 +911,14 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path):
     produce e' letteralmente lo stesso.
     """
     ruoli = load_role_groups()
-    data = build_data(db_path, club_id=club["club_id"],
-                      esclusi=ruoli.get("exPlayers"),
-                      righe_escluse=ruoli.get("excludedRows"),
-                      voto_sentinella=ruoli.get("sentinelRating"))
+    if data is None:
+        data = build_data(db_path, club_id=club["club_id"],
+                          esclusi=ruoli.get("exPlayers"),
+                          righe_escluse=ruoli.get("excludedRows"),
+                          voto_sentinella=ruoli.get("sentinelRating"))
+    # La stessa carriera su ogni pagina: la scheda di un giocatore la mostra anche
+    # dall'archivio di un titolo vecchio.
+    data["carriera"] = carriera or {"titoli": [], "giocatori": {}}
     # Le liste di esclusione hanno gia' fatto il loro lavoro qui sopra: non vengono
     # pubblicate nella pagina, cosi' chi ha lasciato il club non compare da nessuna
     # parte nel file, nemmeno tra i dati grezzi, e le righe non valide sono gia' sparite.
@@ -964,16 +1004,27 @@ def main():
     club = carica_club(club_json_path=args.club_json)
     titoli = elenco_titoli(club)
 
+    # I dati di ogni titolo si costruiscono una volta sola: servono sia alla sua pagina sia
+    # alla carriera, che li mette insieme e finisce su tutte le pagine.
+    ruoli = load_role_groups()
+    dati = [build_data(args.db, club_id=t["club_id"],
+                       esclusi=ruoli.get("exPlayers"),
+                       righe_escluse=ruoli.get("excludedRows"),
+                       voto_sentinella=ruoli.get("sentinelRating")) for t in titoli]
+    carriera = carriera_nel_club(titoli, dati)
+
     # Il titolo attivo va sempre nel file chiesto con --out (di norma index.html): e'
     # l'unico comportamento che il resto del progetto conosce e su cui gira il pubblicato.
-    genera_pagina(titoli[0], titoli, titoli[0]["file"], args.db, args.out)
+    genera_pagina(titoli[0], titoli, titoli[0]["file"], args.db, args.out,
+                  data=dati[0], carriera=carriera)
 
     # Ogni titolo archiviato accanto, nella stessa cartella di --out. Se non ce n'e'
     # ancora nessuno (caso di oggi, prima del 18/09/2026) questo giro non fa nulla:
     # elenco_titoli() restituisce solo l'attivo e il ciclo e' vuoto.
     cartella = Path(args.out).resolve().parent
-    for t in titoli[1:]:
-        genera_pagina(t, titoli, t["file"], args.db, cartella / t["file"])
+    for i, t in enumerate(titoli[1:], start=1):
+        genera_pagina(t, titoli, t["file"], args.db, cartella / t["file"],
+                      data=dati[i], carriera=carriera)
 
 
 if __name__ == "__main__":

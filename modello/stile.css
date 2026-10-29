@@ -643,3 +643,8 @@
 .calDay{position:relative;}
 .calEvento{position:absolute; top:1px; right:3px; font-size:10px; font-weight:800; color:var(--gold); line-height:1;}
 
+/* Carriera (29/10/2026) */
+.carriera-totale td{font-weight:700; border-top:1px solid var(--border, rgba(255,255,255,.15));}
+.carriera-titolo td{font-size:12px; color:var(--muted);}
+
+#carriera .table-wrap{max-height:none;}

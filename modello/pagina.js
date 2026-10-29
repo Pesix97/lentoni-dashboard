@@ -1379,6 +1379,63 @@ const EVENTI_DIVISIONE = (function(){
 })();
 const SALDO_DIVISIONI = EVENTI_DIVISIONE.reduce((t, e) => t + (e.tipo === "promozione" ? 1 : -1), 0);
 
+// ---- La carriera nel club, titolo per titolo e in totale (29/10/2026) ----
+// Le cifre di ogni titolo arrivano dal generatore (DATA.carriera), gia' pulite. Qui si fa il
+// totale: i conteggi si sommano, ma una media voto o una percentuale no. La media si pesa
+// sulle partite; le percentuali si rifanno dai riusciti e dai tentati, che EA non da' e si
+// stimano da riusciti e percentuale come per l'Indice di Forza.
+const TITOLI_CARRIERA = (DATA.carriera && DATA.carriera.titoli) || [];
+const CARRIERA = (DATA.carriera && DATA.carriera.giocatori) || {};
+function totaleCarriera(perTitolo){
+  const righe = Object.values(perTitolo || {});
+  if(!righe.length) return null;
+  const somma = k => righe.reduce((t, r) => t + (r[k] || 0), 0);
+  const pg = somma("games_played");
+  const stima = (fatti, perc) => (perc > 0 ? (fatti || 0) / (perc / 100) : 0);
+  const pesata = k => (pg ? righe.reduce((t, r) => t + (r[k] || 0) * (r.games_played || 0), 0) / pg : 0);
+  const tentPass = righe.reduce((t, r) => t + stima(r.passes_made, r.pass_success_rate), 0);
+  const tentContr = righe.reduce((t, r) => t + stima(r.tackles_made, r.tackle_success_rate), 0);
+  const tiri = righe.reduce((t, r) => t + stima(r.goals, r.shot_success_rate), 0);
+  return {
+    games_played: pg, goals: somma("goals"), assists: somma("assists"),
+    man_of_the_match: somma("man_of_the_match"), red_cards: somma("red_cards"),
+    clean_sheets_def: somma("clean_sheets_def"),
+    rating_ave: pesata("rating_ave"), win_rate: pesata("win_rate"),
+    passes_made: somma("passes_made"), tackles_made: somma("tackles_made"),
+    pass_success_rate: tentPass ? somma("passes_made") / tentPass * 100 : 0,
+    tackle_success_rate: tentContr ? somma("tackles_made") / tentContr * 100 : 0,
+    shot_success_rate: tiri ? somma("goals") / tiri * 100 : 0,
+  };
+}
+
+// Il nome si clicca solo se su QUESTA pagina la scheda si puo' aprire: nell'archivio di FC 26
+// chi ha giocato solo FC 27 non ha ne' rosa ne' partite, e un nome cliccabile che non apre
+// niente e' il difetto gia' visto il 25/08/2026 (README, "La scheda si apre anche per chi non
+// e' ancora in rosa").
+function schedaApribile(nome){
+  return (DATA.roster || []).some(r => r.player_name === nome) ||
+    Object.values(DATA.matchPlayers || {}).some(righe => (righe || []).some(p => p.player_name === nome));
+}
+function righeCarriera(nome, conNome){
+  const per = CARRIERA[nome] || {};
+  const tot = totaleCarriera(per);
+  if(!tot) return "";
+  const cella = (r, eti, cls, dataNome) => `<tr class="${cls}" data-carriera="${dataNome}|${eti}">
+      ${conNome ? `<td data-label="Giocatore">${cls !== "carriera-totale" ? ""
+          : schedaApribile(nome) ? `<span class="player-link" data-player="${nome}">${nome}</span>`
+          : `<span title="Non ha giocato in questo titolo: la sua scheda è nella pagina del titolo in cui ha giocato">${nome}</span>`}</td>` : ""}
+      <td data-label="Titolo">${eti}</td>
+      <td data-label="PG">${r.games_played}</td>
+      <td data-label="Gol">${r.goals}</td>
+      <td data-label="Assist">${r.assists}</td>
+      <td data-label="G+A/partita">${r.games_played ? ((r.goals + r.assists) / r.games_played).toFixed(2) : "—"}</td>
+      <td data-label="Media">${(r.rating_ave || 0).toFixed(2)}</td>
+      <td data-label="MOTM">${r.man_of_the_match}</td>
+      <td data-label="% vittorie">${Math.round(r.win_rate || 0)}%</td>
+    </tr>`;
+  return cella(tot, "Totale", "carriera-totale", nome) +
+    TITOLI_CARRIERA.filter(t => per[t]).map(t => cella(per[t], t, "carriera-titolo", nome)).join("");
+}
 // ---- Cards ----
 (function renderCards(){
   const l = DATA.latest || {};
@@ -1788,6 +1845,102 @@ document.querySelectorAll('#rosterQuickFilters .filter-btn').forEach(btn => {
 });
 renderRoster();
 
+// ---- La sezione Carriera (29/10/2026) ----
+// Una tabella sola, che si comporta ESATTAMENTE come quella dei Giocatori (chiesto da Peppe il
+// 29/10/2026): filtro per nome, "Ordina per", intestazioni cliccabili (il secondo clic inverte),
+// colonne da aggiungere. In piu' il titolo: il Totale di tutti i titoli (predefinito) o uno solo.
+// I titoli vengono da DATA.carriera, cioe' da club.json: quando arriva FC 28 compare da solo.
+let carrieraTitolo = "Totale";
+const carrieraSort = { key: "goals", dir: -1 };
+const carrieraColonne = new Set();
+// Le stesse colonne aggiungibili di Giocatori. I passaggi tentati a partita qui si stimano dai
+// soli numeri di carriera: tentativiDiCarriera() guarda l'archivio di QUESTA pagina, che e' di
+// un titolo solo.
+const COLONNE_CARRIERA = COLONNE_EXTRA.map(c => c.key !== "pass_attempts_pg" ? c : { ...c, def: { ...c.def,
+  compute: r => (r.games_played && r.pass_success_rate > 0 ? r.passes_made / (r.pass_success_rate / 100) / r.games_played : 0) } });
+function rigaCarriera(nome){
+  const per = CARRIERA[nome] || {};
+  const v = carrieraTitolo === "Totale" ? totaleCarriera(per) : per[carrieraTitolo];
+  // Il ruolo come in Giocatori: quello di roles.json o, per chi non e' assegnato, quello
+  // dedotto da EA sulla rosa di questa pagina.
+  const inRosa = (DATA.roster || []).find(r => r.player_name === nome);
+  return v ? { ...v, player_name: nome, gruppo: (inRosa && inRosa.gruppo) || gruppoGiocatore(nome, null) } : null;
+}
+function renderCarrieraTabella(){
+  const tbody = document.querySelector("#carrieraTable tbody");
+  if(!tbody) return;
+  const filtro = (document.getElementById("carrieraFilter").value || "").toLowerCase();
+  const extra = COLONNE_CARRIERA.filter(c => carrieraColonne.has(c.key));
+  const valore = (r, key) => { const c = COLONNE_CARRIERA.find(x => x.key === key); return c ? statValue(c.def, r) : r[key]; };
+  const righe = Object.keys(CARRIERA).map(rigaCarriera).filter(Boolean)
+    .filter(r => r.player_name.toLowerCase().includes(filtro));
+  righe.sort((a, b) => {
+    const av = valore(a, carrieraSort.key), bv = valore(b, carrieraSort.key);
+    if(typeof av === "string" || typeof bv === "string") return String(av || "").localeCompare(String(bv || "")) * carrieraSort.dir;
+    return ((av || 0) - (bv || 0)) * carrieraSort.dir;
+  });
+  const testa = document.getElementById("carrieraHead");
+  const fisse = [...testa.querySelectorAll("th")].filter(th => !th.dataset.extra);
+  testa.innerHTML = fisse.map(th => th.outerHTML).join("") +
+    extra.map(c => `<th data-key="${c.key}" data-extra="1">${c.icon} ${c.label}</th>`).join("");
+  testa.querySelectorAll("th").forEach(th => {
+    th.classList.toggle("ordinata", th.dataset.key === carrieraSort.key);
+    if(th.dataset.key === carrieraSort.key) th.dataset.verso = carrieraSort.dir === -1 ? "giu" : "su";
+    else delete th.dataset.verso;
+  });
+  tbody.innerHTML = righe.length ? righe.map((r, i) => `
+    <tr data-carriera="${r.player_name}">
+      <td data-label="#" class="col-rango">${i + 1}</td>
+      <td data-label="Giocatore">${schedaApribile(r.player_name)
+        ? `<span class="player-link" data-player="${r.player_name}">${r.player_name}</span>`
+        : `<span title="Non ha giocato in questo titolo: la sua scheda è nella pagina del titolo in cui ha giocato">${r.player_name}</span>`}</td>
+      <td data-label="Ruolo">${gruppoBadge(r.gruppo, !GROUP_OF_PLAYER[r.player_name])}</td>
+      <td data-label="PG">${r.games_played}</td>
+      <td data-label="Gol">${r.goals}</td>
+      <td data-label="Assist">${r.assists}</td>
+      <td data-label="Media">${(r.rating_ave || 0).toFixed(2)}</td>
+      ${extra.map(c => `<td data-label="${c.label}">${fmtStatValue(c.def, statValue(c.def, r))}${c.def.unit === "%" ? "%" : ""}</td>`).join("")}
+    </tr>`).join("")
+    : `<tr><td colspan="${7 + extra.length}" class="empty">Nessun giocatore trovato</td></tr>`;
+  document.querySelectorAll("#carrieraTitoli .filter-btn").forEach(b => b.classList.toggle("active", b.dataset.titolo === carrieraTitolo));
+  document.querySelectorAll("#carrieraQuickFilters .filter-btn").forEach(b => b.classList.toggle("active", b.dataset.key === carrieraSort.key));
+  document.querySelectorAll("#carrieraColonne .filter-btn").forEach(b => b.classList.toggle("active", carrieraColonne.has(b.dataset.col)));
+}
+function ordinaCarrieraPer(key){
+  carrieraSort.dir = (carrieraSort.key === key) ? -carrieraSort.dir : -1;
+  carrieraSort.key = key;
+  renderCarrieraTabella();
+}
+(function inizializzaCarriera(){
+  const titoliEl = document.getElementById("carrieraTitoli");
+  if(!titoliEl) return;
+  titoliEl.insertAdjacentHTML("beforeend", ["Totale", ...TITOLI_CARRIERA].map(t =>
+    `<span class="filter-btn" data-titolo="${t}">${t}</span>`).join(""));
+  titoliEl.querySelectorAll(".filter-btn").forEach(b => b.addEventListener("click", () => {
+    carrieraTitolo = b.dataset.titolo; renderCarrieraTabella();
+  }));
+  const colEl = document.getElementById("carrieraColonne");
+  colEl.insertAdjacentHTML("beforeend", COLONNE_CARRIERA.map(c =>
+    `<span class="filter-btn" data-col="${c.key}">${c.icon} ${c.label}</span>`).join(""));
+  colEl.querySelectorAll(".filter-btn").forEach(btn => btn.addEventListener("click", () => {
+    const k = btn.dataset.col;
+    if(carrieraColonne.has(k)){
+      carrieraColonne.delete(k);
+      if(carrieraSort.key === k){ carrieraSort.key = "goals"; carrieraSort.dir = -1; }
+      renderCarrieraTabella();
+    } else { carrieraColonne.add(k); ordinaCarrieraPer(k); }
+  }));
+  document.getElementById("carrieraFilter").addEventListener("input", renderCarrieraTabella);
+  document.querySelectorAll("#carrieraQuickFilters .filter-btn").forEach(b => b.addEventListener("click", () => ordinaCarrieraPer(b.dataset.key)));
+  // Come in Giocatori: un ascoltatore solo sulla riga delle intestazioni, che non viene mai
+  // sostituita (le celle si ricostruiscono a ogni disegno).
+  document.getElementById("carrieraHead").addEventListener("click", e => {
+    const th = e.target.closest("th");
+    if(th && th.dataset.key) ordinaCarrieraPer(th.dataset.key);
+  });
+  renderCarrieraTabella();
+})();
+
 // ---- Novita: confronto fra l'ultima serata e la penultima ----
 // Ogni run del task salva uno snapshot dei totali di carriera. La differenza
 // tra gli ultimi due dice esattamente cosa e' successo nel frattempo, senza
@@ -1922,6 +2075,10 @@ renderRoster();
       Ultima serata ${quando(ultima)} · precedente ${quando(precedente)}.
     </div>`;
 })();
+
+// ---- La sezione Carriera (29/10/2026) ----
+// Una riga di totale per giocatore, e sotto una riga per ogni titolo in cui ha giocato.
+// data-carriera="nome|titolo" (o "nome|Totale") serve a test_carriera.js.
 
 // ---- La sezione Record (28/10/2026) ----
 // I numeri vengono da calcolaRecord() piu' in alto; qui si disegnano soltanto. Ogni riga porta
@@ -4566,6 +4723,12 @@ function openPlayerCard(name){
     <div class="pm-stats-grid">
       ${stats.map(([k,v]) => `<div class="pm-stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}
     </div>
+    ${CARRIERA[name] && Object.keys(CARRIERA[name]).length ? `
+    <div class="pm-section-title">Carriera nel club</div>
+    <div class="table-wrap pm-carriera"><table class="responsive-table">
+      <thead><tr><th>Titolo</th><th>PG</th><th>Gol</th><th>Assist</th><th>G+A/partita</th><th>Media</th><th>MOTM</th><th>% vittorie</th></tr></thead>
+      <tbody>${righeCarriera(name, false)}</tbody>
+    </table></div>` : ""}
     ${r.parziale ? "" : `
     <div class="pm-section-title">Traguardi</div>
     <div class="pm-achievements">
@@ -4630,7 +4793,7 @@ document.addEventListener("keydown", (e) => {
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
   resoconto: "home", overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
-  giocatori: "giocatori", record: "record",
+  giocatori: "giocatori", carriera: "carriera", record: "record",
   forza: "forza", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
   osservatore: "osservatore", serate: "serate", partite: "partite",
@@ -4646,6 +4809,7 @@ const PAGINE_TRASLOCATE = {
 const PAGES = [
   { key: "home", icon: "🏠", label: "Home" },
   { key: "giocatori", icon: "🧑‍🤝‍🧑", label: "Giocatori" },
+  { key: "carriera", icon: "📜", label: "Carriera" },
   { key: "record", icon: "🏆", label: "Record" },
   { key: "forza", icon: "💪", label: "Indice di Forza" },
   { key: "formazione", icon: "⚽", label: "Formazione" },

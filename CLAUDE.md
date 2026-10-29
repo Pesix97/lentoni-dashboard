@@ -98,6 +98,7 @@ node test_tecnica.js index.html      # il riquadro Tecnica somma al numero della
 node test_sicurezza.js index.html    # un nome che arriva da fuori non diventa codice
 node test_indice.js index.html       # indice e testa a testa rifatti da zero, dai dati grezzi
 node test_record.js index.html       # record, scalata e resoconto della serata rifatti da zero
+node test_carriera.js index.html     # la carriera di ognuno, titolo per titolo e in totale
 ```
 
 **`test_indice.js` è l'unico controllo che non parte dalla pagina.** Gli altri verificano

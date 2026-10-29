@@ -1620,3 +1620,15 @@ Dettagli e regole nel README, «Record e scalata». Nuovo `test_record.js`, in C
 `best_division` di EA, un dato dei playoff (verificato il 28/10/2026), non la divisione in cui
 si gioca. Toglierlo o sostituirlo con «5 divisioni sopra la partenza»: chiedere a Peppe.
 
+## Carriera nel club, e la rosa di FC 26 ritrovata (29/10/2026)
+
+Chiesta da Peppe: la carriera di ognuno titolo per titolo e in totale. Scelte sue: chi è nel
+club oggi (la rosa di FC 27), voce di menu più riquadro nella scheda. Costruendola si è visto
+che il 18/09/2026 EA ha azzerato la carriera di FC 26 di sei giocatori principali, e la pagina
+d'archivio di FC 26 li aveva persi dalla rosa: corretto (lettura con più partite, non
+l'ultima), con il permesso di Peppe. Dettagli nel README, «Carriera nel club». Nuovo
+`test_carriera.js`, in CI; `TestCarriera` in `test_pipeline.py`.
+
+Nell'archivio di FC 26 chi ha giocato solo FC 27 compare nella Carriera senza link: lì non ha
+una scheda da aprire.
+

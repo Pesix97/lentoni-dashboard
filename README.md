@@ -408,13 +408,14 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. Con `--completa` misura tutte le voci, anche i pezzi della tecnica, con la divisione pari/dispari e un intervallo al 90% (ultimi risultati in `APPUNTI.md`, punto 5). |
-| `test_pipeline.py` | 113 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina. |
+| `test_pipeline.py` | 116 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 120 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
 | `test_indice.js` | 22 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; e i passaggi tentati a partita, in tabella e in ogni scheda. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
 | `test_record.js` | 10 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
+| `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1174,6 +1175,36 @@ avrebbe premiato attaccanti e trequartisti senza misurare niente che faccia vinc
 con l'archivio come minimo (`tentativiDiCarriera`, la stessa regola dell'indice). Verificata
 contro i tentati contati davvero nelle partite di FC 27: scarto massimo 0,4 a partita. Per
 chi non è in rosa la scheda usa solo l'archivio, dove i tentati sono contati.
+
+## Carriera nel club (29/10/2026)
+
+Chiesta da Peppe: per ognuno di chi è nel club oggi, presenze, gol, assist e il resto **titolo
+per titolo** e **in totale**. Una voce di menu, «Carriera», e un riquadro nella scheda di ogni
+giocatore. Le cifre di ogni titolo sono quelle che EA tiene per il club di quel titolo, quindi
+complete: per FC 26 tutte le 800 partite del club, non solo quelle archiviate da agosto. I
+conteggi si sommano; la media voto e la % vittorie si **pesano sulle partite**, perché una
+media fra due titoli da 483 e 156 partite non è una media.
+
+La tabella si comporta **esattamente come quella dei Giocatori** (richiesta di Peppe): filtro
+per nome, «Ordina per», intestazioni cliccabili con il secondo clic che inverte, colonne da
+aggiungere. In più il **titolo**: «Totale» di tutti i titoli, che è il predefinito, oppure uno
+solo. I titoli vengono da `club.json`: al passaggio a FC 28 il club nuovo entra nel totale e
+nel selettore da solo. La prima versione mostrava per ognuno tre righe (totale e titoli) e non
+si poteva ordinare: scartata il giorno stesso.
+
+**Costruendola è venuto fuori un difetto che c'era già.** La rosa di ogni titolo usava
+l'*ultima* lettura di EA, e una carriera — che può solo crescere — EA la restituisce ogni tanto
+più bassa (da 4 partite a 1, da 355 a 354, poi torna normale). E il **18/09/2026**, all'uscita
+di FC 27, ha **azzerato a una partita** la carriera di FC 26 di chi era passato al club nuovo:
+Pesix_97 da 491 partite a 1, ilmille da 640 a 1, e così Smilzo_87, ktm-008, FFLI_Adriano,
+Jysmu. Con la soglia di 30 partite della pagina di FC 26, **quei sei erano spariti dalla sua
+rosa** e da tutte le sue classifiche: 7 giocatori invece di 13. Nessun errore da nessuna parte,
+solo una rosa più corta.
+
+La regola ora è **la lettura con più partite**, a parità la più recente (sul titolo attivo
+resta l'ultima, com'era). Sta in `build_data`, quindi vale per la rosa di ogni pagina e per la
+carriera. `TestCarriera` in `test_pipeline.py` la controlla contro le letture grezze, e con una
+lettura azzerata inventata apposta.
 
 ## Record e scalata (28/10/2026)
 
