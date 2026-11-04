@@ -708,8 +708,16 @@ button{font-family:inherit;}
 .hero-v:empty{display:none;}
 #historyRiepilogo{font-size:13px !important; line-height:1.55 !important;}
 .home-duo{display:block;}
+/* Schede della Home: solo su telefono. Su schermo largo la barra non c'e' e si vede tutto. */
+.home-tabs-sez{display:none;}
 canvas{max-height:340px;}
 @media (max-width:900px){
+  .home-tabs-sez{display:block;}
+  .home-tabs-sez .seg{display:flex; width:100%;}
+  .home-tabs-sez .seg .filter-btn{flex:1; padding:0 8px; text-align:center;}
+  body[data-home-tab="andamento"] .home-duo, body[data-home-tab="andamento"] #forma, body[data-home-tab="andamento"] #condividi,
+  body[data-home-tab="serata"] #andamento, body[data-home-tab="serata"] #overview, body[data-home-tab="serata"] #forma,
+  body[data-home-tab="forma"] #andamento, body[data-home-tab="forma"] #overview, body[data-home-tab="forma"] .home-duo, body[data-home-tab="forma"] #condividi{display:none;}
   .two-col{grid-template-columns:1fr; gap:0;}
   #cards.grid-cards{grid-template-columns:repeat(2,1fr);}
   .hero-v{font-size:34px;}

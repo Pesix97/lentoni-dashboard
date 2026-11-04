@@ -214,6 +214,18 @@ setTimeout(() => {
     visibili.length < sezioni.length,
     `${visibili.length} visibili su ${sezioni.length}: il JavaScript non le ha nascoste`);
 
+  // 7. Schede della Home su telefono: il CSS le nasconde, ma e' il JavaScript a dire quale e'
+  //    attiva. Se il clic non cambia l'attributo, su telefono resterebbe sempre la prima.
+  const schede = ["serata", "forma", "andamento"];
+  const esiti = schede.map(n => {
+    const b = d.querySelector(`#homeTabs [data-home-tab="${n}"]`);
+    if (!b) return `${n}: bottone mancante`;
+    b.click();
+    return d.body.dataset.homeTab === n && b.classList.contains("active") &&
+      d.querySelectorAll("#homeTabs .active").length === 1 ? null : `${n}: il clic non l'attiva`;
+  }).filter(Boolean);
+  verifica("le tre schede della Home si attivano una alla volta", esiti.length === 0, esiti.join("; "));
+
   console.log(falliti ? `\n${falliti} controlli falliti.\n` : "\nLa pagina si apre e si riempie.\n");
   process.exit(falliti ? 1 : 0);
 }, 1200);

@@ -1697,3 +1697,35 @@ nelle ultime 48 ore": roba per chi gestisce il progetto, non per chi guarda la d
 restano, e i controlli sul buco di partite restano dove erano (battito, task pianificati,
 `TestSaluteArchivio`): e' sparita solo la presentazione. Se serve di nuovo a colpo d'occhio, la
 strada e' un punto di stato fuori dalla pagina pubblica, non un riquadro nella sezione Partite.
+
+## Controllo dei dati dopo ogni aggiornamento (04/11/2026)
+
+`controllo_dati.py` gira in `giro.sh` dopo i controlli di apertura e prima di pubblicare. Legge
+i numeri dentro la pagina appena generata e li confronta col database con SQL semplice.
+
+| Cosa confronta | Perché |
+| --- | --- |
+| partite della pagina = partite del database (id, gol, esito) | una partita persa o doppia non dà errore, dà solo numeri sbagliati |
+| esito (V/P/N) coerente con i gol | il database può contraddire se stesso |
+| contatori del club = ultimo scaricamento, V+P+N = partite giocate | è il riferimento indipendente di EA |
+| ultimo punto dello storico = valore attuale | il grafico non deve finire altrove |
+| gol e assist della rosa = ultimo scaricamento | non per un titolo chiuso: ha la rosa di un'altra data (25 differenze legittime misurate su `fc-26.html`) |
+| valori impossibili (voto fuori 0–10, riusciti > tentati, gol negativi) | sono dati rotti, non dati strani |
+
+**Non controllato apposta:** i gol dei giocatori contro quelli della squadra. Misurato: 29
+partite su 212 non sommano (autogol, giocatori usciti dall'elenco). Un controllo che suona
+sempre blocca la pagina per niente; c'è un test che fissa che non esista.
+
+**Come si legge:** uscita 1 = i numeri non tornano, si pubblica solo il database e il battito
+dice `numeri della pagina non coerenti con il database`; il log elenca quale partita o giocatore.
+Uscita diversa da 0 e 1 = il controllo stesso non è partito: non blocca l'archiviazione, perché
+una rete di sicurezza rotta non deve fermare le partite. Provato che sa fallire: `TestControlloDati`
+rompe una cosa alla volta (gol, partita tolta, partita aggiunta, esito, contatore, rosa, voto).
+
+## Home su telefono: tre schede (04/11/2026)
+
+Sotto i 900px la Home mostra una scheda alla volta — Andamento (grafico e numeri), Serata
+(resoconto, novità, condividi), Forma — scelta con una barra in alto. Si parte sempre da
+Andamento. Su schermo largo la barra non c'è e si vede tutto insieme, come prima. La scelta la
+fa solo il CSS leggendo `body[data-home-tab]`; il JavaScript cambia l'attributo. `test_apertura.js`
+verifica che i clic lo cambino (il CSS non si può provare in jsdom: schede viste a 390px in Chromium).

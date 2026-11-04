@@ -2316,6 +2316,193 @@ class TestBattito(unittest.TestCase):
                         "il modo solo-avvio deve uscire prima di toccare la fonte")
 
 
+class TestControlloDati(BaseConArchivio):
+    """controllo_dati.py: i numeri della pagina tornano con il database (04/11/2026).
+
+    Ogni caso rompe UNA cosa e vuole vederla segnalata: un controllo che non si e' mai
+    visto fallire potrebbe non controllare niente (come i tre test del 24/08/2026).
+    """
+
+    def setUp(self):
+        super().setUp()
+        # Il club ATTIVO, non CLUB: CLUB e' il titolo chiuso, la cui rosa e' fotografata a
+        # un'altra data (vedi controllo_dati.py, punto 5) e darebbe differenze legittime.
+        self._ricostruisci_raw(CLUB_ATTIVO)
+        conf = json.loads(self.club_json.read_text(encoding="utf-8"))
+        conf["attivo"]["club_id"] = CLUB_ATTIVO
+        self.club_json.write_text(json.dumps(conf), encoding="utf-8")
+        self.html = self.tmp / "pagina.html"
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(self.html),
+               "--club-json", str(self.club_json))
+
+    def _esito(self):
+        r = subprocess.run([sys.executable, str(QUI / "controllo_dati.py"),
+                            "--db", str(self.db), "--html", str(self.html)],
+                           capture_output=True, text=True)
+        return r.returncode, r.stdout
+
+    def _scrivi_db(self, sql, *args):
+        con = sqlite3.connect(self.db)
+        con.execute(sql, args)
+        con.commit()
+        con.close()
+
+    def _una_partita(self):
+        con = sqlite3.connect(self.db)
+        r = con.execute("SELECT match_id, goals_for, goals_against FROM matches WHERE club_id=? "
+                        "ORDER BY ts DESC LIMIT 1", (CLUB_ATTIVO,)).fetchone()
+        con.close()
+        return r
+
+    def test_una_pagina_appena_generata_torna(self):
+        codice, out = self._esito()
+        self.assertEqual(codice, 0, out)
+
+    def test_una_partita_con_gol_diversi_viene_segnalata(self):
+        mid, gf, _ = self._una_partita()
+        self._scrivi_db("UPDATE matches SET goals_for=goals_for+1 WHERE match_id=?", mid)
+        codice, out = self._esito()
+        self.assertEqual(codice, 1, out)
+        self.assertIn(str(mid), out, "il controllo non dice QUALE partita non torna")
+
+    def test_una_partita_in_meno_nel_database_viene_segnalata(self):
+        mid, _, _ = self._una_partita()
+        self._scrivi_db("DELETE FROM matches WHERE match_id=?", mid)
+        codice, out = self._esito()
+        self.assertEqual(codice, 1, out)
+        self.assertIn("nella pagina ma non nel database", out)
+
+    def test_una_partita_in_piu_nel_database_viene_segnalata(self):
+        mid, gf, gs = self._una_partita()
+        con = sqlite3.connect(self.db)
+        con.execute("INSERT INTO matches (match_id, club_id, match_type, ts, played_at, "
+                    "opponent_name, goals_for, goals_against, win, loss, tie) "
+                    "VALUES ('prova-1', ?, 'leagueMatch', 1, '2026-01-01T00:00:00+00:00', 'X', 1, 0, 1, 0, 0)",
+                    (CLUB_ATTIVO,))
+        con.commit()
+        con.close()
+        codice, out = self._esito()
+        self.assertEqual(codice, 1, out)
+        self.assertIn("nel database ma non nella pagina", out)
+
+    def test_un_esito_che_non_torna_con_i_gol_viene_segnalato(self):
+        mid, gf, gs = self._una_partita()
+        # Lo stesso database, la stessa pagina: a non tornare e' il database con se' stesso.
+        self._scrivi_db("UPDATE matches SET win=?, loss=?, tie=0 WHERE match_id=?",
+                        1 if gf <= gs else 0, 1 if gf > gs else 0, mid)
+        codice, out = self._esito()
+        self.assertEqual(codice, 1, out)
+        self.assertIn("esito non torna con i gol", out)
+
+    def test_un_contatore_diverso_dall_ultimo_scaricamento_viene_segnalato(self):
+        self._scrivi_db("UPDATE club_stats_history SET skill_rating=skill_rating+7 WHERE id="
+                        "(SELECT id FROM club_stats_history WHERE club_id=? ORDER BY fetched_at DESC LIMIT 1)",
+                        CLUB_ATTIVO)
+        codice, out = self._esito()
+        self.assertEqual(codice, 1, out)
+        self.assertIn("skill_rating", out)
+
+    def test_i_gol_di_un_giocatore_diversi_dal_database_vengono_segnalati(self):
+        con = sqlite3.connect(self.db)
+        ultimo = con.execute("SELECT MAX(fetched_at) FROM member_stats_history WHERE club_id=?",
+                             (CLUB_ATTIVO,)).fetchone()[0]
+        nome = con.execute("SELECT player_name FROM member_stats_history WHERE club_id=? AND "
+                           "fetched_at=? LIMIT 1", (CLUB_ATTIVO, ultimo)).fetchone()[0]
+        con.execute("UPDATE member_stats_history SET goals=goals+3 WHERE club_id=? AND fetched_at=? "
+                    "AND player_name=?", (CLUB_ATTIVO, ultimo, nome))
+        con.commit()
+        con.close()
+        codice, out = self._esito()
+        self.assertEqual(codice, 1, out)
+        self.assertIn(nome, out)
+
+    def test_un_valore_impossibile_nella_pagina_viene_segnalato(self):
+        sys.path.insert(0, str(QUI))
+        import controllo_dati
+        dati = controllo_dati.leggi_dati(self.html)
+        mid = next(iter(dati["matchPlayers"]))
+        dati["matchPlayers"][mid][0]["rating"] = 12.5
+        dati["matchPlayers"][mid][0]["passes_made"] = 90
+        dati["matchPlayers"][mid][0]["pass_attempts"] = 10
+        db = sqlite3.connect(self.db)
+        db.row_factory = sqlite3.Row
+        out = "\n".join(controllo_dati.controlla(db, dati))
+        db.close()
+        self.assertIn("voto 12.5", out)
+        self.assertIn("passaggi riusciti 90", out)
+
+    def test_i_gol_dei_giocatori_non_devono_sommare_a_quelli_della_squadra(self):
+        # Il contrario di un controllo: sui dati veri 29 partite su 212 non sommano (autogol,
+        # giocatori che escono dall'elenco di EA). Se un giorno qualcuno lo aggiungesse, la
+        # pagina smetterebbe di pubblicarsi per niente. Qui si fissa che non c'e'.
+        con = sqlite3.connect(self.db)
+        con.execute("UPDATE match_player_stats SET goals=goals+1 WHERE club_id=? AND match_id=?",
+                    (CLUB_ATTIVO, self._una_partita()[0]))
+        con.commit()
+        con.close()
+        # La pagina e' gia' generata con i numeri di prima: nessuna differenza che conti.
+        codice, out = self._esito()
+        self.assertEqual(codice, 0, out)
+
+    def test_un_titolo_chiuso_non_confronta_la_rosa_con_l_ultimo_scaricamento(self):
+        sys.path.insert(0, str(QUI))
+        import controllo_dati
+        dati = controllo_dati.leggi_dati(self.html)
+        dati["titoloChiuso"] = True
+        dati["roster"][0]["goals"] += 99
+        db = sqlite3.connect(self.db)
+        db.row_factory = sqlite3.Row
+        out = "\n".join(controllo_dati.controlla(db, dati))
+        db.close()
+        self.assertNotIn("rosa", out)
+
+    def test_se_il_controllo_non_riesce_a_girare_non_e_un_verdetto(self):
+        # Uscita 2, non 1: giro.sh deve poter distinguere "i numeri non tornano" da "il
+        # controllo e' rotto", e non fermare l'archiviazione per il secondo.
+        self.html.write_text("<html>niente dati</html>", encoding="utf-8")
+        codice, out = self._esito()
+        self.assertEqual(codice, 2, out)
+        self.assertIn("non eseguibile", out)
+
+
+class TestControlloDatiNelCiclo(unittest.TestCase):
+    """Come controllo_dati.py si aggancia a giro.sh. Due parametri che interagiscono (la
+    stessa uscita 'solo database' con due cause diverse): la relazione e' scritta qui."""
+
+    def setUp(self):
+        self.g = Path("giro.sh").read_text(encoding="utf-8")
+
+    def test_gira_prima_di_pubblicare(self):
+        self.assertIn("python3 controllo_dati.py", self.g)
+        self.assertLess(self.g.index("python3 controllo_dati.py"), self.g.index("git commit -q -m"),
+                        "il controllo dei dati viene dopo la pubblicazione")
+        self.assertLess(self.g.index("python3 controllo_dati.py"),
+                        self.g.index('if [ -n "$SOLO_DATABASE" ]; then'),
+                        "il controllo dei dati viene dopo la scelta di cosa pubblicare")
+
+    def test_se_i_numeri_non_tornano_si_pubblica_solo_il_database(self):
+        blocco = self.g[self.g.index("python3 controllo_dati.py"):self.g.index('if [ -n "$SOLO_DATABASE" ]; then')]
+        self.assertRegex(blocco, r'ESITO_DATI.*-eq 1', "solo l'uscita 1 e' un verdetto")
+        self.assertIn('SOLO_DATABASE="si"', blocco)
+        self.assertNotIn("exit 0", blocco, "un guasto dei dati ferma l'archiviazione delle partite")
+
+    def test_un_controllo_rotto_non_blocca_niente(self):
+        blocco = self.g[self.g.index("python3 controllo_dati.py"):self.g.index('if [ -n "$SOLO_DATABASE" ]; then')]
+        self.assertRegex(blocco, r'ESITO_DATI.*-ne 0.*\n.*non eseguibile \(non bloccante\)', "manca il ramo non bloccante")
+
+    def test_il_battito_dice_la_causa_vera(self):
+        # Prima del 04/11/2026 'solo database' voleva dire una cosa sola, 'pagina non
+        # apribile'. Con un secondo motivo, il messaggio fisso sarebbe falso.
+        self.assertIn('PROBLEMA_PIPELINE="${SOLO_DATABASE:+$PROBLEMA_SOLO_DB}"', self.g)
+        self.assertIn("numeri della pagina non coerenti con il database", self.g)
+        self.assertIn("${SOLO_DATABASE:+ (solo database: $MOTIVO_SOLO_DB)}", self.g)
+        # il valore di partenza resta quello di sempre, cosi' i messaggi vecchi non cambiano
+        self.assertIn('PROBLEMA_SOLO_DB="pagina non apribile: pubblicato solo il database"', self.g)
+        # e il motivo va fissato PRIMA di essere letto
+        self.assertLess(self.g.index('MOTIVO_SOLO_DB="la pagina non si apriva"'),
+                        self.g.index("python3 controllo_dati.py"))
+
+
 class TestPartiteManuali(unittest.TestCase):
     """Le partite che EA conta ma non pubblica, dichiarate a mano in roles.json (14/10/2026)."""
 

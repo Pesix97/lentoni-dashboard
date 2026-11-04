@@ -7,7 +7,7 @@
 <script id="lib-chartjs">__CHARTJS__</script>
 <style>__STILE__</style>
 </head>
-<body>
+<body data-home-tab="andamento">
 
 <aside id="sideDrawer" aria-label="Menu">
   <div class="side-brand">
@@ -44,6 +44,13 @@
 
 
 
+<section id="homeTabs" class="home-tabs-sez">
+  <div class="seg" role="tablist" aria-label="Sezioni della Home">
+    <button class="filter-btn active" role="tab" aria-selected="true" data-home-tab="andamento">Andamento</button>
+    <button class="filter-btn" role="tab" aria-selected="false" data-home-tab="serata">Serata</button>
+    <button class="filter-btn" role="tab" aria-selected="false" data-home-tab="forma">Forma</button>
+  </div>
+</section>
 <section class="two-col" id="andamento">
   <div>
     <h2>Andamento skill rating</h2>

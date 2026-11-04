@@ -4712,7 +4712,7 @@ document.addEventListener("keydown", (e) => {
 // le sezioni di riepilogo generale (overview, forma, andamento); tutte le
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
-  resoconto: "home", overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
+  homeTabs: "home", resoconto: "home", overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
   giocatori: "giocatori", carriera: "carriera", record: "record",
   forza: "forza", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
@@ -4749,6 +4749,19 @@ const PAGES = [
   // PAGINE_TRASLOCATE esiste per evitare dall'altro lato.
   { key: "pagellone", label: "Pagellone FC26", gruppo: "Analisi", d: "M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7" },
 ].filter(p => Object.values(PAGE_MAP).includes(p.key) && (p.key !== "pagellone" || DATA.pagelloneFC26));
+
+// Home su telefono: tre schede (andamento / serata / forma). Su schermo largo la barra e'
+// nascosta dal CSS e si vede tutto insieme; qui si cambia solo l'attributo che il CSS legge.
+function impostaSchedaHome(nome){
+  document.body.dataset.homeTab = nome;
+  document.querySelectorAll("#homeTabs [data-home-tab]").forEach(b => {
+    const on = b.dataset.homeTab === nome;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+}
+document.querySelectorAll("#homeTabs [data-home-tab]").forEach(b =>
+  b.addEventListener("click", () => { impostaSchedaHome(b.dataset.homeTab); window.scrollTo(0, 0); }));
 
 function showPage(pageKey){
   if(PAGINE_TRASLOCATE[pageKey]) pageKey = PAGINE_TRASLOCATE[pageKey];

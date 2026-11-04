@@ -173,6 +173,11 @@ done
 # Se jsdom non c'e' il controllo non blocca niente: meglio pubblicare senza questa rete che
 # fermare l'archiviazione perche' manca una dipendenza.
 SOLO_DATABASE=""
+# Perche' si pubblica solo il database: la stessa conseguenza (la pagina resta quella di
+# prima, le partite entrano lo stesso) puo' avere due cause diverse, e il messaggio nel
+# battito e nel commit deve dire quella vera.
+MOTIVO_SOLO_DB="la pagina non si apriva"
+PROBLEMA_SOLO_DB="pagina non apribile: pubblicato solo il database"
 JSDOM_OK=""
 if [ -d node_modules/jsdom ] || node -e "require('jsdom')" 2>/dev/null; then
   JSDOM_OK="si"
@@ -189,6 +194,34 @@ if [ -d node_modules/jsdom ] || node -e "require('jsdom')" 2>/dev/null; then
   fi
 else
   echo "  jsdom assente: salto il controllo di apertura (non bloccante)"
+fi
+
+# I numeri della pagina tornano con il database? (04/11/2026)
+#
+# I controlli qui sopra dicono che la pagina si APRE e che la tecnica quadra; nessuno
+# confrontava cio' che la pagina MOSTRA con cio' che il database CONTIENE. Il guasto tipico
+# di questo progetto non e' un crash ma un numero plausibile e sbagliato (club o titolo
+# mescolato, una partita in piu' o in meno, un contatore di un altro scaricamento).
+#
+# Stessa regola degli altri: se non torna si pubblica il database e NON la pagina. E la
+# stessa cautela di jsdom: l'uscita 1 e' un verdetto (i numeri non tornano), qualunque
+# altra uscita significa che il controllo stesso non e' riuscito a girare, e una rete di
+# sicurezza rotta non deve fermare l'archiviazione. Non dipende da jsdom, quindi sta fuori
+# dal blocco qui sopra.
+python3 controllo_dati.py --db lentoni.db --html index.html
+ESITO_DATI=$?
+if [ "$ESITO_DATI" -eq 1 ]; then
+  echo "  i numeri della pagina non tornano con il database: pubblico solo il database"
+  if [ -z "$SOLO_DATABASE" ]; then
+    MOTIVO_SOLO_DB="i numeri della pagina non tornavano con il database"
+    PROBLEMA_SOLO_DB="numeri della pagina non coerenti con il database: pubblicato solo il database"
+  else
+    MOTIVO_SOLO_DB="la pagina non si apriva e i numeri non tornavano con il database"
+    PROBLEMA_SOLO_DB="pagina non apribile e numeri non coerenti con il database: pubblicato solo il database"
+  fi
+  SOLO_DATABASE="si"
+elif [ "$ESITO_DATI" -ne 0 ]; then
+  echo "  controllo dei dati non eseguibile (non bloccante)"
 fi
 
 if [ -n "$SOLO_DATABASE" ]; then
@@ -244,7 +277,7 @@ else
   # ogni giro significherebbe un commit ogni venti minuti anche senza aver giocato.
   python3 -c "import sqlite3; c=sqlite3.connect('lentoni.db'); c.execute('VACUUM'); c.close()" || true
   git add lentoni.db
-  git commit -q -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC${SOLO_DATABASE:+ (solo database: la pagina non si apriva)}${ARCHIVIO_GUASTI:+ (archivio escluso: $ARCHIVIO_GUASTI)}"
+  git commit -q -m "Aggiornamento automatico $(date -u '+%Y-%m-%d %H:%M') UTC${SOLO_DATABASE:+ (solo database: $MOTIVO_SOLO_DB)}${ARCHIVIO_GUASTI:+ (archivio escluso: $ARCHIVIO_GUASTI)}"
   if ! git push -q origin HEAD:main 2>/dev/null; then
     echo "  push respinto, riprovo dopo un rebase"
     git pull -q --rebase origin main && git push -q origin HEAD:main && echo "  pubblicato al secondo tentativo"
@@ -256,7 +289,7 @@ fi
 # Se la pagina (o una pagina d'archivio) non si apriva, il battito lo dice: e' un guasto
 # della pipeline a valle, esattamente il caso per cui il campo `problema` esiste. I
 # controlli delle 23:45, 01:10 e 09:45 lo leggono e lo segnalano.
-PROBLEMA_PIPELINE="${SOLO_DATABASE:+pagina non apribile: pubblicato solo il database}"
+PROBLEMA_PIPELINE="${SOLO_DATABASE:+$PROBLEMA_SOLO_DB}"
 if [ -n "$ARCHIVIO_GUASTI" ]; then
   PROBLEMA_PIPELINE="${PROBLEMA_PIPELINE:+$PROBLEMA_PIPELINE; }pagine archivio non apribili: $ARCHIVIO_GUASTI"
 fi
