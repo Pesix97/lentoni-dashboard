@@ -1449,7 +1449,7 @@ function righeCarriera(nome, conNome){
     // diceva "male" senza un metro, e sopra il 50 diventava verde per una partita.
     ["Win rate", winPct + "%", ""],
     ["Gol fatti/subiti", `${l.goals ?? 0} / ${l.goals_against ?? 0}`, ""],
-    ["Promozioni/Retrocessioni", `${l.promotions ?? 0} / ${l.relegations ?? 0}`, ""],
+    ["Promozioni / retrocessioni", `${l.promotions ?? 0} / ${l.relegations ?? 0}`, ""],
     ["Serie in corso", (l.wstreak ?? 0) > 0 ? `${l.wstreak}V consecutive` : `${l.unbeatenstreak ?? 0} imbattuta`, ""],
     ["Partite playoff", l.games_played_playoff ?? 0, ""],
   ];
@@ -1644,8 +1644,11 @@ disegnaQuando("home", function renderHistoryChart(){
     l.finishes_div4_group1, l.finishes_div5_group1, l.finishes_div6_group1,
   ].map(v => v || 0);
   if(values.every(v => v === 0)){
+    // La sezione va presa PRIMA di sostituire il contenuto: dopo, il canvas non e' piu' nel DOM
+    // e closest() non trova niente (visto sulla pagina pubblicata il 04/11/2026).
+    const sezione = ctx.closest("section");
     ctx.parentElement.innerHTML = '<div class="empty">Nessun piazzamento registrato ancora per questo club.</div>';
-    ctx.closest("section")?.classList.add("senza-piazzamenti");
+    sezione?.classList.add("senza-piazzamenti");
     return;
   }
   new Chart(ctx, {
