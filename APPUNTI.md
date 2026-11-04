@@ -1689,3 +1689,11 @@ da telefono meglio organizzata. Cosa e' cambiato, e perche':
 
 Non ancora fatto: i tab della Home su telefono (andamento / serata / forma in schede separate) e
 la sezione "Piazzamenti" come blocco proprio; senza piazzamenti registrati il riquadro sparisce.
+
+**Tolto dalla pagina il riquadro "salute dell'archivio" (04/11/2026).** Era il blocco in cima a
+Partite con archiviate / giocate secondo EA / percentuale salvata / "nessuna partita mancante
+nelle ultime 48 ore": roba per chi gestisce il progetto, non per chi guarda la dashboard
+(Peppe: "tutto cio e' per noi, non per chi visualizza"). `DATA.saluteArchivio` e il suo calcolo
+restano, e i controlli sul buco di partite restano dove erano (battito, task pianificati,
+`TestSaluteArchivio`): e' sparita solo la presentazione. Se serve di nuovo a colpo d'occhio, la
+strada e' un punto di stato fuori dalla pagina pubblica, non un riquadro nella sezione Partite.

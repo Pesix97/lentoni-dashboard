@@ -2172,16 +2172,10 @@ class TestBattito(unittest.TestCase):
                          "corrisponde alle partite giocate prima del primo scatto")
         self.assertGreaterEqual(totale, dopo, "il totale non puo' essere minore del parziale")
 
-    def test_la_pagina_spiega_perche_i_due_numeri_non_coincidono(self):
-        # Senza la spiegazione i due numeri sembrano contraddirsi, ed e' la prima cosa che
-        # ha chiesto chi legge. La riga compare solo quando c'e' davvero uno scarto.
-        js = Path("modello/pagina.js").read_text(encoding="utf-8")
-        self.assertIn("inRegalo", js, "manca il calcolo dello scarto fra totale e parziale")
-        self.assertRegex(
-            js, r"inRegalo\s*=\s*\(sa\.archiviate.*?\)\s*-\s*\(sa\.archiviateDaPrimoSnapshot",
-            "lo scarto non e' calcolato dai due numeri che compaiono a schermo")
-        self.assertRegex(js, r"inRegalo > 0 \?",
-                         "la spiegazione va mostrata solo quando lo scarto esiste davvero")
+    # Il test che qui verificava la spiegazione dello scarto fra "archiviate" e "attese" nel
+    # riquadro "salute dell'archivio" e' stato tolto il 04/11/2026 insieme al riquadro, che era
+    # roba per chi gestisce il progetto e non per chi guarda la pagina (vedi APPUNTI.md). Il
+    # calcolo dei numeri resta coperto dagli altri test di questa classe.
 
     def test_un_push_non_puo_uccidere_un_lancio_a_mano(self):
         """Il difetto del 28/08/2026, trovato a ciclo gia' in corso.
