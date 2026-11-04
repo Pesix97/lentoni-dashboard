@@ -596,7 +596,11 @@ def carica_modello():
     """
     pagina = (MODELLO / "pagina.html").read_text(encoding="utf-8")
     return (pagina
-            .replace("__STILE__", (MODELLO / "stile.css").read_text(encoding="utf-8"))
+            .replace("__STILE__", (MODELLO / "stile.css").read_text(encoding="utf-8")
+                     # Il font (Geist, sottoinsieme latino) sta nella pagina come data URI:
+                     # un file solo, nessuna richiesta a terzi. Serve font-src data: nella CSP.
+                     .replace("__FONT_GEIST__", base64.b64encode(
+                         (MODELLO / "geist-sub.woff2").read_bytes()).decode("ascii")))
             .replace("__SCRIPT__", (MODELLO / "pagina.js").read_text(encoding="utf-8"))
             .replace("__CHARTJS__", (MODELLO / "chart.umd.min.js").read_text(encoding="utf-8")))
 
@@ -634,6 +638,7 @@ def con_politica_di_sicurezza(pagina):
         "script-src " + " ".join(impronte),
         "style-src 'unsafe-inline'",
         "img-src 'self' data: blob:",
+        "font-src data:",
         "base-uri 'none'",
         "form-action 'none'",
         "object-src 'none'",

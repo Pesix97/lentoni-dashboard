@@ -1449,7 +1449,6 @@ function righeCarriera(nome, conNome){
     // diceva "male" senza un metro, e sopra il 50 diventava verde per una partita.
     ["Win rate", winPct + "%", ""],
     ["Gol fatti/subiti", `${l.goals ?? 0} / ${l.goals_against ?? 0}`, ""],
-    ["Skill rating", l.skill_rating ?? "-", ""],
     ["Promozioni/Retrocessioni", `${l.promotions ?? 0} / ${l.relegations ?? 0}`, ""],
     ["Serie in corso", (l.wstreak ?? 0) > 0 ? `${l.wstreak}V consecutive` : `${l.unbeatenstreak ?? 0} imbattuta`, ""],
     ["Partite playoff", l.games_played_playoff ?? 0, ""],
@@ -1552,42 +1551,40 @@ disegnaQuando("home", function renderHistoryChart(){
     grafico = new Chart(ctx, {
       type: "line",
       data: {
-        labels: punti.map(h => fmtDate(h.fetched_at)),
+        labels: punti.map(h => fmtDate(h.fetched_at)),   // intera: la legge il tooltip
         datasets: [{
           label: "Skill rating",
           data: punti.map(h => h.skill_rating),
-          // Sfumatura viola->ciano invece di un colore piatto (restyling "Aurora Elettrica"
-          // del 30/09/2026): Chart.js chiama questa funzione ad ogni disegno, e chartArea
-          // non esiste ancora al primissimo giro di layout, quindi il ripiego resta un
-          // colore piatto finche' l'area non e' nota.
-          borderColor: (context) => {
-            const { ctx, chartArea } = context.chart;
-            if(!chartArea) return cssVar("--accent", "#8b7cff");
-            const g = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-            g.addColorStop(0, cssVar("--accent", "#8b7cff"));
-            g.addColorStop(1, cssVar("--accent-2", "#22d3ee"));
-            return g;
-          },
+          // Linea piatta nel colore d'accento, con una sfumatura leggera sotto (restyling
+          // grafite del 04/11/2026): Chart.js chiama questa funzione ad ogni disegno e
+          // chartArea non esiste ancora al primissimo giro di layout, quindi c'e' un ripiego.
+          borderColor: cssVar("--accent", "#6ea2ff"),
+          borderWidth: 2,
           backgroundColor: (context) => {
             const { ctx, chartArea } = context.chart;
-            const rgb = cssVar("--accent-2-rgb", "34,211,238");
-            if(!chartArea) return `rgba(${rgb},.18)`;
+            const rgb = cssVar("--accent-rgb", "110,162,255");
+            if(!chartArea) return `rgba(${rgb},.12)`;
             const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-            g.addColorStop(0, `rgba(${rgb},.30)`);
+            g.addColorStop(0, `rgba(${rgb},.22)`);
             g.addColorStop(1, `rgba(${rgb},0)`);
             return g;
           },
           tension: 0.25,
           fill: true,
           pointRadius: punti.length > 40 ? 0 : 3,
+          pointBackgroundColor: cssVar("--accent", "#6ea2ff"),
+          pointBorderWidth: 0,
         }]
       },
       options: {
         responsive: true,
+        aspectRatio: window.innerWidth < 700 ? 1.45 : 2.7,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: cssVar("--muted", "#9a9a95"), maxTicksLimit: 8 }, grid: { color: cssVar("--border", "#35353a") } },
-          y: { ticks: { color: cssVar("--muted", "#9a9a95") }, grid: { color: cssVar("--border", "#35353a") } },
+          // Sull'asse una data corta (giorno e mese); quella intera, con l'ora, resta nel tooltip.
+          x: { ticks: { color: cssVar("--muted", "#8f9aae"), maxRotation: 0, autoSkipPadding: 16, maxTicksLimit: window.innerWidth < 700 ? 4 : 8,
+                        callback: (v) => { const p = punti[v]; return p ? new Date(p.fetched_at).toLocaleDateString("it-IT", { day: "numeric", month: "short", timeZone: "Europe/Rome" }) : ""; } }, grid: { display: false }, border: { color: cssVar("--border", "#222a37") } },
+          y: { ticks: { color: cssVar("--muted", "#8f9aae"), maxTicksLimit: 5 }, grid: { color: cssVar("--border", "#222a37") }, border: { display: false } },
         }
       }
     });
@@ -1598,6 +1595,15 @@ disegnaQuando("home", function renderHistoryChart(){
     const delta = ultimo - primo;
     const segno = delta > 0 ? "+" : "";
     const colore = delta > 0 ? "var(--ok,#4ade80)" : (delta < 0 ? "var(--loss)" : "var(--muted)");
+    // Il numero grande e' l'ultima rilevazione del periodo; la variazione e' quella
+    // stessa differenza (ultimo - primo) che il riepilogo qui sotto descrive a parole.
+    const heroV = document.getElementById("heroRating");
+    const heroD = document.getElementById("heroDelta");
+    if(heroV) heroV.textContent = ultimo;
+    if(heroD){
+      heroD.textContent = `${segno}${delta} nel periodo`;
+      heroD.className = "chip " + (delta > 0 ? "up" : (delta < 0 ? "dn" : ""));
+    }
     riepilogoEl.innerHTML =
       `Nel periodo selezionato: da <strong style="color:var(--text);">${primo}</strong> a ` +
       `<strong style="color:var(--text);">${ultimo}</strong>, ` +
@@ -1609,7 +1615,7 @@ disegnaQuando("home", function renderHistoryChart(){
     barraEl.innerHTML = PERIODI.map(p => {
       const attivo = p.id === scelto.id;
       const vuoto = !disponibili.some(d => d.id === p.id);
-      return `<span class="filter-btn ${attivo ? "active" : ""}" data-id="${p.id}"
+      return `<span class="filter-btn ${attivo ? "active" : ""}" data-id="${p.id}" role="button" tabindex="0"
                     ${vuoto ? 'style="opacity:.35; cursor:default;"' : ""}
                     title="${vuoto ? "Non ci sono ancora abbastanza rilevazioni in questo periodo" : ""}">${p.label}</span>`;
     }).join("");
@@ -1639,13 +1645,14 @@ disegnaQuando("home", function renderHistoryChart(){
   ].map(v => v || 0);
   if(values.every(v => v === 0)){
     ctx.parentElement.innerHTML = '<div class="empty">Nessun piazzamento registrato ancora per questo club.</div>';
+    ctx.closest("section")?.classList.add("senza-piazzamenti");
     return;
   }
   new Chart(ctx, {
     type: "bar",
     data: {
       labels,
-      datasets: [{ label: "Primi posti", data: values, backgroundColor: cssVar("--accent", "#8b7cff"), borderRadius: 4 }]
+      datasets: [{ label: "Primi posti", data: values, backgroundColor: cssVar("--accent", "#6ea2ff"), borderRadius: 4 }]
     },
     options: {
       responsive: true,
@@ -1751,7 +1758,7 @@ function renderRoster(){
   const fisse = [...testa.querySelectorAll("th")].filter(th => !th.dataset.extra);
   const forma = fisse.pop();   // "Forma" resta sempre l'ultima colonna
   testa.innerHTML = fisse.map(th => th.outerHTML).join("") +
-    extra.map(c => `<th data-key="${c.key}" data-extra="1">${c.icon} ${c.label}</th>`).join("") +
+    extra.map(c => `<th data-key="${c.key}" data-extra="1">${c.label}</th>`).join("") +
     forma.outerHTML;
   testa.querySelectorAll("th").forEach(th => {
     th.classList.toggle("ordinata", th.dataset.key === rosterSort.key);
@@ -1820,7 +1827,7 @@ function ordinaPer(key){
   const barra = document.getElementById("rosterColonne");
   if(!barra) return;
   barra.insertAdjacentHTML("beforeend", COLONNE_EXTRA.map(c =>
-    `<span class="filter-btn" data-col="${c.key}">${c.icon} ${c.label}</span>`).join(""));
+    `<span class="filter-btn" data-col="${c.key}">${c.label}</span>`).join(""));
   barra.querySelectorAll(".filter-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const k = btn.dataset.col;
@@ -1882,7 +1889,7 @@ function renderCarrieraTabella(){
   const testa = document.getElementById("carrieraHead");
   const fisse = [...testa.querySelectorAll("th")].filter(th => !th.dataset.extra);
   testa.innerHTML = fisse.map(th => th.outerHTML).join("") +
-    extra.map(c => `<th data-key="${c.key}" data-extra="1">${c.icon} ${c.label}</th>`).join("");
+    extra.map(c => `<th data-key="${c.key}" data-extra="1">${c.label}</th>`).join("");
   testa.querySelectorAll("th").forEach(th => {
     th.classList.toggle("ordinata", th.dataset.key === carrieraSort.key);
     if(th.dataset.key === carrieraSort.key) th.dataset.verso = carrieraSort.dir === -1 ? "giu" : "su";
@@ -1921,7 +1928,7 @@ function ordinaCarrieraPer(key){
   }));
   const colEl = document.getElementById("carrieraColonne");
   colEl.insertAdjacentHTML("beforeend", COLONNE_CARRIERA.map(c =>
-    `<span class="filter-btn" data-col="${c.key}">${c.icon} ${c.label}</span>`).join(""));
+    `<span class="filter-btn" data-col="${c.key}">${c.label}</span>`).join(""));
   colEl.querySelectorAll(".filter-btn").forEach(btn => btn.addEventListener("click", () => {
     const k = btn.dataset.col;
     if(carrieraColonne.has(k)){
@@ -2108,7 +2115,7 @@ function valoreRecord(r, v){
     const conChi = e => e.partite.length === 1 ? ` · ${controChi(e.partite[0])}` : "";
     scalataEl.innerHTML = `
       <div class="panel" style="margin-bottom:16px;">
-        <h3 style="margin:0 0 6px; font-size:15px;">📈 La scalata</h3>
+        <h3 style="margin:0 0 6px; font-size:15px;">La scalata</h3>
         <div style="font-size:14px; margin-bottom:10px;" id="recordSaldo">
           ${EVENTI_DIVISIONE.length === 0
             ? "Nessuna promozione o retrocessione in archivio, per ora."
@@ -2120,7 +2127,7 @@ function valoreRecord(r, v){
         </div>
         ${EVENTI_DIVISIONE.length ? `<div style="display:flex; flex-direction:column; gap:4px; font-size:13px;">
           ${EVENTI_DIVISIONE.map(e => `<div data-evento="${e.tipo}">
-            ${e.tipo === "promozione" ? "⬆️ <strong>Promozione</strong>" : "⬇️ <strong>Retrocessione</strong>"}
+            ${e.tipo === "promozione" ? "<strong>Promozione</strong>" : "<strong>Retrocessione</strong>"}
             <span style="color:var(--muted);"> — ${quando(e)}${conChi(e)}</span></div>`).join("")}
         </div>` : ""}
         <div style="font-size:11.5px; color:var(--muted); margin-top:10px; line-height:1.5;">
@@ -2168,8 +2175,8 @@ function valoreRecord(r, v){
       </table></div>
     </div>`;
   }
-  squadraEl.innerHTML = tabella("squadra", "🛡️ Della squadra");
-  personaliEl.innerHTML = tabella("personale", "⭐ Dei giocatori");
+  squadraEl.innerHTML = tabella("squadra", "Della squadra");
+  personaliEl.innerHTML = tabella("personale", "Dei giocatori");
 })();
 
 // ---- Il resoconto della serata, in cima alla home (28/10/2026) ----
@@ -2199,40 +2206,40 @@ function valoreRecord(r, v){
   const esito = [v ? parti(v, "vinta", "vinte") : null, n ? parti(n, "pareggiata", "pareggiate") : null,
                  p ? parti(p, "persa", "perse") : null].filter(Boolean).join(", ");
   const righe = [];
-  righe.push(`<div data-riga="esito">⚽ <strong>${parti(partite.length, "partita", "partite")}</strong>: ${esito} · ${gf} gol fatti, ${gs} subiti.</div>`);
+  righe.push(`<div data-riga="esito"><strong>${parti(partite.length, "partita", "partite")}</strong>: ${esito} · ${gf} gol fatti, ${gs} subiti.</div>`);
   if(migliore){
     const cosa = [migliore.gol ? parti(migliore.gol, "gol", "gol") : null,
                   migliore.assist ? parti(migliore.assist, "assist", "assist") : null,
                   migliore.mom ? `${migliore.mom === 1 ? "una volta" : migliore.mom + " volte"} migliore in campo` : null].filter(Boolean);
-    righe.push(`<div data-riga="migliore">⭐ Il migliore: <strong><span class="player-link" data-player="${migliore.nome}">${migliore.nome}</span></strong>
+    righe.push(`<div data-riga="migliore">Il migliore: <strong><span class="player-link" data-player="${migliore.nome}">${migliore.nome}</span></strong>
       — media ${migliore.media.toFixed(2)} in ${parti(migliore.n, "partita", "partite")}${cosa.length ? ", " + cosa.join(", ") : ""}.</div>`);
   }
   NOVITA_RECORD.forEach(x => {
     const r = x.record, chi = r.tipo === "personale";
     if(x.esito === "battuto"){
       const prima = x.primaValore ? ` (prima ${valoreRecord(r, x.primaValore)}${chi && x.primaChi ? ", di " + x.primaChi.nome : ""})` : "";
-      righe.push(`<div data-riga="record" data-record="${r.chiave}">🏆 Record battuto${chi ? ` da <strong>${r.primo.nome}</strong>` : ""}:
+      righe.push(`<div data-riga="record" data-record="${r.chiave}">Record battuto${chi ? ` da <strong>${r.primo.nome}</strong>` : ""}:
         ${r.eti.toLowerCase()}, <strong>${valoreRecord(r, r.valore)}</strong>${r.unita}${prima}.</div>`);
     } else {
       const chi2 = [...new Set(x.da.map(d => d.nome).filter(Boolean))].filter(nm => nm !== r.primo.nome);
-      righe.push(`<div data-riga="record" data-record="${r.chiave}">🤝 Record eguagliato${chi2.length ? ` da <strong>${chi2.join(", ")}</strong>` : ""}:
+      righe.push(`<div data-riga="record" data-record="${r.chiave}">Record eguagliato${chi2.length ? ` da <strong>${chi2.join(", ")}</strong>` : ""}:
         ${r.eti.toLowerCase()}, <strong>${valoreRecord(r, r.valore)}</strong>${r.unita}.</div>`);
     }
   });
   EVENTI_DIVISIONE.filter(e => e.serata && e.serata.chiave === ULTIMA_SERATA.chiave).forEach(e => {
     righe.push(e.tipo === "promozione"
-      ? `<div data-riga="divisione">⬆️ <strong>Promozione!</strong> Il club sale di divisione${e.partite.length === 1 ? ` con il ${controChi(e.partite[0])}` : ""}.</div>`
-      : `<div data-riga="divisione">⬇️ <strong>Retrocessione</strong>: il club scende di una divisione${e.partite.length === 1 ? ` con il ${controChi(e.partite[0])}` : ""}.</div>`);
+      ? `<div data-riga="divisione"><strong>Promozione!</strong> Il club sale di divisione${e.partite.length === 1 ? ` con il ${controChi(e.partite[0])}` : ""}.</div>`
+      : `<div data-riga="divisione"><strong>Retrocessione</strong>: il club scende di una divisione${e.partite.length === 1 ? ` con il ${controChi(e.partite[0])}` : ""}.</div>`);
   });
   // Le serie di squadra ancora aperte, quando valgono la pena di essere dette.
   const aperta = k => { const r = RECORD.find(x => x.chiave === k); return r && !r.vuoto && r.aperta ? { r, n: r.aperta.valore } : null; };
   const sv = aperta("serieVittorie"), si = aperta("imbattibilita");
-  if(sv && sv.n >= 2) righe.push(`<div data-riga="serie">🔥 Serie aperta: <strong>${sv.n} vittorie di fila</strong> (record ${sv.r.valore}).</div>`);
-  else if(si && si.n >= 3) righe.push(`<div data-riga="serie">🧱 Serie aperta: <strong>${si.n} partite senza perdere</strong> (record ${si.r.valore}).</div>`);
+  if(sv && sv.n >= 2) righe.push(`<div data-riga="serie">Serie aperta: <strong>${sv.n} vittorie di fila</strong> (record ${sv.r.valore}).</div>`);
+  else if(si && si.n >= 3) righe.push(`<div data-riga="serie">Serie aperta: <strong>${si.n} partite senza perdere</strong> (record ${si.r.valore}).</div>`);
 
   el.innerHTML = `
     <div class="panel resoconto">
-      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">🌙 L'ultima serata · ${ULTIMA_SERATA.giorno}, ${ULTIMA_SERATA.inizio}–${ULTIMA_SERATA.fine}</div>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">L'ultima serata · ${ULTIMA_SERATA.giorno}, ${ULTIMA_SERATA.inizio}–${ULTIMA_SERATA.fine}</div>
       <div style="display:flex; flex-direction:column; gap:6px; font-size:14px; line-height:1.5;">${righe.join("")}</div>
       <div style="margin-top:10px; font-size:12px;"><span class="vai-a" data-vai="record">Tutti i record →</span></div>
     </div>`;
@@ -2263,9 +2270,9 @@ disegnaQuando("home", function initShare(){
     // Un <canvas> non legge var(...): i colori del tema si leggono UNA volta qui, con
     // cssVar(), invece che restare scritti a mano come prima del restyling grafite del
     // 24/09/2026 (era rosso e oro duplicati in tredici punti diversi di questa funzione).
-    const colBg = cssVar("--bg", "#0b0b12"), colPanel2 = cssVar("--panel-2", "#191929");
-    const colAccent = cssVar("--accent", "#8b7cff"), colAccentRgb = cssVar("--accent-rgb", "139,124,255");
-    const colAccent2 = cssVar("--accent-2", "#22d3ee"), colAccent2Rgb = cssVar("--accent-2-rgb", "34,211,238");
+    const colBg = cssVar("--bg", "#0b0e13"), colPanel2 = cssVar("--panel-2", "#181e29");
+    const colAccent = cssVar("--accent", "#6ea2ff"), colAccentRgb = cssVar("--accent-rgb", "110,162,255");
+    const colAccent2 = cssVar("--accent-2", "#6ea2ff"), colAccent2Rgb = cssVar("--accent-2-rgb", "110,162,255");
     const colText = cssVar("--text", "#f2f0ec"), colMuted = cssVar("--muted", "#9a9a95");
     const colWin = cssVar("--win", "#33c17a"), colTie = cssVar("--tie", "#e0b23f"), colLoss = cssVar("--loss", "#e5566d");
 
@@ -2690,7 +2697,7 @@ disegnaQuando("home", function initShare(){
       : "";
 
     return `<div class="panel" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 10px; font-size:15px;">${icon} ${label} <span class="h2-sub">— ${ranked.length} ${ranked.length === 1 ? "giocatore" : "giocatori"}</span></h3>
+      <h3 style="margin:0 0 10px; font-size:16px; font-weight:600;">${label} <span class="h2-sub">${ranked.length} ${ranked.length === 1 ? "giocatore" : "giocatori"}</span></h3>
       ${notaPochiDati}${notaIgnorate}${soloNote}
       <div class="table-wrap">
         <table class="responsive-table">
@@ -4332,8 +4339,8 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
           <span style="font-size:12px; color:var(--muted);">${quando(s)}</span>
           ${badge}
           ${EVENTI_DIVISIONE.filter(e => e.serata && e.serata.chiave === s.chiave).map(e => e.tipo === "promozione"
-            ? `<span class="record-nuovo" data-evento="promozione">⬆️ promozione</span>`
-            : `<span class="record-pari" data-evento="retrocessione">⬇️ retrocessione</span>`).join(" ")}
+            ? `<span class="record-nuovo" data-evento="promozione">promozione</span>`
+            : `<span class="record-pari" data-evento="retrocessione">retrocessione</span>`).join(" ")}
         </div>
         ${s.inizioIncerto ? `<div style="font-size:12px; color:var(--muted); margin:-4px 0 12px; line-height:1.5;">
           È la prima serata dell'archivio, e quasi certamente non è intera: le partite giocate prima
@@ -4782,7 +4789,6 @@ document.addEventListener("keydown", (e) => {
   const el = document.getElementById("crestBadge");
   const club = DATA.club || {};
   const initials = (club.name || "?").slice(0, 2).toUpperCase();
-  el.style.background = "linear-gradient(145deg, var(--accent), var(--accent-dark))";
   el.textContent = initials;
 })();
 
@@ -4806,24 +4812,28 @@ const PAGINE_TRASLOCATE = {
   crescita: "giocatori",   // la sezione Crescita non esiste piu': i suoi dati stanno in tabella
 };
 
+// Icone a tratto (stesso disegno ovunque: barra laterale, barra in basso, menu "Altro").
+// `gruppo` raggruppa le voci nel menu; `tab` marca le quattro sempre in primo piano sul
+// telefono. Le emoji di prima sono state tolte il 04/11/2026: cambiavano stile da un
+// sistema all'altro e non si lasciavano colorare con lo stato attivo.
 const PAGES = [
-  { key: "home", icon: "🏠", label: "Home" },
-  { key: "giocatori", icon: "🧑‍🤝‍🧑", label: "Giocatori" },
-  { key: "carriera", icon: "📜", label: "Carriera" },
-  { key: "record", icon: "🏆", label: "Record" },
-  { key: "forza", icon: "💪", label: "Indice di Forza" },
-  { key: "formazione", icon: "⚽", label: "Formazione" },
-  { key: "riepilogo", icon: "🎁", label: "Riepilogo" },
-  { key: "avversari", icon: "🆚", label: "Avversari" },
-  { key: "diagnosi", icon: "🔍", label: "Vittorie e sconfitte" },
-  { key: "osservatore", icon: "🗒️", label: "Scheda osservatore" },
-  { key: "serate", icon: "🌙", label: "Serate" },
-  { key: "partite", icon: "📅", label: "Partite" },
+  { key: "home", label: "Home", gruppo: "Squadra", tab: true, d: "M3 11l9-8 9 8M5 9.5V20h5v-6h4v6h5V9.5" },
+  { key: "partite", label: "Partite", gruppo: "Squadra", tab: true, d: "M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM3 10h18M8 3v4M16 3v4" },
+  { key: "serate", label: "Serate", gruppo: "Squadra", tab: true, d: "M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" },
+  { key: "avversari", label: "Avversari", gruppo: "Squadra", d: "M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" },
+  { key: "record", label: "Record", gruppo: "Squadra", d: "M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4M12 13v4M8 20h8" },
+  { key: "giocatori", label: "Giocatori", gruppo: "Giocatori", tab: true, d: "M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.2a6.5 6.5 0 0 1 3.5 5.8" },
+  { key: "forza", label: "Indice di Forza", gruppo: "Giocatori", d: "M13 2L4 14h7l-1 8 9-12h-7l1-8z" },
+  { key: "formazione", label: "Formazione", gruppo: "Giocatori", d: "M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM12 5v14M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z" },
+  { key: "osservatore", label: "Scheda osservatore", gruppo: "Giocatori", d: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" },
+  { key: "carriera", label: "Carriera", gruppo: "Giocatori", d: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" },
+  { key: "riepilogo", label: "Riepilogo", gruppo: "Analisi", d: "M4 20V10M10 20V4M16 20v-8M22 20H2" },
+  { key: "diagnosi", label: "Vittorie e sconfitte", gruppo: "Analisi", d: "M12 3v18M6 21h12M5 7h14M5 7l-3 7a3 3 0 0 0 6 0L5 7zM19 7l-3 7a3 3 0 0 0 6 0l-3-7z" },
   // Solo sulla pagina FC26: è un pagellone congelato a fine stagione, non una sezione che
   // ha senso su un titolo diverso (FC27 compreso). Niente da mostrare, niente voce di menu -
   // altrimenti sarebbe un link che porta a una pagina vuota, esattamente quello che
   // PAGINE_TRASLOCATE esiste per evitare dall'altro lato.
-  { key: "pagellone", icon: "📰", label: "Pagellone FC26" },
+  { key: "pagellone", label: "Pagellone FC26", gruppo: "Analisi", d: "M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7" },
 ].filter(p => Object.values(PAGE_MAP).includes(p.key) && (p.key !== "pagellone" || DATA.pagelloneFC26));
 
 function showPage(pageKey){
@@ -4834,11 +4844,19 @@ function showPage(pageKey){
     if(!el) return;
     el.classList.toggle("page-hidden", PAGE_MAP[sectionId] !== pageKey);
   });
-  document.querySelectorAll("#navLinks a").forEach(l => l.classList.toggle("active", l.dataset.page === pageKey));
+  document.querySelectorAll("#navLinks a, #tabBar [data-page]").forEach(l => l.classList.toggle("active", l.dataset.page === pageKey));
+  // "Altro" si accende quando la pagina aperta non e' una delle quattro in primo piano.
+  const altro = document.getElementById("tabAltro");
+  if(altro) altro.classList.toggle("active", !PAGES.some(p => p.tab && p.key === pageKey));
+  const titolo = document.getElementById("pageTitle");
+  const voce = PAGES.find(p => p.key === pageKey);
+  if(titolo && voce) titolo.textContent = voce.label;
   window.scrollTo(0, 0);
   if(location.hash.slice(1) !== pageKey) history.replaceState(null, "", "#" + pageKey);
   eseguiInAttesa(pageKey);
 }
+
+const icona = (d, n) => `<svg width="${n}" height="${n}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
 
 function openDrawer(){
   document.getElementById("sideDrawer").classList.add("open");
@@ -4861,7 +4879,12 @@ document.addEventListener("change", e => {
 
 (function renderNav(){
   const el = document.getElementById("navLinks");
-  el.innerHTML = PAGES.map(p => `<a href="#${p.key}" data-page="${p.key}">${p.icon} ${p.label}</a>`).join("");
+  let html = "", gruppoCorrente = null;
+  PAGES.forEach(p => {
+    if(p.gruppo !== gruppoCorrente){ gruppoCorrente = p.gruppo; html += `<div class="nav-grp">${p.gruppo}</div>`; }
+    html += `<a href="#${p.key}" data-page="${p.key}">${icona(p.d, 20)}<span>${p.label}</span></a>`;
+  });
+  el.innerHTML = html;
   el.querySelectorAll("a").forEach(a => {
     a.addEventListener("click", (e) => {
       e.preventDefault();
@@ -4870,7 +4893,16 @@ document.addEventListener("change", e => {
     });
   });
 
-  document.getElementById("hamburgerBtn").addEventListener("click", openDrawer);
+  // Barra in basso (solo telefono): le quattro pagine d'uso quotidiano + "Altro", che
+  // apre il menu completo come pannello dal basso.
+  const tab = document.getElementById("tabBar");
+  tab.innerHTML = PAGES.filter(p => p.tab).map(p =>
+    `<a href="#${p.key}" data-page="${p.key}">${icona(p.d, 22)}<span>${p.label}</span></a>`).join("") +
+    `<button type="button" id="tabAltro" aria-haspopup="dialog">${icona("M4 7h16M4 12h16M4 17h16", 22)}<span>Altro</span></button>`;
+  tab.querySelectorAll("a").forEach(a => a.addEventListener("click", (e) => {
+    e.preventDefault(); showPage(a.dataset.page); closeDrawer();
+  }));
+  document.getElementById("tabAltro").addEventListener("click", openDrawer);
   document.getElementById("drawerClose").addEventListener("click", closeDrawer);
   document.getElementById("drawerOverlay").addEventListener("click", closeDrawer);
   document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeDrawer(); });
@@ -4982,3 +5014,23 @@ document.addEventListener("change", e => {
     if(!e.target.closest("#navSearchWrap")) results.classList.remove("open");
   });
 })();
+
+// ---- "Aggiornato il ..." leggibile (04/11/2026) ----
+// Il valore che scrive il generatore e' un istante ISO con microsecondi, illeggibile cosi'
+// com'e'. Qui lo si mostra come giorno e ora in Italia; se non e' una data valida resta
+// il testo originale, mai una data inventata.
+(function dataAggiornamento(){
+  const el = document.getElementById("aggiornato");
+  if(!el) return;
+  const d = new Date(el.dataset.iso);
+  if(isNaN(d.getTime())) return;
+  const giorno = d.toLocaleDateString("it-IT", { day: "numeric", month: "long", timeZone: "Europe/Rome" });
+  const ora = d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+  el.textContent = `Aggiornato il ${giorno} alle ${ora}`;
+})();
+
+// ---- "solo giocatori con almeno N partite": se N e' 0 la frase non dice niente ----
+document.querySelectorAll(".h2-sub").forEach(el => {
+  if(/ · solo giocatori con almeno 0 partite/.test(el.textContent))
+    el.textContent = el.textContent.replace(" · solo giocatori con almeno 0 partite", "");
+});

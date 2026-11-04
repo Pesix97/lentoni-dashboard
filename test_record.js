@@ -229,7 +229,7 @@ const num = s => { const m = String(s).match(/-?\d+(?:\.\d+)?/); return m ? pars
     const P = ultima.matchIds.map(id => partite.find(m => m.match_id === id));
     const v = P.filter(m => m.win).length, l = P.filter(m => m.loss).length;
     const esito = T(corpo.querySelector('[data-riga="esito"]'));
-    if (!esito.startsWith(`⚽ ${P.length} partit`)) errR.push(`esito: "${esito}", attese ${P.length} partite`);
+    if (!esito.startsWith(`${P.length} partit`)) errR.push(`esito: "${esito}", attese ${P.length} partite`);
     if (v && !esito.includes(`${v} vint`)) errR.push(`esito: "${esito}", attese ${v} vinte`);
     if (l && !esito.includes(`${l} pers`)) errR.push(`esito: "${esito}", attese ${l} perse`);
     const gf = P.reduce((t, m) => t + m.goals_for, 0), gs = P.reduce((t, m) => t + m.goals_against, 0);

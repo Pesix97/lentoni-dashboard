@@ -9,89 +9,92 @@
 </head>
 <body>
 
-<nav id="topNav">
-  <button id="hamburgerBtn" aria-label="Apri menu">☰</button>
-  <span class="brand">__CLUB_NAME__</span>
-  __SELETTORE_TITOLI__
-</nav>
-
-<div id="drawerOverlay"></div>
-<aside id="sideDrawer">
-  <div class="drawer-head">
-    <span class="drawer-title">__CLUB_NAME__</span>
-    <button id="drawerClose" aria-label="Chiudi menu">✕</button>
+<aside id="sideDrawer" aria-label="Menu">
+  <div class="side-brand">
+    <div class="crest" id="crestBadge"></div>
+    <div class="side-brand-txt">
+      <h1>__CLUB_NAME__</h1>
+      <div class="side-sub">__PLATFORM__ · Divisione __DIVISION__</div>
+    </div>
+    <button id="drawerClose" aria-label="Chiudi menu">&#10005;</button>
   </div>
   <div id="navSearchWrap">
-    <input type="text" id="navSearch" placeholder="🔍 Cerca giocatore o avversario...">
+    <input type="text" id="navSearch" placeholder="Cerca giocatore o avversario" aria-label="Cerca giocatore o avversario" autocomplete="off">
     <div id="navSearchResults"></div>
   </div>
   <div id="navLinks"></div>
 </aside>
+<div id="drawerOverlay"></div>
 
 <div id="playerModalOverlay">
   <div id="playerModal" role="dialog" aria-modal="true"></div>
 </div>
 
-<div class="header-row">
-  <div class="crest" id="crestBadge"></div>
-  <div>
-    <h1>__CLUB_NAME__</h1>
-    <div class="sub">__PLATFORM__ · Divisione __DIVISION__ · Aggiornato al __UPDATED_AT__</div>
+<div id="appMain">
+<header id="topNav">
+  <div class="top-txt">
+    <div id="pageTitle">Home</div>
+    <div class="sub" id="aggiornato" data-iso="__UPDATED_AT__">Aggiornato al __UPDATED_AT__</div>
   </div>
-</div>
+  __SELETTORE_TITOLI__
+</header>
+<main id="content">
 
-<section id="resoconto">
-  <div id="resocontoBody"></div>
+
+
+
+
+
+
+<section class="two-col" id="andamento">
+  <div>
+    <h2>Andamento skill rating</h2>
+    <div class="seg" id="historyRange" role="group" aria-label="Periodo"></div>
+    <div class="panel">
+      <div class="hero-head"><div><div class="hero-k">Skill rating</div><div class="hero-v" id="heroRating"></div></div><span class="chip" id="heroDelta"></span></div>
+      <canvas id="chartHistory"></canvas>
+      <div id="historyRiepilogo" style="font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5;"></div>
+    </div>
+  </div>
+  <div>
+    <h2>Piazzamenti per divisione <span class="h2-sub">storico all-time</span></h2>
+    <div class="panel"><canvas id="chartFinishes"></canvas></div>
+  </div>
 </section>
-
 <section id="overview">
   <div class="grid-cards" id="cards"></div>
 </section>
-
+<div class="home-duo">
+<section id="resoconto">
+  <div id="resocontoBody"></div>
+</section>
 <section id="novita">
-  <h2>Novità dall'ultima serata <span class="h2-sub">— confronto con la serata precedente</span></h2>
+  <h2>Novità dall'ultima serata <span class="h2-sub">confronto con la serata precedente</span></h2>
   <div id="newsBody"></div>
 </section>
-
+</div>
 <section id="forma">
   <h2>Forma recente</h2>
   <div class="panel">
     <div class="form-strip" id="formStrip"></div>
   </div>
 </section>
-
 <section id="condividi">
   <details class="pieghevole">
-    <summary>Condividi <span class="h2-sub">— genera un'immagine da mandare nel gruppo</span></summary>
+    <summary>Condividi <span class="h2-sub">genera un'immagine da mandare nel gruppo</span></summary>
     <div class="panel">
       <div class="share-row">
-        <button class="share-btn" id="shareDownloadBtn">📥 Scarica immagine</button>
-        <button class="share-btn ghost" id="shareNativeBtn" style="display:none;">📤 Condividi</button>
-        <button class="share-btn ghost" id="shareCopyBtn">🔗 Copia link</button>
+        <button class="share-btn" id="shareDownloadBtn">Scarica immagine</button>
+        <button class="share-btn ghost" id="shareNativeBtn" style="display:none;">Condividi</button>
+        <button class="share-btn ghost" id="shareCopyBtn">Copia link</button>
         <span id="shareMsg" style="font-size:12.5px; color:var(--muted);"></span>
       </div>
       <div class="share-preview"><canvas id="shareCanvas" width="1000" height="1000"></canvas></div>
     </div>
   </details>
 </section>
-
-<section class="two-col" id="andamento">
-  <div>
-    <h2>Andamento skill rating</h2>
-    <div class="filter-bar" id="historyRange"></div>
-    <div class="panel">
-      <canvas id="chartHistory"></canvas>
-      <div id="historyRiepilogo" style="font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5;"></div>
-    </div>
-  </div>
-  <div>
-    <h2>Piazzamenti per divisione (storico all-time)</h2>
-    <div class="panel"><canvas id="chartFinishes"></canvas></div>
-  </div>
-</section>
-
 <section id="giocatori">
-  <h2>Giocatori <span class="h2-sub">— rosa, classifiche e confronto · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
+  <h2>Giocatori <span class="h2-sub">rosa, classifiche e confronto · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
   <div class="panel">
     <input type="text" class="filter" id="rosterFilter" placeholder="Filtra giocatore...">
     <div class="filter-bar" id="rosterQuickFilters">
@@ -121,7 +124,7 @@
     </div>
   </div>
 
-  <h2 id="confronto-giocatori">Testa a testa <span class="h2-sub">— perché uno sta più in alto dell'altro</span></h2>
+  <h2 id="confronto-giocatori">Testa a testa <span class="h2-sub">perché uno sta più in alto dell'altro</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -158,7 +161,7 @@
 </section>
 
 <section id="carriera">
-  <h2>Carriera <span class="h2-sub">— nel club: tutti i titoli insieme, o uno alla volta</span></h2>
+  <h2>Carriera <span class="h2-sub">nel club: tutti i titoli insieme, o uno alla volta</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -207,7 +210,7 @@
 </section>
 
 <section id="record">
-  <h2>Record <span class="h2-sub">— della squadra e dei giocatori, in questo titolo</span></h2>
+  <h2>Record <span class="h2-sub">della squadra e dei giocatori, in questo titolo</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -230,7 +233,7 @@
 </section>
 
 <section id="forza">
-  <h2>Indice di Forza <span class="h2-sub">— chi è più forte/decisivo, calcolato da un algoritmo · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
+  <h2>Indice di Forza <span class="h2-sub">chi è più forte/decisivo, calcolato da un algoritmo · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px; border-left:3px solid var(--accent);">
@@ -246,7 +249,7 @@
       </div>
     </div>
   </details>
-  <h3 style="margin:22px 0 10px; font-size:17px;">Generale <span class="h2-sub">— tutta la rosa insieme, sulle carriere complete</span></h3>
+  <h3 style="margin:22px 0 10px; font-size:17px;">Generale <span class="h2-sub">tutta la rosa insieme, sulle carriere complete</span></h3>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -365,7 +368,7 @@
   </div>
 
   <h3 id="per-reparto" style="margin:34px 0 4px; font-size:17px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:24px; scroll-margin-top:70px;">
-    Reparto per reparto <span class="h2-sub">— chi incide di più tra i pari ruolo</span>
+    Reparto per reparto <span class="h2-sub">chi incide di più tra i pari ruolo</span>
   </h3>
   <div id="daConfermare"></div>
   <details class="spiega">
@@ -407,7 +410,7 @@
 </section>
 
 <section id="formazione">
-  <h2>Formazione tipo <span class="h2-sub">— modulo 3-4-1-2, i migliori disponibili per ruolo secondo i dati reali</span></h2>
+  <h2>Formazione tipo <span class="h2-sub">modulo 3-4-1-2, i migliori disponibili per ruolo secondo i dati reali</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -440,7 +443,7 @@
 
 
 <section id="riepilogo">
-  <h2>Riepilogo periodo tracciato <span class="h2-sub">— dalle partite presenti nel database</span></h2>
+  <h2>Riepilogo periodo tracciato <span class="h2-sub">dalle partite presenti nel database</span></h2>
   <div class="wrapped-grid" id="wrappedGrid"></div>
   <div class="panel" style="margin-top:16px;">
     <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Distribuzione dei risultati per margine di gol</div>
@@ -449,7 +452,7 @@
 </section>
 
 <section id="avversari">
-  <h2>Avversari <span class="h2-sub">— bilancio contro ogni club affrontato</span></h2>
+  <h2>Avversari <span class="h2-sub">bilancio contro ogni club affrontato</span></h2>
   <div class="panel" id="livelloAvversari" style="margin-bottom:16px;"></div>
   <div class="grid-cards" id="opponentCards" style="margin-bottom:16px;"></div>
   <div class="panel">
@@ -474,7 +477,7 @@
 </section>
 
 <section id="diagnosi">
-  <h2>Vittorie e sconfitte <span class="h2-sub">— cosa cambia davvero quando perdiamo</span></h2>
+  <h2>Vittorie e sconfitte <span class="h2-sub">cosa cambia davvero quando perdiamo</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -497,7 +500,7 @@
 </section>
 
 <section id="osservatore">
-  <h2>Scheda osservatore <span class="h2-sub">— che giocatore è, non quanto vale</span></h2>
+  <h2>Scheda osservatore <span class="h2-sub">che giocatore è, non quanto vale</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -516,14 +519,14 @@
   <div class="filter-bar" id="ossGiocatori"></div>
   <div id="ossCuriosita"></div>
   <h3 style="margin:26px 0 4px; font-size:16px; border-top:1px solid var(--panel-2,rgba(255,255,255,.08)); padding-top:22px;">
-    Confronto <span class="h2-sub">— scegli con chi</span>
+    Confronto <span class="h2-sub">scegli con chi</span>
   </h3>
   <div class="filter-bar" id="ossMetro"></div>
   <div id="ossConfronto"></div>
 </section>
 
 <section id="pagellone">
-  <h2>Pagellone FC26 <span class="h2-sub">— i voti di fine stagione, elogi e frecciate comprese</span></h2>
+  <h2>Pagellone FC26 <span class="h2-sub">i voti di fine stagione, elogi e frecciate comprese</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -543,7 +546,7 @@
 </section>
 
 <section id="serate">
-  <h2>Serate <span class="h2-sub">— com'è andata sessione per sessione</span></h2>
+  <h2>Serate <span class="h2-sub">com'è andata sessione per sessione</span></h2>
   <details class="spiega">
     <summary>Come funziona</summary>
     <div class="panel" style="margin-bottom:12px;">
@@ -560,7 +563,7 @@
 </section>
 
 <section id="partite">
-  <h2>Partite <span class="h2-sub">— storico costruito dagli aggiornamenti automatici</span></h2>
+  <h2>Partite <span class="h2-sub">storico costruito dagli aggiornamenti automatici</span></h2>
   <div class="panel" id="salutePanel" style="margin-bottom:12px;"></div>
   <div class="panel">
     <div class="table-wrap">
@@ -574,7 +577,11 @@
   </div>
 </section>
 
+</main>
 <div class="footer-note">Dati dalle API pubbliche (non ufficiali) di EA — proclubs.ea.com. Generato localmente, nessun dato inviato a terzi.</div>
+
+</div>
+<nav id="tabBar" aria-label="Sezioni"></nav>
 
 <script>__SCRIPT__</script>
 </body>

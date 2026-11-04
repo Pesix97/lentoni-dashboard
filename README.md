@@ -399,6 +399,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `modello/stile.css` | Tutto il CSS. |
 | `modello/pagina.js` | Tutta la logica che gira nel browser. **File .js vero**: `node --check` lo verifica. |
 | `modello/chart.umd.min.js` | Chart.js 4.4.0, vendorizzato (non più da CDN dal 30/09/2026 — vedi sotto). |
+| `modello/geist-sub.woff2` | Font Geist (solo caratteri latini, 24 KB), incorporato nella pagina come data URI al posto di `__FONT_GEIST__` in `stile.css`: la pagina resta un file solo e non chiede nulla a terzi. Per questo la CSP ha `font-src data:`. |
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. Con `--solo-avvio` segna solo «sono partito» ed esce, senza toccare la fonte. |
 | `potatura.py` | Toglie dal database il grezzo di EA che nessuno legge più. Era il **77%** del peso, e il database intero viene committato ad ogni giro con novità. |
 | `battito.py` | Lo stato dell'automazione, con la memoria dei guasti. Il ramo `stato` ha un commit solo per scelta, quindi il registro vive dentro il file: una voce per ogni **cambiamento**, non per ogni giro. |

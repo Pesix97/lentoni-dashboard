@@ -1651,3 +1651,41 @@ basta dirlo a occhio: misurarlo):** rendimento in superiorità e in parità nume
 concessi, se il possesso porta risultati, e le vittorie per ritiro da segnare (ed escludere dai
 record: oggi contano come le altre). Prima di costruire, la domanda di sempre: i dati bastano?
 
+**Terzo restyling: interfaccia "grafite" sobria, con barra laterale (04/11/2026).** Dopo le tre
+direzioni scartate (troppo "a tema"), Peppe ha chiesto un'interfaccia seria ma facile da usare,
+sempre scura, e ha approvato la seconda proposta ("direzione giusta") con una richiesta: pagina
+da telefono meglio organizzata. Cosa e' cambiato, e perche':
+
+- **Struttura.** Barra laterale fissa su schermi larghi (>= 901px); sul telefono una barra in
+  basso con le quattro pagine d'uso quotidiano (Home, Partite, Serate, Giocatori) e "Altro", che
+  apre il menu completo come pannello dal basso. Il menu a hamburger e' sparito. `#sideDrawer`,
+  `#navLinks`, `#navSearch` e `#drawerOverlay` sono rimasti con gli stessi id: sono l'unico
+  elemento che cambia forma fra i due schermi, non due menu da tenere allineati.
+- **Un solo colore d'accento** (azzurro `#6ea2ff`); `--accent-2` e' ora uguale a `--accent` apposta,
+  cosi' tutte le regole che li usavano insieme restano valide. Il resto del colore e' per i
+  significati: vittoria, sconfitta, pareggio, oro.
+- **Ruoli: pallino + testo**, non piu' pillola piena. Il centrocampista e' verde acqua e non
+  azzurro (come nella bozza di design) perche' l'azzurro e' l'unico accento della pagina e i due
+  si sarebbero confusi.
+- **Font Geist incorporato** (`modello/geist-sub.woff2`, data URI). Ha richiesto `font-src data:`
+  nella CSP; jsdom non applica la CSP, quindi il font va verificato in un Chromium vero (fatto:
+  `document.fonts.check` vero, nessun errore di CSP in console).
+- **Home riordinata**: andamento del rating in testa (numero grande + variazione nel periodo),
+  poi le schede (lo skill rating e' uscito dalla fila perche' e' gia' il numero grande), resoconto
+  e novita', forma recente. La forma e' ora una fila di barrette (212 partite non stanno piu' in
+  sette righe di quadrati), con la lettera ancora nel DOM ma invisibile.
+- **Date**: "Aggiornato il 4 novembre alle 01:31" (ora italiana) al posto dell'istante ISO con
+  microsecondi. Se la data non si legge resta il testo originale, mai una data inventata. Le
+  etichette dell'asse del grafico sono corte; l'intera, con l'ora, resta nel tooltip.
+- **Telefono, classifiche**: le tabelle con la colonna del rango diventano righe compatte (nome in
+  evidenza, il resto su una riga che va a capo) invece di una scheda alta quasi una schermata a
+  giocatore. Le barre dei filtri scorrono in orizzontale. Due commenti di Peppe sulla bozza
+  (blocco "Ordina per" confuso, numeri dei gol troppo grandi) sono stati recepiti qui, non nella
+  tavola di design.
+- **Emoji**: tolte da navigazione, resoconto, pulsanti e intestazioni; restano medaglie dei primi
+  tre, icone dei traguardi nella scheda giocatore e `⭐` dei migliori in campo, perche' portano
+  un significato. `test_record.js` non cerca piu' il `⚽` all'inizio della riga dell'esito.
+- **Frase "solo giocatori con almeno 0 partite"** nascosta quando la soglia e' 0.
+
+Non ancora fatto: i tab della Home su telefono (andamento / serata / forma in schede separate) e
+la sezione "Piazzamenti" come blocco proprio; senza piazzamenti registrati il riquadro sparisce.

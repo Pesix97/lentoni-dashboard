@@ -378,7 +378,9 @@ function puntiDaTesto(t, sinistra) {
     clic(`#roleMinFilters [data-min="${minimo}"]`);
     d.querySelectorAll("#roleBoards .panel").forEach(pan => {
       const titolo = T(pan.querySelector("h3")); if (!titolo) return;
-      const g = ETI[titolo.split(" — ")[0].replace(/^\S+\s/, "").trim()]; if (!g) return;
+      // L'intestazione e' "<Reparto> N giocatori" (fino al 04/11/2026 portava un'icona davanti
+      // e un trattino): si riconosce dal nome del reparto, qualunque cosa lo accompagni.
+      const g = ETI[Object.keys(ETI).find(k => titolo.startsWith(k))]; if (!g) return;
       const pool = TUTTI.filter(x => x.g === g && x.games >= minimo); if (!pool.length) return;
       const partite = pool.map(x => x.games), sm = {};
       ["rating", "contrib", "motmPct", "tech", "disc"].forEach(k => { sm[k] = versoLaMedia(pool.map(x => x[k]), partite); });
