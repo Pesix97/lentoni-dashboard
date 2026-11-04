@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-COSoMomaB0rbWaznkvrT5RkUYzZ4WXt/adOD42bW2uQ='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-N8F26rwLEbuF4fH6NA29/MocwIw82eHVBGk9rZn2XNg='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -1340,8 +1340,7 @@ canvas{max-height:340px;}
 </section>
 
 <section id="partite">
-  <h2>Partite <span class="h2-sub">storico costruito dagli aggiornamenti automatici</span></h2>
-  <div class="panel" id="salutePanel" style="margin-bottom:12px;"></div>
+  <h2>Partite</h2>
   <div class="panel">
     <div class="table-wrap">
       <table id="matchesTable" class="responsive-table">
@@ -4178,95 +4177,6 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
     ${senzaDati > 0 ? `<div style="font-size:12px; color:var(--muted); margin-top:10px;">
       ${senzaDati} ${senzaDati === 1 ? "partita è esclusa" : "partite sono escluse"} perché il livello di
       quell'avversario non è ancora stato raccolto.</div>` : ""}`;
-})();
-
-// ---- Salute dell'archivio ----
-// EA fornisce il dettaglio per giocatore solo delle ultime 10 partite, ma tiene un
-// contatore cumulativo di quelle giocate. La differenza tra i due dice quante partite
-// non siamo riusciti ad archiviare: e' l'unico modo di accorgersi di un buco, perche'
-// una partita persa non lascia altre tracce.
-(function renderSalute(){
-  const el = document.getElementById("salutePanel");
-  const sa = DATA.saluteArchivio;
-  if(!el) return;
-  // Un titolo chiuso non riceve piu' scaricamenti: "salute dell'archivio" e' un
-  // monitoraggio di cio' che succede ADESSO, e su un titolo chiuso non ha piu' senso
-  // dirlo con lo stesso riquadro di uno attivo (vedi titoloChiuso in generate_dashboard.py).
-  // I numeri restano quelli veri e definitivi di quella stagione; sparisce solo la parte
-  // sulle "ultime 48 ore", che qui non vuol dire niente perche' non arrivera' mai un
-  // prossimo giro a smentirla o confermarla.
-  if(DATA.titoloChiuso){
-    if(!sa || sa.attese === null || sa.attese === undefined){
-      el.innerHTML = `<div style="font-size:13px; color:var(--muted);">
-        <strong style="color:var(--text);">${(DATA.matches || []).length} partite archiviate.</strong>
-        Titolo chiuso: non ha ricevuto abbastanza scaricamenti per stimare quante ne siano sfuggite.</div>`;
-      return;
-    }
-    const percChiuso = sa.attese > 0 ? Math.round((sa.archiviateDaPrimoSnapshot / sa.attese) * 100) : 100;
-    const coloreChiuso = percChiuso >= 90 ? "var(--ok,#4ade80)" : (percChiuso >= 60 ? "var(--tie)" : "var(--loss)");
-    el.innerHTML = `
-      <div style="font-size:13px; line-height:1.6;">
-        <strong style="color:var(--text);">${sa.archiviate} partite archiviate</strong> in totale,
-        su ${sa.giocateEA} giocate dal club secondo EA prima della chiusura di questo titolo.
-        <br>
-        Dal ${new Date(sa.daQuando).toLocaleDateString("it-IT", { day:"2-digit", month:"long" })} il club ha
-        giocato <strong style="color:var(--text);">${sa.attese}</strong> partite e ne abbiamo
-        salvate <strong style="color:${coloreChiuso};">${sa.archiviateDaPrimoSnapshot}</strong> (${percChiuso}%).
-        ${sa.divario > 0 ? `<br><span style="color:var(--muted);">Il contatore di EA ne conta
-          <strong>${sa.divario}</strong> in più di quelle che abbiamo in archivio. Non possiamo sapere
-          da qui perché: o sono uscite dalle ultime 10 che EA mostra prima che le scaricassimo, o EA le
-          ha contate senza mai pubblicarle nell'elenco (vittoria a tavolino, avversario disconnesso).</span>` : ``}
-        <div style="background:var(--panel-2,rgba(255,255,255,.06)); border-radius:4px; height:8px; margin:10px 0;">
-          <div style="width:${Math.min(100, percChiuso)}%; height:8px; border-radius:4px; background:${coloreChiuso};"></div>
-        </div>
-        <span style="color:var(--muted);">Titolo chiuso: l'archivio non riceve più aggiornamenti, questi numeri sono definitivi.</span>
-      </div>`;
-    return;
-  }
-  if(!sa || sa.attese === null || sa.attese === undefined){
-    el.innerHTML = `<div style="font-size:13px; color:var(--muted);">
-      <strong style="color:var(--text);">${(DATA.matches || []).length} partite archiviate.</strong>
-      Servono almeno due aggiornamenti per stimare quante ne siano sfuggite.</div>`;
-    return;
-  }
-  const perc = sa.attese > 0 ? Math.round((sa.archiviateDaPrimoSnapshot / sa.attese) * 100) : 100;
-  const colore = perc >= 90 ? "var(--ok,#4ade80)" : (perc >= 60 ? "var(--tie)" : "var(--loss)");
-  const recente = sa.divarioRecente;
-  // Le partite gia' presenti nella finestra di EA al primo scaricamento: sono in archivio
-  // ma NON entrano nella percentuale, perche' quella confronta cio' che abbiamo salvato con
-  // cio' che e' stato giocato nello stesso periodo. Contarle al numeratore e non al
-  // denominatore gonfierebbe il risultato con partite che nessuno ha dovuto salvare.
-  //
-  // Senza dirlo, pero', i due numeri sembrano contraddirsi - "108 archiviate" sopra e "ne
-  // abbiamo salvate 98" sotto - ed e' la prima cosa che ha chiesto chi legge (29/08/2026).
-  const inRegalo = (sa.archiviate || 0) - (sa.archiviateDaPrimoSnapshot || 0);
-  el.innerHTML = `
-    <div style="font-size:13px; line-height:1.6;">
-      <strong style="color:var(--text);">${sa.archiviate} partite archiviate</strong> in totale,
-      su ${sa.giocateEA} giocate dal club secondo EA.
-      <br>
-      Dal ${new Date(sa.daQuando).toLocaleDateString("it-IT", { day:"2-digit", month:"long" })},
-      da quando l'archivio è attivo, il club ha giocato <strong style="color:var(--text);">${sa.attese}</strong> partite
-      e ne abbiamo salvate <strong style="color:${colore};">${sa.archiviateDaPrimoSnapshot}</strong> (${perc}%).
-      ${sa.divario > 0 ? `<br><span style="color:var(--muted);">Il contatore di EA ne conta
-        <strong>${sa.divario}</strong> in più di quelle che abbiamo in archivio. Da qui non si può sapere
-        perché: o sono uscite dalle ultime 10 che EA mostra prima che le scaricassimo (può succedere solo
-        se l'aggiornamento resta fermo per più di circa 3 ore mentre si gioca), o EA le ha contate senza
-        mai pubblicarle nell'elenco (vittoria a tavolino, avversario disconnesso).</span>` : ``}
-      ${inRegalo > 0 ? `<br><span style="color:var(--muted);">In archivio c${inRegalo === 1 ? "'è" : "i sono"} anche
-        <strong>${inRegalo}</strong> partit${inRegalo === 1 ? "a giocata" : "e giocate"} prima del primo scaricamento:
-        ${inRegalo === 1 ? "era" : "erano"} già tra le ultime 10 di EA, quindi ${inRegalo === 1 ? "è" : "sono"} in archivio
-        ma ${inRegalo === 1 ? "resta fuori" : "restano fuori"} dalla percentuale (non le ha salvate l'automazione).
-        Per questo ${sa.giocateEA} giocate − ${inRegalo} = ${sa.attese} attese, non ${sa.giocateEA}.</span>` : ``}
-      <div style="background:var(--panel-2,rgba(255,255,255,.06)); border-radius:4px; height:8px; margin:10px 0;">
-        <div style="width:${Math.min(100, perc)}%; height:8px; border-radius:4px; background:${colore};"></div>
-      </div>
-      ${recente
-        ? `<span style="color:var(--loss);"><strong>${recente} partite delle ultime 48 ore non sono ancora in archivio.</strong></span>
-           EA pubblica i risultati con qualche ora di ritardo, quindi può essere normale: se il numero
-           non scende entro il prossimo aggiornamento, quelle partite sono perse.`
-        : `<span style="color:var(--ok,#4ade80);">Nessuna partita mancante nelle ultime 48 ore.</span>`}
-    </div>`;
 })();
 
 // ---- Formazione tipo: modulo fisso 3-4-1-2, portiere sempre libero ----
