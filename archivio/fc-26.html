@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-N8F26rwLEbuF4fH6NA29/MocwIw82eHVBGk9rZn2XNg='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-Jk2SSyeCuySvtJTqX3iceriBhMAFjYbX2ygVSsVZ7lg='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -731,8 +731,16 @@ button{font-family:inherit;}
 .hero-v:empty{display:none;}
 #historyRiepilogo{font-size:13px !important; line-height:1.55 !important;}
 .home-duo{display:block;}
+/* Schede della Home: solo su telefono. Su schermo largo la barra non c'e' e si vede tutto. */
+.home-tabs-sez{display:none;}
 canvas{max-height:340px;}
 @media (max-width:900px){
+  .home-tabs-sez{display:block;}
+  .home-tabs-sez .seg{display:flex; width:100%;}
+  .home-tabs-sez .seg .filter-btn{flex:1; padding:0 8px; text-align:center;}
+  body[data-home-tab="andamento"] .home-duo, body[data-home-tab="andamento"] #forma, body[data-home-tab="andamento"] #condividi,
+  body[data-home-tab="serata"] #andamento, body[data-home-tab="serata"] #overview, body[data-home-tab="serata"] #forma,
+  body[data-home-tab="forma"] #andamento, body[data-home-tab="forma"] #overview, body[data-home-tab="forma"] .home-duo, body[data-home-tab="forma"] #condividi{display:none;}
   .two-col{grid-template-columns:1fr; gap:0;}
   #cards.grid-cards{grid-template-columns:repeat(2,1fr);}
   .hero-v{font-size:34px;}
@@ -786,7 +794,7 @@ canvas{max-height:340px;}
 }
 </style>
 </head>
-<body>
+<body data-home-tab="andamento">
 
 <aside id="sideDrawer" aria-label="Menu">
   <div class="side-brand">
@@ -823,6 +831,13 @@ canvas{max-height:340px;}
 
 
 
+<section id="homeTabs" class="home-tabs-sez">
+  <div class="seg" role="tablist" aria-label="Sezioni della Home">
+    <button class="filter-btn active" role="tab" aria-selected="true" data-home-tab="andamento">Andamento</button>
+    <button class="filter-btn" role="tab" aria-selected="false" data-home-tab="serata">Serata</button>
+    <button class="filter-btn" role="tab" aria-selected="false" data-home-tab="forma">Forma</button>
+  </div>
+</section>
 <section class="two-col" id="andamento">
   <div>
     <h2>Andamento skill rating</h2>
@@ -6073,7 +6088,7 @@ document.addEventListener("keydown", (e) => {
 // le sezioni di riepilogo generale (overview, forma, andamento); tutte le
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
-  resoconto: "home", overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
+  homeTabs: "home", resoconto: "home", overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
   giocatori: "giocatori", carriera: "carriera", record: "record",
   forza: "forza", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
@@ -6110,6 +6125,19 @@ const PAGES = [
   // PAGINE_TRASLOCATE esiste per evitare dall'altro lato.
   { key: "pagellone", label: "Pagellone FC26", gruppo: "Analisi", d: "M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7" },
 ].filter(p => Object.values(PAGE_MAP).includes(p.key) && (p.key !== "pagellone" || DATA.pagelloneFC26));
+
+// Home su telefono: tre schede (andamento / serata / forma). Su schermo largo la barra e'
+// nascosta dal CSS e si vede tutto insieme; qui si cambia solo l'attributo che il CSS legge.
+function impostaSchedaHome(nome){
+  document.body.dataset.homeTab = nome;
+  document.querySelectorAll("#homeTabs [data-home-tab]").forEach(b => {
+    const on = b.dataset.homeTab === nome;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+}
+document.querySelectorAll("#homeTabs [data-home-tab]").forEach(b =>
+  b.addEventListener("click", () => { impostaSchedaHome(b.dataset.homeTab); window.scrollTo(0, 0); }));
 
 function showPage(pageKey){
   if(PAGINE_TRASLOCATE[pageKey]) pageKey = PAGINE_TRASLOCATE[pageKey];
