@@ -1482,6 +1482,92 @@ class TestCarriera(BaseConArchivio):
         self.assertEqual(sbagliati, [])
 
 
+class TestDatiAvversario(BaseConArchivio):
+    """I dati dell'avversario si archiviano (04/11/2026).
+
+    Fino a quel giorno restavano solo nel grezzo, che si pota dopo quindici partite: ogni
+    sera se ne perdevano altri. Il riferimento di questi test e' il grezzo di EA letto qui,
+    a mano, senza passare da ingest.dati_avversario.
+    """
+
+    def _ingest(self):
+        sys.path.insert(0, str(QUI))
+        import ingest
+        return ingest
+
+    @staticmethod
+    def _dal_grezzo(partita, club_id):
+        noi = str(club_id)
+        loro = [c for c in partita["clubs"] if c != noi][0]
+        aggr = partita.get("aggregate", {}).get(loro, {})
+        intero = lambda v: None if v is None else int(v)
+        return (len(partita["players"].get(noi, {})), len(partita["players"].get(loro, {})),
+                intero(aggr.get("shots")), intero(aggr.get("passesmade")),
+                intero(aggr.get("passattempts")), intero(aggr.get("tacklesmade")),
+                intero(aggr.get("tackleattempts")),
+                intero(partita["clubs"][noi].get("winnerByDnf")),
+                intero(partita["clubs"][loro].get("winnerByDnf")))
+
+    COLONNE = ("own_players, opp_players, opp_shots, opp_passes_made, opp_pass_attempts, "
+               "opp_tackles_made, opp_tackle_attempts, winner_by_dnf, loser_by_dnf")
+
+    def test_un_archivio_vecchio_riceve_le_colonne(self):
+        ing = self._ingest()
+        con = sqlite3.connect(":memory:")
+        con.execute("CREATE TABLE matches (match_id TEXT, club_id INTEGER, raw_json TEXT)")
+        ing.migra(con.cursor())
+        presenti = {r[1] for r in con.execute("PRAGMA table_info(matches)")}
+        mancanti = [c.strip() for c in self.COLONNE.split(",") if c.strip() not in presenti]
+        self.assertEqual(mancanti, [])
+
+    def test_le_partite_nuove_portano_i_dati_dellavversario(self):
+        self._ricostruisci_raw(CLUB_ATTIVO)
+        partite = json.loads((self.raw / "matches_league.json").read_text(encoding="utf-8"))
+        self.assertGreater(len(partite), 0, "nessuna partita con il grezzo: il test non prova niente")
+        ids = [str(p["matchId"]) for p in partite]
+        # Si tolgono dall'archivio, cosi' l'ingest le scrive da capo come partite nuove.
+        con = sqlite3.connect(self.db)
+        segnaposto = ",".join("?" * len(ids))
+        con.execute(f"DELETE FROM match_player_stats WHERE match_id IN ({segnaposto})", ids)
+        con.execute(f"DELETE FROM matches WHERE match_id IN ({segnaposto})", ids)
+        con.commit(); con.close()
+        esegui("ingest.py", "--raw-dir", str(self.raw), "--db", str(self.db))
+        con = sqlite3.connect(self.db)
+        diversi = []
+        for p in partite:
+            visto = con.execute(f"SELECT {self.COLONNE} FROM matches WHERE match_id=? AND club_id=?",
+                                (str(p["matchId"]), CLUB_ATTIVO)).fetchone()
+            atteso = self._dal_grezzo(p, CLUB_ATTIVO)
+            if tuple(visto or ()) != atteso:
+                diversi.append((p["matchId"], visto, atteso))
+        con.close()
+        self.assertEqual(diversi, [])
+
+    def test_le_partite_gia_archiviate_si_recuperano_dal_grezzo(self):
+        ing = self._ingest()
+        con = sqlite3.connect(self.db)
+        cur = con.cursor()
+        ing.migra(cur)
+        cur.execute("UPDATE matches SET opp_players = NULL")
+        ing.recupera_avversario(cur)
+        con.commit()
+        diversi, con_grezzo = [], 0
+        for mid, cid, grezzo, *visto in cur.execute(
+                f"SELECT match_id, club_id, raw_json, {self.COLONNE} FROM matches").fetchall():
+            if grezzo is None:
+                # Senza grezzo il dato non c'e': resta vuoto, non diventa zero.
+                if visto[1] is not None:
+                    diversi.append((mid, "senza grezzo ma con un valore", visto))
+                continue
+            con_grezzo += 1
+            atteso = self._dal_grezzo(json.loads(grezzo), cid)
+            if tuple(visto) != atteso:
+                diversi.append((mid, tuple(visto), atteso))
+        con.close()
+        self.assertGreater(con_grezzo, 0, "nessuna partita con il grezzo: il test non prova niente")
+        self.assertEqual(diversi, [])
+
+
 class TestPotatura(unittest.TestCase):
     """La potatura del grezzo, aggiunta il 28/08/2026.
 

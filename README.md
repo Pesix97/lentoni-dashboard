@@ -408,7 +408,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. Con `--completa` misura tutte le voci, anche i pezzi della tecnica, con la divisione pari/dispari e un intervallo al 90% (ultimi risultati in `APPUNTI.md`, punto 5). |
-| `test_pipeline.py` | 116 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli. |
+| `test_pipeline.py` | 119 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli, i dati dell'avversario scritti per le partite nuove e recuperati dal grezzo per quelle già archiviate. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 120 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
@@ -1613,7 +1613,14 @@ sull'automazione: il runner di GitHub fa un checkout pulito a ogni giro.
 - `club_stats_history` — uno snapshot per ogni cambiamento reale (W/L/T, gol, skill rating,
   piazzamenti). Le esecuzioni che non trovano novità non lasciano traccia.
 - `member_stats_history` — stessa logica, per ogni giocatore.
-- `matches` — una riga per partita, deduplicata su `match_id`.
+- `matches` — una riga per partita, deduplicata su `match_id`. Dal 04/11/2026 anche i dati
+  dell'**avversario**: giocatori veri in campo per parte (`own_players`, `opp_players`; EA
+  elenca solo gli umani), i totali della squadra avversaria (`opp_shots`, `opp_passes_made`,
+  `opp_pass_attempts`, `opp_tackles_made`, `opp_tackle_attempts`) e le partite finite per
+  ritiro (`winner_by_dnf` se si è ritirato l'avversario, `loser_by_dnf` se ci siamo ritirati
+  noi). Prima restavano solo nel grezzo, che si pota dopo quindici partite: quelle quindici
+  sono state recuperate, le precedenti sono perse. Dove EA non manda il dato la colonna resta
+  vuota, mai zero.
 - `match_player_stats` — statistiche per giocatore per partita.
 - `opponent_clubs` — livello dei club affrontati.
 

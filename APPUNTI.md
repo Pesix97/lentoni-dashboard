@@ -1632,3 +1632,22 @@ l'ultima), con il permesso di Peppe. Dettagli nel README, «Carriera nel club».
 Nell'archivio di FC 26 chi ha giocato solo FC 27 compare nella Carriera senza link: lì non ha
 una scheda da aprire.
 
+## Dati dell'avversario: si archiviano dal 04/11/2026
+
+Chiesto da Peppe: quali altri dati si possono estrarre. Misurato sul grezzo di EA:
+
+| Dato | Esito |
+| --- | --- |
+| giocatori veri avversari, loro tiri, passaggi, contrasti, ritiri | utili, e si perdevano dopo 15 partite: **ora si archiviano** (`ingest.py`, README «Struttura del database») |
+| quanti eravamo in campo | 32–62% di vittorie senza andamento: rumore |
+| stanchezza a fine serata | nessun calo (4ª partita 52%, 3ª 31%): rumore |
+| numero di stagione e di partita, eventi, attributi del pro, tempo inattivo | sempre 0 o vuoti: inutili |
+
+Nelle 15 partite recuperate si gioca spesso in netta superiorità (9 contro 2, 9 contro 3) e si
+perde lo stesso, e il 3-0 del 02/11 è una vittoria per ritiro dell'avversario.
+
+**Da fare quando ci saranno i dati (da inizio dicembre 2026, qualche centinaio di partite non
+basta dirlo a occhio: misurarlo):** rendimento in superiorità e in parità numerica, tiri
+concessi, se il possesso porta risultati, e le vittorie per ritiro da segnare (ed escludere dai
+record: oggi contano come le altre). Prima di costruire, la domanda di sempre: i dati bastano?
+

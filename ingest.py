@@ -123,6 +123,15 @@ CREATE TABLE IF NOT EXISTS matches (
     loss                INTEGER,
     tie                 INTEGER,
     raw_json            TEXT,
+    own_players         INTEGER,
+    opp_players         INTEGER,
+    opp_shots           INTEGER,
+    opp_passes_made     INTEGER,
+    opp_pass_attempts   INTEGER,
+    opp_tackles_made    INTEGER,
+    opp_tackle_attempts INTEGER,
+    winner_by_dnf       INTEGER,
+    loser_by_dnf        INTEGER,
     PRIMARY KEY (match_id, club_id)
 );
 
@@ -565,6 +574,47 @@ def ingest_member_stats(cur, members_stats, club_id, fetched_at):
     return True
 
 
+# ---- I dati dell'avversario (04/11/2026) ----
+# EA manda in ogni partita anche cio' che riguarda l'avversario, e fino al 04/11/2026 lo si
+# buttava: restava solo nel grezzo, che potatura.py conserva per le ultime quindici partite.
+# Misurato quel giorno su quelle quindici: si gioca spesso in netta superiorita' (9 contro 2,
+# 9 contro 3) e si perde lo stesso; si domina il possesso (127 passaggi contro 42) senza che il
+# risultato segua; e un 3-0 era una vittoria per ritiro dell'avversario, contata come le altre.
+# Per rispondere a "quanto rendiamo in superiorita'", "quanti tiri concediamo", "il possesso ci
+# serve?" servono settimane di questi dati: per questo si archiviano da subito, prima delle analisi.
+#
+#   own_players / opp_players   giocatori veri in campo (EA elenca solo gli umani, non la CPU)
+#   opp_shots ... opp_tackle_*  i totali della squadra avversaria (aggregate di EA)
+#   winner_by_dnf               1 se abbiamo vinto perche' l'avversario e' uscito
+#   loser_by_dnf                1 se abbiamo perso per ritiro nostro
+# Un dato che EA non manda resta NULL, mai 0: "nessun tiro" e "non lo sappiamo" sono diversi.
+COLONNE_AVVERSARIO = ("own_players", "opp_players", "opp_shots", "opp_passes_made",
+                      "opp_pass_attempts", "opp_tackles_made", "opp_tackle_attempts",
+                      "winner_by_dnf", "loser_by_dnf")
+
+
+def dati_avversario(match, club_id):
+    """Dal grezzo di UNA partita, i valori delle COLONNE_AVVERSARIO (None dove EA tace)."""
+    clubs = match.get("clubs") or {}
+    noi = str(club_id)
+    opp_id = next((cid for cid in clubs if cid != noi), None)
+    giocatori = match.get("players") or {}
+    aggregato = (match.get("aggregate") or {}).get(opp_id) or {} if opp_id else {}
+    conta = lambda cid: len(giocatori[cid] or {}) if cid is not None and cid in giocatori else None
+    val = lambda d, k: as_int(d.get(k), None) if d.get(k) is not None else None
+    return {
+        "own_players": conta(noi),
+        "opp_players": conta(opp_id),
+        "opp_shots": val(aggregato, "shots"),
+        "opp_passes_made": val(aggregato, "passesmade"),
+        "opp_pass_attempts": val(aggregato, "passattempts"),
+        "opp_tackles_made": val(aggregato, "tacklesmade"),
+        "opp_tackle_attempts": val(aggregato, "tackleattempts"),
+        "winner_by_dnf": val(clubs.get(noi) or {}, "winnerByDnf"),
+        "loser_by_dnf": val(clubs.get(opp_id) or {}, "winnerByDnf") if opp_id else None,
+    }
+
+
 def ingest_matches(cur, matches, club_id, match_type):
     if not matches:
         return 0
@@ -589,12 +639,13 @@ def ingest_matches(cur, matches, club_id, match_type):
         opp = (clubs.get(opp_id) or {}) if opp_id else {}
         opp_details = opp.get("details") or {}
 
+        avv = dati_avversario(match, club_id)
         cur.execute(
             """INSERT OR IGNORE INTO matches
                (match_id, club_id, match_type, ts, played_at,
                 opponent_club_id, opponent_name, goals_for, goals_against,
-                result_code, win, loss, tie, raw_json)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                result_code, win, loss, tie, raw_json, """ + ", ".join(COLONNE_AVVERSARIO) + """)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,""" + ",".join("?" * len(COLONNE_AVVERSARIO)) + ")",
             (
                 match_id,
                 club_id,
@@ -610,6 +661,7 @@ def ingest_matches(cur, matches, club_id, match_type):
                 as_int(own.get("losses")),
                 as_int(own.get("ties")),
                 json.dumps(match, ensure_ascii=False),
+                *[avv[k] for k in COLONNE_AVVERSARIO],
             ),
         )
         if cur.rowcount:
@@ -684,6 +736,7 @@ def ingest_matches(cur, matches, club_id, match_type):
 # Ogni voce e' (tabella, colonna, tipo). Aggiungerne una qui e' tutto quello che serve.
 MIGRAZIONI = [
     ("match_player_stats", "goals_conceded", "INTEGER"),
+    *[("matches", c, "INTEGER") for c in COLONNE_AVVERSARIO],
 ]
 
 
@@ -731,6 +784,33 @@ def recupera_dal_grezzo(cur, colonna, chiave_ea):
         recuperate += 1
     if recuperate:
         print(f"Recuperate dal grezzo: {recuperate} prestazioni con {colonna}")
+    return recuperate
+
+
+def recupera_avversario(cur):
+    """I dati dell'avversario per le partite gia' in archivio che hanno ancora il grezzo.
+
+    Come recupera_dal_grezzo, ma per le partite: l'ingest non riscrive una partita gia'
+    presente (INSERT OR IGNORE), e senza questo le colonne resterebbero vuote proprio sulle
+    quindici partite di cui il dato si puo' ancora salvare. Gira a ogni ingest: tocca solo le
+    partite con il grezzo e opp_players ancora vuoto, quindi dopo la prima volta nessuna.
+    """
+    righe = cur.execute("SELECT match_id, club_id, raw_json FROM matches "
+                        "WHERE opp_players IS NULL AND raw_json IS NOT NULL").fetchall()
+    recuperate = 0
+    for match_id, club_id, grezzo in righe:
+        try:
+            avv = dati_avversario(json.loads(grezzo), club_id)
+        except Exception:
+            continue
+        if avv["opp_players"] is None:
+            continue
+        cur.execute("UPDATE matches SET " + ", ".join(f"{k} = ?" for k in COLONNE_AVVERSARIO) +
+                    " WHERE match_id = ? AND club_id = ?",
+                    (*[avv[k] for k in COLONNE_AVVERSARIO], match_id, club_id))
+        recuperate += 1
+    if recuperate:
+        print(f"Recuperati dal grezzo i dati dell'avversario di {recuperate} partite")
     return recuperate
 
 
@@ -819,6 +899,7 @@ def main():
     cur.executescript(SCHEMA)
     if "match_player_stats.goals_conceded" in migra(cur):
         recupera_dal_grezzo(cur, "goals_conceded", "goalsconceded")
+    recupera_avversario(cur)
 
     # overall_stats.json e' la risposta di QUESTO giro alla chiamata fatta con il club_id
     # di club.json: mai una fotografia vecchia, a differenza di club_search.json (presa a
