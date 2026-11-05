@@ -492,7 +492,7 @@ function puntiDaTesto(t, sinistra) {
       if (blocco.dataset.stato !== "in-corso") errM.push(`${mese}: e' il mese in corso, la pagina lo dice chiuso`);
       const attesi = cl.slice(0, 3).map(([n]) => n);
       if (nomi.join() !== attesi.join()) errM.push(`${mese} in corso: [${nomi}], attesi [${attesi}]`);
-      if (!T(blocco).includes(`${lista.length} partite finora: per concorrere ne servono ${soglia}`)) errM.push(`${mese}: "${T(blocco.querySelector(".mese-nota"))}", attese ${lista.length} partite e soglia ${soglia}`);
+      if (!T(blocco).includes(`${lista.length} partite giocate nel mese · per concorrere ne servono almeno ${soglia}`)) errM.push(`${mese}: "${T(blocco.querySelector(".mese-nota"))}", attese ${lista.length} partite e soglia ${soglia}`);
       const pp = [...blocco.querySelectorAll(".mese-punti")].map(x => num(T(x)));
       cl.slice(0, 3).forEach(([n, x], i) => { if (!(Math.abs(pp[i] - x.score) <= 0.051)) errM.push(`${mese} ${n}: ${pp[i]}, atteso ${x.score.toFixed(2)}`); });
     } else {

@@ -1294,11 +1294,13 @@ forma (`indiceSuPartite`), con gli stessi pesi e scale: nessun conto a parte che
 divergere. La soglia è una quota e non un numero fisso perché i mesi sono diversissimi (48
 partite a settembre, 137 a ottobre). Una formula con gol+assist e media aggiunti all'indice è
 stata scartata: dentro l'indice ci sono già, e contati due volte pesavano l'82,5%.
-La sezione sta nei **Record** (classifica del mese in corso, vincitore dell'ultimo mese chiuso,
-albo). In Home compare **solo il giorno 1**, in cima, per annunciare il vincitore del mese
+La sezione sta nei **Record**, in due pannelli separati perché la prima versione mescolava
+mese in corso e mesi chiusi e non si capiva quale fosse quello corrente (Peppe, 05/11/2026):
+sopra il mese in corso («se il mese finisse oggi», con i giorni che mancano), sotto l'albo d'oro
+con tutti i mesi chiusi, uno per riga. In Home compare **solo il giorno 1**, in cima, per annunciare il vincitore del mese
 appena chiuso: il mese prima di quello di oggi, a Roma, non «l'ultimo mese con partite». Così
 è un annuncio e non un'altra classifica fissa in Home, come ha chiesto Peppe.
-Sotto l'albo, **«Vittorie»**: quante volte ha vinto ognuno, rifatto dalle partite di tutti i
+In fondo all'albo, **quante volte ha vinto ognuno**: quante volte ha vinto ognuno, rifatto dalle partite di tutti i
 mesi chiusi del titolo, anche quelli precedenti al premio. Conta solo il titolo della pagina:
 settembre 2026 è diviso fra FC 26 (1–9/09, 60 partite) e FC 27 (dal 18/09, 48), e Peppe ha
 scelto di contare solo FC 27 invece di due premi per lo stesso mese o di un indice che mescola

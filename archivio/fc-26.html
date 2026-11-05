@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-t1aaQUV5X8bZqLQ7nX0XWe1Saq5YQlFz+AdDSzcbkO0='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-iX1xGCns3Np8e3xuGEEkRXkZCZlz1S+HBsYr+gMeWWs='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -450,18 +450,37 @@ button{font-family:inherit;}
   .forma-esito.W{background:var(--win);} .forma-esito.L{background:var(--loss);} .forma-esito.T{background:var(--tie);}
   #formStrip .form-chip-info a{color:var(--accent);}
   /* Giocatore del mese (05/11/2026). */
-  .mese-griglia{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px;}
-  .mese-eti{font-size:12px; color:var(--muted); margin-bottom:6px; text-transform:none;}
-  .mese-vincitore{font-size:22px; font-weight:600; letter-spacing:-.01em;}
-  .mese-vincitore .mese-punti{font-size:15px; color:var(--gold); margin-left:6px; font-weight:600;}
-  .mese-podio{margin:0; padding-left:20px; font-size:14px; line-height:1.8;}
-  .mese-podio .mese-punti{color:var(--text); font-weight:600; margin:0 4px;}
-  .mese-nota{font-size:12.5px; color:var(--muted); margin-top:6px;}
-  .mese-albo{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
-  .mese-palmares{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
-  .mese-quante{color:var(--gold); margin:0 4px;}
   #meseBody .muted{color:var(--muted);}
+  .mese-ora{border-left:3px solid var(--accent); margin-bottom:12px;}
+  .mese-testa{display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+  .mese-titolo{font-size:18px; font-weight:600; letter-spacing:-.01em;}
+  .mese-quando{margin-left:auto; font-size:12.5px; color:var(--muted);}
+  .mese-stato{align-self:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:6px;
+    background:rgba(var(--accent-rgb),.16); color:var(--accent);}
+  .mese-eti{font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .mese-podio{list-style:none; margin:0; padding:0;}
+  .mese-podio li{display:flex; align-items:baseline; gap:10px; padding:8px 0; border-top:1px solid var(--border); font-size:14.5px;}
+  .mese-podio li:first-child{border-top:none;}
+  .mese-podio li.primo{font-size:17px; font-weight:600;}
+  .mese-podio li.primo .mese-punti{color:var(--gold);}
+  .mese-pos{width:18px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .mese-punti{margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums;}
+  .mese-pg{min-width:84px; text-align:right; font-size:12.5px; color:var(--muted); font-weight:400;}
+  .mese-nota{font-size:12.5px; color:var(--muted); margin-top:10px;}
+  .mese-righe .mese-riga{display:flex; align-items:baseline; flex-wrap:wrap; gap:10px; padding:9px 0; border-top:1px solid var(--border); font-size:14.5px;}
+  .mese-righe .mese-riga:first-child{border-top:none;}
+  .mese-nome{width:130px; color:var(--muted);}
+  .mese-chi{font-weight:600;}
+  .mese-riga .mese-punti{color:var(--gold);}
+  .mese-riga .mese-pg{min-width:110px;}
+  .mese-palmares{margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:center; gap:8px;}
+  .mese-palmares .mese-eti{width:100%; margin:0;}
+  .mese-vinti{display:inline-flex; align-items:center; gap:8px; padding:4px 10px; border-radius:8px; background:var(--panel-2); font-size:13.5px;}
+  .mese-quante{color:var(--gold);}
+  @media (max-width:600px){ .mese-nome{width:100%;} .mese-riga .mese-punti{margin-left:0;} .mese-riga .mese-pg{margin-left:auto;} }
   .mese-annuncio{border-left:3px solid var(--gold);}
+  .mese-vincitore{font-size:22px; font-weight:600; letter-spacing:-.01em;}
+  .mese-vincitore .mese-punti{font-size:15px; color:var(--gold); margin-left:6px;}
   #meseAnnuncio:empty{display:none;}
   .mese-annuncio .vai-a{margin-left:6px;}
   /* Serata in corso: un'etichetta col pallino, nel resoconto in Home. */
@@ -3875,50 +3894,58 @@ function valoreRecord(r, v){
 
 // ---- Giocatore del mese, nella pagina Record ----
 (function renderMese(){
+  // Due pannelli che non si confondono: sopra il mese in corso (chi vincerebbe se finisse
+  // oggi), sotto l'albo d'oro con tutti i mesi chiusi e quante volte ha vinto ognuno.
   const el = document.getElementById("meseBody");
   if(!el) return;
-  if(!GIOCATORI_DEL_MESE.length){ el.innerHTML = '<div class="panel"><div class="empty">Nessuna partita ancora.</div></div>'; return; }
   const link = (n) => `<span class="player-link" data-player="${n}">${n}</span>`;
-  const punti = (x) => `<span class="mese-punti">${x.score.toFixed(1)}</span>`;
-  const blocchi = [];
+  const maiusc = (t) => t[0].toUpperCase() + t.slice(1);
   const corrente = GIOCATORI_DEL_MESE.find(g => g.inCorso);
   const chiusi = GIOCATORI_DEL_MESE.filter(g => !g.inCorso);
+  const [ay, am] = MESE_ADESSO.split("-").map(Number);
+  const mancano = new Date(ay, am, 0).getDate() - GIORNO_ADESSO;
+  const quando = mancano === 0 ? "ultimo giorno" : mancano === 1 ? "manca 1 giorno" : `mancano ${mancano} giorni`;
+  const nomeOra = maiusc(NOMI_MESI[am - 1]) + " " + ay;
+
+  let ora;
   if(corrente){
     const c = corrente.classifica;
-    blocchi.push(`<div class="mese-blocco" data-mese="${corrente.mese}" data-stato="in-corso">
-      <div class="mese-eti">${corrente.nome[0].toUpperCase() + corrente.nome.slice(1)} · in corso</div>
+    ora = `<div class="panel mese-ora" data-mese="${corrente.mese}" data-stato="in-corso">
+      <div class="mese-testa"><span class="mese-stato">In corso</span><strong class="mese-titolo">${nomeOra}</strong><span class="mese-quando">${quando}</span></div>
       ${c.length
-        ? `<ol class="mese-podio">${c.slice(0, 3).map(x => `<li>${link(x.name)} ${punti(x)} <span class="muted">${x.games} partite</span></li>`).join("")}</ol>`
+        ? `<div class="mese-eti">Se il mese finisse oggi</div>
+           <ol class="mese-podio">${c.slice(0, 3).map((x, i) => `<li class="${i === 0 ? "primo" : ""}"><span class="mese-pos">${i + 1}</span>${link(x.name)}<span class="mese-punti">${x.score.toFixed(1)}</span><span class="mese-pg">${x.games} partite</span></li>`).join("")}</ol>`
         : `<div class="muted">Nessuno ha ancora le presenze che servono.</div>`}
-      <div class="mese-nota">${corrente.partite} partite finora: per concorrere ne servono ${corrente.soglia}.</div>
-    </div>`);
+      <div class="mese-nota">${corrente.partite} partite giocate nel mese · per concorrere ne servono almeno ${corrente.soglia}</div>
+    </div>`;
+  } else {
+    ora = `<div class="panel mese-ora" data-mese="${MESE_ADESSO}" data-stato="in-corso">
+      <div class="mese-testa"><span class="mese-stato">In corso</span><strong class="mese-titolo">${nomeOra}</strong><span class="mese-quando">${quando}</span></div>
+      <div class="muted">Nessuna partita ancora questo mese.</div>
+    </div>`;
   }
-  if(chiusi.length){
-    const u = chiusi[0], v = u.classifica[0];
-    blocchi.push(`<div class="mese-blocco" data-mese="${u.mese}" data-stato="chiuso">
-      <div class="mese-eti">${u.nome[0].toUpperCase() + u.nome.slice(1)}</div>
-      ${v ? `<div class="mese-vincitore" data-vincitore="${v.name}">${link(v.name)} ${punti(v)}</div>
-             <div class="mese-nota">${v.games} partite su ${u.partite}${u.classifica[1] ? ` · secondo ${link(u.classifica[1].name)} (${u.classifica[1].score.toFixed(1)})` : ""}</div>`
-          : `<div class="muted">Nessuno con le presenze che servivano (${u.soglia} su ${u.partite}).</div>`}
-    </div>`);
-  }
-  const albo = chiusi.slice(1);
+
   // Quante volte ha vinto ognuno, su tutti i mesi chiusi del titolo (anche quelli prima che
-  // il premio esistesse: si rifanno dalle partite). In parita' prima chi ha vinto per ultimo.
+  // il premio esistesse: si rifanno dalle partite).
   const vinti = new Map();
   chiusi.forEach(g => { const v = g.classifica[0]; if(!v) return;
     if(!vinti.has(v.name)) vinti.set(v.name, []);
     vinti.get(v.name).push(g.nome); });
   const palmares = [...vinti.entries()].sort((a, b) => b[1].length - a[1].length);
-  el.innerHTML = `<div class="panel">
-    <div class="mese-griglia">${blocchi.join("")}</div>
-    ${albo.length ? `<div class="mese-albo"><div class="mese-eti">Albo</div>${albo.map(g => {
-      const v = g.classifica[0];
-      return `<div class="mese-riga" data-mese="${g.mese}">${g.nome}: ${v ? `${link(v.name)} <span class="muted">${v.score.toFixed(1)} · ${v.games} partite</span>` : '<span class="muted">nessuno</span>'}</div>`;
-    }).join("")}</div>` : ""}
-    ${palmares.length ? `<div class="mese-palmares"><div class="mese-eti">Vittorie</div>${palmares.map(([n, mesi]) =>
-      `<div class="mese-vinti" data-player="${n}">${link(n)} <strong class="mese-quante">${mesi.length}</strong> <span class="muted">${mesi.join(", ")}</span></div>`).join("")}</div>` : ""}
-  </div>`;
+  const albo = chiusi.length ? `<div class="panel mese-albo">
+      <div class="mese-testa"><strong class="mese-titolo">Albo d'oro</strong><span class="mese-quando">mesi chiusi</span></div>
+      <div class="mese-righe">${chiusi.map(g => {
+        const v = g.classifica[0];
+        return `<div class="mese-riga" data-mese="${g.mese}" data-stato="chiuso">
+          <span class="mese-nome">${maiusc(g.nome)}</span>
+          ${v ? `<span class="mese-chi">${link(v.name)}</span><span class="mese-punti">${v.score.toFixed(1)}</span><span class="mese-pg">${v.games} su ${g.partite} partite</span>`
+              : `<span class="mese-chi muted">nessuno con le presenze</span>`}
+        </div>`;
+      }).join("")}</div>
+      ${palmares.length ? `<div class="mese-palmares"><div class="mese-eti">Quante volte ha vinto ognuno</div>${palmares.map(([n, mesi]) =>
+        `<span class="mese-vinti" data-player="${n}" title="${mesi.join(", ")}">${link(n)}<span><strong class="mese-quante">${mesi.length}</strong> ${mesi.length === 1 ? "volta" : "volte"}</span></span>`).join("")}</div>` : ""}
+    </div>` : "";
+  el.innerHTML = ora + albo;
 })();
 
 // ---- Share card: immagine PNG generata su canvas, senza librerie esterne ----

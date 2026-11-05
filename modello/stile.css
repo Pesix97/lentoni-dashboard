@@ -419,18 +419,37 @@ button{font-family:inherit;}
   .forma-esito.W{background:var(--win);} .forma-esito.L{background:var(--loss);} .forma-esito.T{background:var(--tie);}
   #formStrip .form-chip-info a{color:var(--accent);}
   /* Giocatore del mese (05/11/2026). */
-  .mese-griglia{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px;}
-  .mese-eti{font-size:12px; color:var(--muted); margin-bottom:6px; text-transform:none;}
-  .mese-vincitore{font-size:22px; font-weight:600; letter-spacing:-.01em;}
-  .mese-vincitore .mese-punti{font-size:15px; color:var(--gold); margin-left:6px; font-weight:600;}
-  .mese-podio{margin:0; padding-left:20px; font-size:14px; line-height:1.8;}
-  .mese-podio .mese-punti{color:var(--text); font-weight:600; margin:0 4px;}
-  .mese-nota{font-size:12.5px; color:var(--muted); margin-top:6px;}
-  .mese-albo{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
-  .mese-palmares{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
-  .mese-quante{color:var(--gold); margin:0 4px;}
   #meseBody .muted{color:var(--muted);}
+  .mese-ora{border-left:3px solid var(--accent); margin-bottom:12px;}
+  .mese-testa{display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+  .mese-titolo{font-size:18px; font-weight:600; letter-spacing:-.01em;}
+  .mese-quando{margin-left:auto; font-size:12.5px; color:var(--muted);}
+  .mese-stato{align-self:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:6px;
+    background:rgba(var(--accent-rgb),.16); color:var(--accent);}
+  .mese-eti{font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .mese-podio{list-style:none; margin:0; padding:0;}
+  .mese-podio li{display:flex; align-items:baseline; gap:10px; padding:8px 0; border-top:1px solid var(--border); font-size:14.5px;}
+  .mese-podio li:first-child{border-top:none;}
+  .mese-podio li.primo{font-size:17px; font-weight:600;}
+  .mese-podio li.primo .mese-punti{color:var(--gold);}
+  .mese-pos{width:18px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .mese-punti{margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums;}
+  .mese-pg{min-width:84px; text-align:right; font-size:12.5px; color:var(--muted); font-weight:400;}
+  .mese-nota{font-size:12.5px; color:var(--muted); margin-top:10px;}
+  .mese-righe .mese-riga{display:flex; align-items:baseline; flex-wrap:wrap; gap:10px; padding:9px 0; border-top:1px solid var(--border); font-size:14.5px;}
+  .mese-righe .mese-riga:first-child{border-top:none;}
+  .mese-nome{width:130px; color:var(--muted);}
+  .mese-chi{font-weight:600;}
+  .mese-riga .mese-punti{color:var(--gold);}
+  .mese-riga .mese-pg{min-width:110px;}
+  .mese-palmares{margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:center; gap:8px;}
+  .mese-palmares .mese-eti{width:100%; margin:0;}
+  .mese-vinti{display:inline-flex; align-items:center; gap:8px; padding:4px 10px; border-radius:8px; background:var(--panel-2); font-size:13.5px;}
+  .mese-quante{color:var(--gold);}
+  @media (max-width:600px){ .mese-nome{width:100%;} .mese-riga .mese-punti{margin-left:0;} .mese-riga .mese-pg{margin-left:auto;} }
   .mese-annuncio{border-left:3px solid var(--gold);}
+  .mese-vincitore{font-size:22px; font-weight:600; letter-spacing:-.01em;}
+  .mese-vincitore .mese-punti{font-size:15px; color:var(--gold); margin-left:6px;}
   #meseAnnuncio:empty{display:none;}
   .mese-annuncio .vai-a{margin-left:6px;}
   /* Serata in corso: un'etichetta col pallino, nel resoconto in Home. */

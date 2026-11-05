@@ -1757,8 +1757,8 @@ perché di ognuna è nel README, «La Home».
 
 Il primo dell'Indice di Forza calcolato sulle sole partite del mese (`indiceSuPartite`, la
 stessa funzione della forma), fra chi ha giocato almeno un terzo delle partite del mese. Il
-mese è quello della serata. Nei Record: chi è in testa nel mese in corso, il vincitore del
-mese chiuso, l'albo. In Home solo l'annuncio, il giorno 1 del mese dopo (chiesto da Peppe: la
+mese è quello della serata. Nei Record: un pannello per il mese in corso e uno per l'albo d'oro
+(rifatti il 05/11 perché la prima versione non faceva capire quale fosse il mese corrente). In Home solo l'annuncio, il giorno 1 del mese dopo (chiesto da Peppe: la
 sezione non doveva stare fissa in Home).
 
 Al primo calcolo **Pesix_97 vince tutti e tre i mesi** (settembre 51,9, ottobre 52,7, novembre

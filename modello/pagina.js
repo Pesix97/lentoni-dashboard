@@ -2438,50 +2438,58 @@ function valoreRecord(r, v){
 
 // ---- Giocatore del mese, nella pagina Record ----
 (function renderMese(){
+  // Due pannelli che non si confondono: sopra il mese in corso (chi vincerebbe se finisse
+  // oggi), sotto l'albo d'oro con tutti i mesi chiusi e quante volte ha vinto ognuno.
   const el = document.getElementById("meseBody");
   if(!el) return;
-  if(!GIOCATORI_DEL_MESE.length){ el.innerHTML = '<div class="panel"><div class="empty">Nessuna partita ancora.</div></div>'; return; }
   const link = (n) => `<span class="player-link" data-player="${n}">${n}</span>`;
-  const punti = (x) => `<span class="mese-punti">${x.score.toFixed(1)}</span>`;
-  const blocchi = [];
+  const maiusc = (t) => t[0].toUpperCase() + t.slice(1);
   const corrente = GIOCATORI_DEL_MESE.find(g => g.inCorso);
   const chiusi = GIOCATORI_DEL_MESE.filter(g => !g.inCorso);
+  const [ay, am] = MESE_ADESSO.split("-").map(Number);
+  const mancano = new Date(ay, am, 0).getDate() - GIORNO_ADESSO;
+  const quando = mancano === 0 ? "ultimo giorno" : mancano === 1 ? "manca 1 giorno" : `mancano ${mancano} giorni`;
+  const nomeOra = maiusc(NOMI_MESI[am - 1]) + " " + ay;
+
+  let ora;
   if(corrente){
     const c = corrente.classifica;
-    blocchi.push(`<div class="mese-blocco" data-mese="${corrente.mese}" data-stato="in-corso">
-      <div class="mese-eti">${corrente.nome[0].toUpperCase() + corrente.nome.slice(1)} · in corso</div>
+    ora = `<div class="panel mese-ora" data-mese="${corrente.mese}" data-stato="in-corso">
+      <div class="mese-testa"><span class="mese-stato">In corso</span><strong class="mese-titolo">${nomeOra}</strong><span class="mese-quando">${quando}</span></div>
       ${c.length
-        ? `<ol class="mese-podio">${c.slice(0, 3).map(x => `<li>${link(x.name)} ${punti(x)} <span class="muted">${x.games} partite</span></li>`).join("")}</ol>`
+        ? `<div class="mese-eti">Se il mese finisse oggi</div>
+           <ol class="mese-podio">${c.slice(0, 3).map((x, i) => `<li class="${i === 0 ? "primo" : ""}"><span class="mese-pos">${i + 1}</span>${link(x.name)}<span class="mese-punti">${x.score.toFixed(1)}</span><span class="mese-pg">${x.games} partite</span></li>`).join("")}</ol>`
         : `<div class="muted">Nessuno ha ancora le presenze che servono.</div>`}
-      <div class="mese-nota">${corrente.partite} partite finora: per concorrere ne servono ${corrente.soglia}.</div>
-    </div>`);
+      <div class="mese-nota">${corrente.partite} partite giocate nel mese · per concorrere ne servono almeno ${corrente.soglia}</div>
+    </div>`;
+  } else {
+    ora = `<div class="panel mese-ora" data-mese="${MESE_ADESSO}" data-stato="in-corso">
+      <div class="mese-testa"><span class="mese-stato">In corso</span><strong class="mese-titolo">${nomeOra}</strong><span class="mese-quando">${quando}</span></div>
+      <div class="muted">Nessuna partita ancora questo mese.</div>
+    </div>`;
   }
-  if(chiusi.length){
-    const u = chiusi[0], v = u.classifica[0];
-    blocchi.push(`<div class="mese-blocco" data-mese="${u.mese}" data-stato="chiuso">
-      <div class="mese-eti">${u.nome[0].toUpperCase() + u.nome.slice(1)}</div>
-      ${v ? `<div class="mese-vincitore" data-vincitore="${v.name}">${link(v.name)} ${punti(v)}</div>
-             <div class="mese-nota">${v.games} partite su ${u.partite}${u.classifica[1] ? ` · secondo ${link(u.classifica[1].name)} (${u.classifica[1].score.toFixed(1)})` : ""}</div>`
-          : `<div class="muted">Nessuno con le presenze che servivano (${u.soglia} su ${u.partite}).</div>`}
-    </div>`);
-  }
-  const albo = chiusi.slice(1);
+
   // Quante volte ha vinto ognuno, su tutti i mesi chiusi del titolo (anche quelli prima che
-  // il premio esistesse: si rifanno dalle partite). In parita' prima chi ha vinto per ultimo.
+  // il premio esistesse: si rifanno dalle partite).
   const vinti = new Map();
   chiusi.forEach(g => { const v = g.classifica[0]; if(!v) return;
     if(!vinti.has(v.name)) vinti.set(v.name, []);
     vinti.get(v.name).push(g.nome); });
   const palmares = [...vinti.entries()].sort((a, b) => b[1].length - a[1].length);
-  el.innerHTML = `<div class="panel">
-    <div class="mese-griglia">${blocchi.join("")}</div>
-    ${albo.length ? `<div class="mese-albo"><div class="mese-eti">Albo</div>${albo.map(g => {
-      const v = g.classifica[0];
-      return `<div class="mese-riga" data-mese="${g.mese}">${g.nome}: ${v ? `${link(v.name)} <span class="muted">${v.score.toFixed(1)} · ${v.games} partite</span>` : '<span class="muted">nessuno</span>'}</div>`;
-    }).join("")}</div>` : ""}
-    ${palmares.length ? `<div class="mese-palmares"><div class="mese-eti">Vittorie</div>${palmares.map(([n, mesi]) =>
-      `<div class="mese-vinti" data-player="${n}">${link(n)} <strong class="mese-quante">${mesi.length}</strong> <span class="muted">${mesi.join(", ")}</span></div>`).join("")}</div>` : ""}
-  </div>`;
+  const albo = chiusi.length ? `<div class="panel mese-albo">
+      <div class="mese-testa"><strong class="mese-titolo">Albo d'oro</strong><span class="mese-quando">mesi chiusi</span></div>
+      <div class="mese-righe">${chiusi.map(g => {
+        const v = g.classifica[0];
+        return `<div class="mese-riga" data-mese="${g.mese}" data-stato="chiuso">
+          <span class="mese-nome">${maiusc(g.nome)}</span>
+          ${v ? `<span class="mese-chi">${link(v.name)}</span><span class="mese-punti">${v.score.toFixed(1)}</span><span class="mese-pg">${v.games} su ${g.partite} partite</span>`
+              : `<span class="mese-chi muted">nessuno con le presenze</span>`}
+        </div>`;
+      }).join("")}</div>
+      ${palmares.length ? `<div class="mese-palmares"><div class="mese-eti">Quante volte ha vinto ognuno</div>${palmares.map(([n, mesi]) =>
+        `<span class="mese-vinti" data-player="${n}" title="${mesi.join(", ")}">${link(n)}<span><strong class="mese-quante">${mesi.length}</strong> ${mesi.length === 1 ? "volta" : "volte"}</span></span>`).join("")}</div>` : ""}
+    </div>` : "";
+  el.innerHTML = ora + albo;
 })();
 
 // ---- Share card: immagine PNG generata su canvas, senza librerie esterne ----
