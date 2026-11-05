@@ -918,7 +918,13 @@ function normWith(v, chiave){
 // Punteggio calcolato SOLO sulle ultime N partite, con gli stessi pesi dello storico.
 function computeFormScores(windowSize){
   const matches = [...(DATA.matches || [])];
-  const scoped = windowSize > 0 ? matches.slice(0, windowSize) : matches;
+  return indiceSuPartite(windowSize > 0 ? matches.slice(0, windowSize) : matches);
+}
+
+// L'Indice di Forza calcolato su un elenco qualsiasi di partite, con gli stessi pesi e le
+// stesse scale dello storico. Lo usano la forma (le ultime N) e il giocatore del mese (le
+// partite del mese): un calcolo solo, cosi' i due non possono divergere.
+function indiceSuPartite(scoped){
   const winByMatch = new Map(scoped.map(m => [m.match_id, m.win ? 1 : 0]));
   const agg = new Map();
 
@@ -1420,6 +1426,58 @@ const EVENTI_DIVISIONE = (function(){
   return out;
 })();
 const SALDO_DIVISIONI = EVENTI_DIVISIONE.reduce((t, e) => t + (e.tipo === "promozione" ? 1 : -1), 0);
+
+// ---- Giocatore del mese (05/11/2026) ----
+// Istituito da Peppe il 05/11/2026, rivedendo la decisione del 23/08 che aveva tolto i premi.
+// Vince il primo dell'Indice di Forza calcolato sulle SOLE partite del mese (stessi pesi e
+// scale di sempre, indiceSuPartite), fra chi ha giocato almeno un terzo delle partite del
+// mese. Una formula diversa (indice + gol/assist + media) e' stata scartata: dentro l'indice
+// media e gol/assist ci sono gia', e contati due volte arrivavano oltre l'80% del peso.
+// Il mese di una partita e' quello della sua serata: l'una di notte del 1° appartiene al mese
+// prima, come in Serate.
+const QUOTA_PRESENZE_MESE = 1 / 3;
+const NOMI_MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
+  "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+function meseDellaPartita(m){
+  const s = SERATA_DI_PARTITA.get(m.match_id);
+  if(s && s.chiave && s.giornoInizio){
+    let anno = Number(s.chiave.slice(0, 4));
+    const mese = Number(s.giornoInizio.slice(3, 5));
+    if(mese === 1 && s.chiave.slice(5, 7) === "12") anno++;   // serata cominciata a Capodanno
+    return `${anno}-${String(mese).padStart(2, "0")}`;
+  }
+  // Senza serata: la data della partita a Roma.
+  const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric", month: "2-digit" })
+    .formatToParts(new Date(m.played_at));
+  return `${p.find(x => x.type === "year").value}-${p.find(x => x.type === "month").value}`;
+}
+function giocatoreDelMese(partite){
+  const soglia = Math.ceil(partite.length * QUOTA_PRESENZE_MESE);
+  const { formMap } = indiceSuPartite(partite);
+  const classifica = [...formMap.values()].filter(x => x.games >= soglia)
+    .sort((a, b) => b.score - a.score || b.games - a.games);
+  return { partite: partite.length, soglia, classifica };
+}
+const MESE_ADESSO = (function(){
+  const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric", month: "2-digit" })
+    .formatToParts(new Date(Date.now()));
+  return `${p.find(x => x.type === "year").value}-${p.find(x => x.type === "month").value}`;
+})();
+// Il giorno del mese a Roma, adesso: il vincitore si annuncia in Home solo il giorno 1.
+const GIORNO_ADESSO = Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", day: "2-digit" })
+  .format(new Date(Date.now())));
+const GIOCATORI_DEL_MESE = (function(){
+  const per = new Map();
+  PARTITE_CRONO.forEach(m => {
+    const k = meseDellaPartita(m);
+    if(!per.has(k)) per.set(k, []);
+    per.get(k).push(m);
+  });
+  return [...per.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([mese, lista]) => ({
+    mese, nome: NOMI_MESI[Number(mese.slice(5, 7)) - 1] + " " + mese.slice(0, 4),
+    inCorso: mese === MESE_ADESSO, ...giocatoreDelMese(lista),
+  }));
+})();
 
 // ---- La carriera nel club, titolo per titolo e in totale (29/10/2026) ----
 // Le cifre di ogni titolo arrivano dal generatore (DATA.carriera), gia' pulite. Qui si fa il
@@ -2356,6 +2414,65 @@ function valoreRecord(r, v){
       <div style="display:flex; flex-direction:column; gap:6px; font-size:14px; line-height:1.5;">${righe.join("")}</div>
       <div style="margin-top:10px; font-size:12px;"><span class="vai-a" data-vai="record">Tutti i record →</span></div>
     </div>`;
+})();
+
+// ---- Giocatore del mese: l'annuncio in Home, solo il giorno 1 ----
+// Il resto dell'anno la sezione sta nei Record. Il giorno 1 la Home premia il mese appena
+// chiuso: e' il mese prima di quello di oggi, non "l'ultimo con partite".
+(function renderAnnuncioMese(){
+  const el = document.getElementById("meseAnnuncio");
+  if(!el) return;
+  const [a, m] = MESE_ADESSO.split("-").map(Number);
+  const prima = m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
+  const g = GIOCATORI_DEL_MESE.find(x => x.mese === prima);
+  const v = g && g.classifica[0];
+  // Vuota, non tolta: il CSS nasconde la sezione vuota (e test_ruoli.js la esegue senza DOM vero).
+  if(GIORNO_ADESSO !== 1 || !v){ el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="panel mese-annuncio" data-vincitore="${v.name}" data-mese="${g.mese}">
+    <div class="mese-eti">Giocatore di ${g.nome}</div>
+    <div class="mese-vincitore"><span class="player-link" data-player="${v.name}">${v.name}</span> <span class="mese-punti">${v.score.toFixed(1)}</span></div>
+    <div class="mese-nota">Primo dell'Indice di Forza sulle partite di ${g.nome.split(" ")[0]}, ${v.games} su ${g.partite}${g.classifica[1] ? ` · secondo ${g.classifica[1].name} (${g.classifica[1].score.toFixed(1)})` : ""}.
+      <span class="vai-a" data-vai="record">Albo e classifica del mese →</span></div>
+  </div>`;
+})();
+
+// ---- Giocatore del mese, nella pagina Record ----
+(function renderMese(){
+  const el = document.getElementById("meseBody");
+  if(!el) return;
+  if(!GIOCATORI_DEL_MESE.length){ el.innerHTML = '<div class="panel"><div class="empty">Nessuna partita ancora.</div></div>'; return; }
+  const link = (n) => `<span class="player-link" data-player="${n}">${n}</span>`;
+  const punti = (x) => `<span class="mese-punti">${x.score.toFixed(1)}</span>`;
+  const blocchi = [];
+  const corrente = GIOCATORI_DEL_MESE.find(g => g.inCorso);
+  const chiusi = GIOCATORI_DEL_MESE.filter(g => !g.inCorso);
+  if(corrente){
+    const c = corrente.classifica;
+    blocchi.push(`<div class="mese-blocco" data-mese="${corrente.mese}" data-stato="in-corso">
+      <div class="mese-eti">${corrente.nome[0].toUpperCase() + corrente.nome.slice(1)} · in corso</div>
+      ${c.length
+        ? `<ol class="mese-podio">${c.slice(0, 3).map(x => `<li>${link(x.name)} ${punti(x)} <span class="muted">${x.games} partite</span></li>`).join("")}</ol>`
+        : `<div class="muted">Nessuno ha ancora le presenze che servono.</div>`}
+      <div class="mese-nota">${corrente.partite} partite finora: per concorrere ne servono ${corrente.soglia}.</div>
+    </div>`);
+  }
+  if(chiusi.length){
+    const u = chiusi[0], v = u.classifica[0];
+    blocchi.push(`<div class="mese-blocco" data-mese="${u.mese}" data-stato="chiuso">
+      <div class="mese-eti">${u.nome[0].toUpperCase() + u.nome.slice(1)}</div>
+      ${v ? `<div class="mese-vincitore" data-vincitore="${v.name}">${link(v.name)} ${punti(v)}</div>
+             <div class="mese-nota">${v.games} partite su ${u.partite}${u.classifica[1] ? ` · secondo ${link(u.classifica[1].name)} (${u.classifica[1].score.toFixed(1)})` : ""}</div>`
+          : `<div class="muted">Nessuno con le presenze che servivano (${u.soglia} su ${u.partite}).</div>`}
+    </div>`);
+  }
+  const albo = chiusi.slice(1);
+  el.innerHTML = `<div class="panel">
+    <div class="mese-griglia">${blocchi.join("")}</div>
+    ${albo.length ? `<div class="mese-albo"><div class="mese-eti">Albo</div>${albo.map(g => {
+      const v = g.classifica[0];
+      return `<div class="mese-riga" data-mese="${g.mese}">${g.nome}: ${v ? `${link(v.name)} <span class="muted">${v.score.toFixed(1)} · ${v.games} partite</span>` : '<span class="muted">nessuno</span>'}</div>`;
+    }).join("")}</div>` : ""}
+  </div>`;
 })();
 
 // ---- Share card: immagine PNG generata su canvas, senza librerie esterne ----
@@ -4822,8 +4939,8 @@ document.addEventListener("keydown", (e) => {
 // le sezioni di riepilogo generale (overview, forma, andamento); tutte le
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
-  homeTabs: "home", resoconto: "home", overview: "home", novita: "home", forma: "home", andamento: "home", condividi: "home",
-  giocatori: "giocatori", carriera: "carriera", record: "record",
+  homeTabs: "home", resoconto: "home", overview: "home", novita: "home", meseAnnuncio: "home", forma: "home", andamento: "home", condividi: "home",
+  giocatori: "giocatori", carriera: "carriera", record: "record", mese: "record",
   forza: "forza", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",
   osservatore: "osservatore", serate: "serate", partite: "partite",

@@ -417,7 +417,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_ruoli.js` | 120 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
-| `test_indice.js` | 22 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; e i passaggi tentati a partita, in tabella e in ogni scheda. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
+| `test_indice.js` | 24 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; i passaggi tentati a partita, in tabella e in ogni scheda; il giocatore di ogni mese (vincitore, punteggio, chi è in testa nel mese in corso e la soglia di presenze) e il suo annuncio in Home, aprendo la pagina con l'orologio spostato al giorno 1 di due mesi e al giorno 2. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
 | `test_record.js` | 14 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
@@ -1260,7 +1260,7 @@ andate, il migliore della serata (la media voto più alta fra chi ha giocato alm
 delle partite; a parità più gol e assist), i record battuti o eguagliati, una promozione o
 una retrocessione, una serie aperta che valga la pena dire. I dettagli restano nelle Novità.
 
-## La Home: serie, forma, serate sul grafico, serata in corso (05/11/2026)
+## La Home: serie, forma, serate sul grafico, serata in corso, giocatore del mese (05/11/2026)
 
 **Serie in corso.** Si conta sulle partite in archivio, all'indietro dall'ultima, come le
 serie dei Record (`serieInCorso()` in `pagina.js`). Prima arrivava dai contatori di EA, che
@@ -1286,6 +1286,18 @@ categorie (un punto per rilevazione), non a tempo.
 la pagina si apre, la Home apre sulla serata: su telefono la scheda Serata, su schermo largo
 il resoconto sopra il grafico, con l'etichetta «In corso». Non un orario fisso: si gioca anche
 prima delle 22, e una pagina aperta la mattina dopo non deve dirlo.
+
+**Giocatore del mese.** Il primo dell'Indice di Forza calcolato sulle sole partite del mese,
+fra chi ne ha giocate almeno un terzo (`QUOTA_PRESENZE_MESE`); a parità di punteggio, chi ha
+giocato di più. Il mese è quello della serata, come in Serate. L'indice è lo stesso della
+forma (`indiceSuPartite`), con gli stessi pesi e scale: nessun conto a parte che possa
+divergere. La soglia è una quota e non un numero fisso perché i mesi sono diversissimi (48
+partite a settembre, 137 a ottobre). Una formula con gol+assist e media aggiunti all'indice è
+stata scartata: dentro l'indice ci sono già, e contati due volte pesavano l'82,5%.
+La sezione sta nei **Record** (classifica del mese in corso, vincitore dell'ultimo mese chiuso,
+albo). In Home compare **solo il giorno 1**, in cima, per annunciare il vincitore del mese
+appena chiuso: il mese prima di quello di oggi, a Roma, non «l'ultimo mese con partite». Così
+è un annuncio e non un'altra classifica fissa in Home, come ha chiesto Peppe.
 
 **Installabile sul telefono.** `manifest.webmanifest` e le icone in `icone/` fanno aggiungere
 la pagina alla schermata Home come un'app a schermo intero. La CSP ammette il manifest con

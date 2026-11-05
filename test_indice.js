@@ -165,7 +165,10 @@ const STORICO = new Map(roster.map(r => {
 
 // ---- Forma: le ultime N partite archiviate (0 = tutte), stessi pesi e scale.
 function forma(finestra) {
-  const scelte = finestra > 0 ? MATCHES.slice(0, finestra) : MATCHES;
+  return formaSu(finestra > 0 ? MATCHES.slice(0, finestra) : MATCHES);
+}
+// La stessa cosa su un elenco qualsiasi di partite: serve anche al giocatore del mese.
+function formaSu(scelte) {
   const per = new Map();
   scelte.forEach(m => righeDi(m).forEach(p => {
     if (!per.has(p.player_name)) per.set(p.player_name, []);
@@ -244,9 +247,11 @@ function reparti() {
 // La pagina vera, aperta come la apre un browser.
 // ---------------------------------------------------------------------------------------
 const nulla = () => {};
-const dom = new JSDOM(html.replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/, ""), {
+// `adesso` sposta l'orologio della pagina (Date.now): serve all'annuncio del giocatore del mese.
+const apri = (adesso) => new JSDOM(html.replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/, ""), {
   runScripts: "dangerously", pretendToBeVisual: true, url: "https://pesix97.github.io/lentoni-dashboard/",
   beforeParse(w) {
+    if (adesso !== undefined) w.Date.now = () => adesso;
     w.Chart = function () { return { destroy() {}, update() {} }; }; w.Chart.register = nulla;
     const ctx = new Proxy({}, { get: (_, k) => {
       if (k === "createLinearGradient" || k === "createRadialGradient" || k === "createPattern") return () => ({ addColorStop: nulla });
@@ -258,6 +263,7 @@ const dom = new JSDOM(html.replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/
     w.scrollTo = nulla;
   },
 });
+const dom = apri();
 const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
 const num = s => { const m = String(s).replace(/−/g, "-").match(/-?\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : NaN; };
 const PEZZO_DA_ETICHETTA = { "passaggi riusciti": "passaggi", "contrasti riusciti": "contrasti", "tiri trasformati": "tiro", "gol subiti ogni 90'": "difesa",
@@ -459,6 +465,86 @@ function puntiDaTesto(t, sinistra) {
   verifica("colonna nella tabella Giocatori, per ogni giocatore", errP.colonna);
   verifica("aggiunta la colonna, la tabella si ordina su di essa", errP.ordine);
   verifica(`casella nella scheda di ogni giocatore (${schede} schede aperte)`, schede > 0 ? errP.scheda : ["nessuna scheda aperta"]);
+
+  // ---- Giocatore del mese (05/11/2026): il primo dell'indice sulle partite del mese, fra chi
+  // ne ha giocate almeno un terzo. Il mese e' quello della serata (l'una di notte del 1°
+  // appartiene al mese prima), ricavato qui dalla data d'inizio della serata.
+  console.log("\nGiocatore del mese: ogni mese rifatto dalle partite");
+  const errM = [];
+  const serataDi = new Map(); (DATA.serate || []).forEach(s => s.matchIds.forEach(id => serataDi.set(id, s)));
+  const meseDi = m => {
+    const s = serataDi.get(m.match_id);
+    if (s) { const mm = s.giornoInizio.slice(3, 5); let y = +s.chiave.slice(0, 4); if (mm === "01" && s.chiave.slice(5, 7) === "12") y++; return `${y}-${mm}`; }
+    return new Date(m.played_at).toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" }).slice(0, 7);
+  };
+  const perMese = new Map();
+  MATCHES.forEach(m => { const k = meseDi(m); if (!perMese.has(k)) perMese.set(k, []); perMese.get(k).push(m); });
+  const adesso = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" }).slice(0, 7);
+  let mesiVisti = 0;
+  for (const [mese, lista] of perMese) {
+    const soglia = Math.ceil(lista.length / 3);
+    const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
+    const blocco = d.querySelector(`#meseBody [data-mese="${mese}"]`);
+    if (!blocco) { errM.push(`${mese}: non c'e' in pagina`); continue; }
+    mesiVisti++;
+    const nomi = [...blocco.querySelectorAll(".player-link")].map(x => T(x));
+    if (mese === adesso) {
+      if (blocco.dataset.stato !== "in-corso") errM.push(`${mese}: e' il mese in corso, la pagina lo dice chiuso`);
+      const attesi = cl.slice(0, 3).map(([n]) => n);
+      if (nomi.join() !== attesi.join()) errM.push(`${mese} in corso: [${nomi}], attesi [${attesi}]`);
+      if (!T(blocco).includes(`${lista.length} partite finora: per concorrere ne servono ${soglia}`)) errM.push(`${mese}: "${T(blocco.querySelector(".mese-nota"))}", attese ${lista.length} partite e soglia ${soglia}`);
+      const pp = [...blocco.querySelectorAll(".mese-punti")].map(x => num(T(x)));
+      cl.slice(0, 3).forEach(([n, x], i) => { if (!(Math.abs(pp[i] - x.score) <= 0.051)) errM.push(`${mese} ${n}: ${pp[i]}, atteso ${x.score.toFixed(2)}`); });
+    } else {
+      if (blocco.dataset.stato === "in-corso") errM.push(`${mese}: e' chiuso, la pagina lo dice in corso`);
+      const v = cl[0];
+      if ((nomi[0] || null) !== (v ? v[0] : null)) errM.push(`${mese}: vincitore ${nomi[0]}, atteso ${v ? v[0] : "nessuno"}`);
+      // Il punteggio stampato subito dopo il nome: .mese-punti nel riquadro grande, il primo
+      // numero del testo nell'albo.
+      const testoPunti = blocco.querySelector(".mese-punti") ? T(blocco.querySelector(".mese-punti")) : T(blocco).split(nomi[0] || "\u0000")[1] || "";
+      if (v && !(Math.abs(num(testoPunti) - v[1].score) <= 0.051)) errM.push(`${mese}: punteggio "${testoPunti}", atteso ${v[1].score.toFixed(2)}`);
+    }
+  }
+  verifica(`${mesiVisti} mesi su ${perMese.size}: vincitore, punteggio, chi e' in testa nel mese in corso`, mesiVisti === perMese.size ? errM : errM.concat([`mesi in pagina ${mesiVisti}`]));
+
+  // L'annuncio in Home: c'e' il giorno 1 e premia il mese prima; gli altri giorni no. Si
+  // provano tre orologi: il giorno 1 di questo mese e di quello prima, e il giorno 2.
+  console.log("\nGiocatore del mese: l'annuncio in Home");
+  const errA = [];
+  const vincitoreDi = mese => {
+    const lista = perMese.get(mese) || [];
+    const soglia = Math.ceil(lista.length / 3);
+    const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
+    return cl.length ? cl[0][0] : null;
+  };
+  const meseInt = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
+  const [ay, am] = adesso.split("-").map(Number);
+  const prima = ([y, m]) => (m === 1 ? [y - 1, 12] : [y, m - 1]);
+  const p1 = prima([ay, am]), p2 = prima(p1);
+  const casi = [
+    { quando: Date.UTC(ay, am - 1, 1, 10), premia: meseInt(...p1) },
+    { quando: Date.UTC(p1[0], p1[1] - 1, 1, 10), premia: meseInt(...p2) },
+    { quando: Date.UTC(ay, am - 1, 2, 10), premia: null },
+  ];
+  let annunciProvati = 0;
+  for (const c of casi) {
+    const dd = apri(c.quando);
+    await new Promise(r => setTimeout(r, 1500));
+    const el = dd.window.document.getElementById("meseAnnuncio");
+    const atteso = c.premia ? vincitoreDi(c.premia) : null;
+    const giorno = new Date(c.quando).toISOString().slice(0, 10);
+    if (!atteso) {
+      if (el && T(el)) errA.push(`${giorno}: annuncio presente ("${T(el).slice(0, 60)}"), atteso nessuno`);
+    } else {
+      annunciProvati++;
+      const nome = el ? T(el.querySelector(".player-link")) : "";
+      if (nome !== atteso) errA.push(`${giorno}: annuncia "${nome}", atteso ${atteso} (${c.premia})`);
+      const pannello = el && el.querySelector(".mese-annuncio");
+      if (!pannello || pannello.dataset.mese !== c.premia) errA.push(`${giorno}: mese ${pannello && pannello.dataset.mese}, atteso ${c.premia}`);
+    }
+    dd.window.close();
+  }
+  verifica(`tre orologi (${annunciProvati} con un vincitore da annunciare)`, annunciProvati > 0 ? errA : errA.concat(["nessun caso con un vincitore: il controllo non prova niente"]));
 
   console.log(falliti === 0 ? "\nOgni numero torna con il ricalcolo indipendente." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);

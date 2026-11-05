@@ -923,6 +923,13 @@ storia di git, commit `e9f0b6c` per il ripristino. Non va rifatta senza chiederl
 copiato dalle funzioni di proclubstracker, e il progetto ha preso la direzione opposta:
 descrivere come si gioca invece di premiare chi sta davanti.
 
+**Il giocatore del mese invece c'è, dal 05/11/2026**, deciso da Peppe sapendo che rivede la
+regola qui sopra. Vince il primo dell'Indice di Forza sulle partite del mese, fra chi ne ha
+giocate almeno un terzo. La sua prima proposta (indice 50%, gol+assist 25%, media 25%) è
+stata scartata insieme a lui: dentro l'indice media e gol+assist ci sono già, e contati due
+volte arrivavano all'82,5% del peso con la tecnica scesa al 15%. Non si cambia la formula
+senza chiederlo.
+
 **Eccezione datata: il Pagellone FC26 (15/09/2026).** Peppe ha chiesto esplicitamente un
 pagellone di fine stagione, con voti e commenti in tono scherzoso — la stessa cosa
 allontanata dalla dashboard il 23/08. Non è un ripensamento della regola sopra: è una
@@ -1743,5 +1750,18 @@ perché di ognuna è nel README, «La Home».
 - **Da verificare su un telefono vero**: l'installazione (Android: menu ⋮ → «Installa app» o
   «Aggiungi a schermata Home»; iPhone: Condividi → «Aggiungi a Home»). Il manifest si è
   potuto provare solo in Chrome desktop, senza violazioni della CSP.
-- **Giocatore del mese: proposto e non fatto.** Va contro la decisione del 23/08 (Premi tolti:
-  descrivere come si gioca, non premiare chi sta davanti). Resta lì finché Peppe non decide.
+- **Giocatore del mese: proposto e lasciato fuori** perché andava contro la decisione del
+  23/08. Poi istituito da Peppe lo stesso giorno (sotto, e «Decisioni prese»).
+
+## Giocatore del mese (05/11/2026)
+
+Il primo dell'Indice di Forza calcolato sulle sole partite del mese (`indiceSuPartite`, la
+stessa funzione della forma), fra chi ha giocato almeno un terzo delle partite del mese. Il
+mese è quello della serata. Nei Record: chi è in testa nel mese in corso, il vincitore del
+mese chiuso, l'albo. In Home solo l'annuncio, il giorno 1 del mese dopo (chiesto da Peppe: la
+sezione non doveva stare fissa in Home).
+
+Al primo calcolo **Pesix_97 vince tutti e tre i mesi** (settembre 51,9, ottobre 52,7, novembre
+in testa con 53,2), con 8-10 punti sul secondo. Detto a Peppe prima di pubblicare: è il
+risultato dell'indice, non un difetto, ma un premio che va sempre allo stesso giocatore dice
+poco. Se diventa un problema, la leva è decidere cosa si vuole premiare, non ritoccare i pesi.

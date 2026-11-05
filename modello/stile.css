@@ -216,6 +216,8 @@ button{font-family:inherit;}
   }
   .card .label{font-size:13px; color:var(--muted);}
   .card .value{font-size:20px; font-weight:600; margin-top:2px; letter-spacing:-.01em; white-space:nowrap;}
+  /* La serie e' l'unica scheda con un testo ("7 senza vincere"): a sette colonne veniva tagliata. */
+  .card[data-card="serie"] .value{white-space:normal; line-height:1.2;}
   .card .value.win{color:var(--win);}
   .card .value.loss{color:var(--loss);}
   section{margin-bottom:32px; scroll-margin-top:56px;}
@@ -416,6 +418,19 @@ button{font-family:inherit;}
   .forma-esito{display:inline-block; padding:1px 8px; border-radius:6px; font-size:12px; font-weight:600; color:#0f1420; margin-right:4px;}
   .forma-esito.W{background:var(--win);} .forma-esito.L{background:var(--loss);} .forma-esito.T{background:var(--tie);}
   #formStrip .form-chip-info a{color:var(--accent);}
+  /* Giocatore del mese (05/11/2026). */
+  .mese-griglia{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px;}
+  .mese-eti{font-size:12px; color:var(--muted); margin-bottom:6px; text-transform:none;}
+  .mese-vincitore{font-size:22px; font-weight:600; letter-spacing:-.01em;}
+  .mese-vincitore .mese-punti{font-size:15px; color:var(--gold); margin-left:6px; font-weight:600;}
+  .mese-podio{margin:0; padding-left:20px; font-size:14px; line-height:1.8;}
+  .mese-podio .mese-punti{color:var(--text); font-weight:600; margin:0 4px;}
+  .mese-nota{font-size:12.5px; color:var(--muted); margin-top:6px;}
+  .mese-albo{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
+  #meseBody .muted{color:var(--muted);}
+  .mese-annuncio{border-left:3px solid var(--gold);}
+  #meseAnnuncio:empty{display:none;}
+  .mese-annuncio .vai-a{margin-left:6px;}
   /* Serata in corso: un'etichetta col pallino, nel resoconto in Home. */
   .in-corso{display:inline-flex; align-items:center; gap:6px; padding:1px 8px 1px 6px; margin-right:6px; border-radius:6px;
     background:rgba(229,86,109,.16); color:var(--loss); font-weight:600;}
