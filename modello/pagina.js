@@ -4960,8 +4960,14 @@ document.addEventListener("keydown", (e) => {
 (function renderCrest(){
   const el = document.getElementById("crestBadge");
   const club = DATA.club || {};
-  const initials = (club.name || "?").slice(0, 2).toUpperCase();
-  el.textContent = initials;
+  // Lo stemma del club (icone/logo.png, dal 05/11/2026). Se l'immagine non si carica restano
+  // le iniziali, come prima.
+  const iniziali = () => { el.textContent = (club.name || "?").slice(0, 2).toUpperCase(); el.classList.remove("con-logo"); };
+  const img = el.querySelector("img");
+  if(!img) return iniziali();
+  el.classList.add("con-logo");
+  img.addEventListener("error", iniziali);
+  if(img.complete && img.naturalWidth === 0 && img.src) iniziali();
 })();
 
 // ---- Nav: menu a comparsa da sinistra (drawer) + navigazione a pagine ----

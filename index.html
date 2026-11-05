@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-VTGNYKpWDNaGeLjqVK1uyiCoXb0f5meNqbnmUfig5MI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-NaZ/16peCxyf+XHUDhoUXhPMo0QizzKWZQRU7y8tW2k='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -236,6 +236,8 @@ button{font-family:inherit;}
     font-weight:700; font-size:14px; color:var(--accent);
     background:rgba(var(--accent-rgb),.12); border:1px solid rgba(var(--accent-rgb),.35);
   }
+  .crest.con-logo{width:auto; background:none; border:none; border-radius:0;}
+  .crest.con-logo img{height:38px; width:auto; display:block;}
   .grid-cards{
     display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px; margin-bottom:24px;
@@ -866,7 +868,7 @@ canvas{max-height:340px;}
 
 <aside id="sideDrawer" aria-label="Menu">
   <div class="side-brand">
-    <div class="crest" id="crestBadge"></div>
+    <div class="crest" id="crestBadge"><img src="icone/logo.png" alt="Lentoni" width="31" height="38"></div>
     <div class="side-brand-txt" title="PS5 / Xbox Series · PC · Divisione 3">
       <h1>Lentoni</h1>
     </div>
@@ -6423,8 +6425,14 @@ document.addEventListener("keydown", (e) => {
 (function renderCrest(){
   const el = document.getElementById("crestBadge");
   const club = DATA.club || {};
-  const initials = (club.name || "?").slice(0, 2).toUpperCase();
-  el.textContent = initials;
+  // Lo stemma del club (icone/logo.png, dal 05/11/2026). Se l'immagine non si carica restano
+  // le iniziali, come prima.
+  const iniziali = () => { el.textContent = (club.name || "?").slice(0, 2).toUpperCase(); el.classList.remove("con-logo"); };
+  const img = el.querySelector("img");
+  if(!img) return iniziali();
+  el.classList.add("con-logo");
+  img.addEventListener("error", iniziali);
+  if(img.complete && img.naturalWidth === 0 && img.src) iniziali();
 })();
 
 // ---- Nav: menu a comparsa da sinistra (drawer) + navigazione a pagine ----

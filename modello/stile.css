@@ -205,6 +205,8 @@ button{font-family:inherit;}
     font-weight:700; font-size:14px; color:var(--accent);
     background:rgba(var(--accent-rgb),.12); border:1px solid rgba(var(--accent-rgb),.35);
   }
+  .crest.con-logo{width:auto; background:none; border:none; border-radius:0;}
+  .crest.con-logo img{height:38px; width:auto; display:block;}
   .grid-cards{
     display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px; margin-bottom:24px;

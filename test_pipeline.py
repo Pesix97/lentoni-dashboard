@@ -2583,5 +2583,27 @@ class TestPartiteManuali(unittest.TestCase):
                     self.assertIn((v["match_id"], g["nome"]), eccezioni)
 
 
+class TestIconeEsistono(unittest.TestCase):
+    """Ogni immagine che la pagina o il manifest citano esiste davvero (05/11/2026).
+
+    Un'icona mancante non da' nessun errore: il logo diventa un riquadro vuoto e
+    l'installazione sul telefono prende un'icona di ripiego. Si controlla dalla pagina
+    principale e dall'archivio, che le cita con un percorso diverso (../icone/)."""
+
+    def test_pagine_e_manifest(self):
+        import re
+        base = Path(__file__).parent
+        citate = []
+        for pagina in [base / "index.html", *sorted((base / "archivio").glob("*.html"))]:
+            testo = pagina.read_text(encoding="utf-8")
+            for rif in re.findall(r'(?:src|href)="([^"#:]*icone/[^"]+)"', testo):
+                citate.append((pagina.name, (pagina.parent / rif).resolve()))
+        manifest = json.loads((base / "manifest.webmanifest").read_text(encoding="utf-8"))
+        citate += [("manifest", (base / i["src"]).resolve()) for i in manifest["icons"]]
+        self.assertGreaterEqual(len(citate), 8, "troppo poche icone trovate: il controllo non prova niente")
+        mancanti = [f"{da}: {p}" for da, p in citate if not p.is_file()]
+        self.assertEqual(mancanti, [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
