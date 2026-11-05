@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-s/SbSqx3gbfSvzh+fHYCd1TQpiYOqf2TLBzdUelBxng='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-qBgQsoMQuPjCAutZGzoLIHHoUtruvWOm8Lpo8BDjlG4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -451,33 +451,38 @@ button{font-family:inherit;}
   #formStrip .form-chip-info a{color:var(--accent);}
   /* Giocatore del mese (05/11/2026). */
   #meseBody .muted{color:var(--muted);}
-  .mese-ora{border-left:3px solid var(--accent); margin-bottom:12px;}
-  .mese-testa{display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
-  .mese-titolo{font-size:18px; font-weight:600; letter-spacing:-.01em;}
-  .mese-quando{margin-left:auto; font-size:12.5px; color:var(--muted);}
-  .mese-stato{align-self:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:6px;
     background:rgba(var(--accent-rgb),.16); color:var(--accent);}
-  .mese-eti{font-size:12px; color:var(--muted); margin-bottom:6px;}
-  .mese-podio{list-style:none; margin:0; padding:0;}
-  .mese-podio li{display:flex; align-items:baseline; gap:10px; padding:8px 0; border-top:1px solid var(--border); font-size:14.5px;}
-  .mese-podio li:first-child{border-top:none;}
-  .mese-podio li.primo{font-size:17px; font-weight:600;}
-  .mese-podio li.primo .mese-punti{color:var(--gold);}
-  .mese-pos{width:18px; color:var(--muted); font-variant-numeric:tabular-nums;}
-  .mese-punti{margin-left:auto; font-weight:600; font-variant-numeric:tabular-nums;}
-  .mese-pg{min-width:84px; text-align:right; font-size:12.5px; color:var(--muted); font-weight:400;}
-  .mese-nota{font-size:12.5px; color:var(--muted); margin-top:10px;}
-  .mese-righe .mese-riga{display:flex; align-items:baseline; flex-wrap:wrap; gap:10px; padding:9px 0; border-top:1px solid var(--border); font-size:14.5px;}
-  .mese-righe .mese-riga:first-child{border-top:none;}
-  .mese-nome{width:130px; color:var(--muted);}
-  .mese-chi{font-weight:600;}
-  .mese-riga .mese-punti{color:var(--gold);}
-  .mese-riga .mese-pg{min-width:110px;}
-  .mese-palmares{margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:center; gap:8px;}
-  .mese-palmares .mese-eti{width:100%; margin:0;}
-  .mese-vinti{display:inline-flex; align-items:center; gap:8px; padding:4px 10px; border-radius:8px; background:var(--panel-2); font-size:13.5px;}
+  .mese-eti{font-size:12px; color:var(--muted);}
+  .mese-nota{font-size:12.5px; color:var(--muted); margin-top:14px;}
+  .albo-testa{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:8px;}
+  .albo-testa .mese-eti{font-size:15px; font-weight:600; color:var(--text);}
+  .albo-totali{display:flex; flex-wrap:wrap; gap:12px; font-size:12.5px; color:var(--muted);}
   .mese-quante{color:var(--gold);}
-  @media (max-width:600px){ .mese-nome{width:100%;} .mese-riga .mese-punti{margin-left:0;} .mese-riga .mese-pg{margin-left:auto;} }
+  .albo-griglia{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; margin-bottom:16px;}
+  .albo-tessera{background:var(--panel); border:1px solid var(--border); border-top:3px solid var(--gold); padding:14px 16px; min-height:128px;}
+  .albo-mese{display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted);}
+  .albo-coppa{width:18px; height:18px; background:var(--gold); -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3'/%3E%3C/svg%3E") center/contain no-repeat;}
+  .albo-chi{font-size:19px; font-weight:600; letter-spacing:-.01em; margin:10px 0 3px; overflow-wrap:anywhere;}
+  .albo-dati{font-size:12.5px; color:var(--muted);}
+  .albo-dati .mese-punti{color:var(--gold); font-weight:600;}
+  .albo-titolo{display:inline-block; margin-top:10px; font-size:11px; padding:2px 8px; border-radius:6px; background:rgba(224,178,63,.14); color:var(--gold);}
+  .albo-prossima{background:transparent; border:1px dashed var(--border); display:flex; flex-direction:column; justify-content:center;}
+  .albo-attesa{font-size:15px; color:var(--muted); margin-top:8px;}
+  .albo-vuota{border-top-color:var(--border);}
+  .mese-corsa .corsa-testa{display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:8px; font-size:15px;}
+  .mese-corsa .corsa-testa span{font-size:12px; color:var(--muted);}
+  .corsa-tempo{height:4px; background:var(--panel-2); border-radius:2px; margin-bottom:16px; overflow:hidden;}
+  .corsa-tempo div{height:100%; background:var(--accent);}
+  .corsa-righe{display:flex; flex-direction:column; gap:11px; font-size:13.5px;}
+  .corsa-riga{display:grid; grid-template-columns:20px minmax(0,150px) 1fr 44px 76px; column-gap:10px; align-items:center;}
+  .corsa-pos,.corsa-pg{color:var(--muted);}
+  .corsa-chi{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .corsa-barra{height:8px; background:var(--panel-2); border-radius:4px; overflow:hidden;}
+  .corsa-barra div{height:100%; background:var(--accent); border-radius:4px;}
+  .corsa-riga .mese-punti{text-align:right; font-weight:600; font-variant-numeric:tabular-nums;}
+  .corsa-pg{font-size:12px; text-align:right;}
+  @media (max-width:600px){ .albo-griglia{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;} .albo-tessera{padding:12px; min-height:0;} .albo-chi{font-size:16px; margin-top:8px;} .albo-dati{font-size:12px;} .albo-attesa{font-size:13.5px;} }
+  @media (max-width:600px){ .corsa-riga{grid-template-columns:18px minmax(0,1fr) 40px 64px; row-gap:5px;} .corsa-barra{grid-column:2 / -1; grid-row:2;} }
   .mese-annuncio{border-left:3px solid var(--gold);}
   .mese-vincitore{font-size:22px; font-weight:600; letter-spacing:-.01em;}
   .mese-vincitore .mese-punti{font-size:15px; color:var(--gold); margin-left:6px;}
@@ -1097,7 +1102,9 @@ canvas{max-height:340px;}
         mese</strong>, con gli stessi pesi della pagina Indice di Forza. Concorre chi ha giocato almeno un terzo
         delle partite del mese; a parità di punteggio, chi ne ha giocate di più. Una partita dopo mezzanotte conta
         nel mese della sua serata. Il vincitore viene annunciato in Home il giorno 1 del mese dopo.
-        «Vittorie» conta i mesi chiusi di questo titolo, anche quelli precedenti al premio.
+        L'albo d'oro ha una tessera per ogni mese chiuso di questo titolo, anche quelli precedenti al premio:
+        «2° titolo» vuol dire che era la seconda volta che quel giocatore vinceva. La corsa elenca chi ha già
+        le presenze; le barre partono dall'ultimo in corsa, non da zero.
       </div>
     </div>
   </details>
@@ -3894,8 +3901,9 @@ function valoreRecord(r, v){
 
 // ---- Giocatore del mese, nella pagina Record ----
 (function renderMese(){
-  // Due pannelli che non si confondono: sopra il mese in corso (chi vincerebbe se finisse
-  // oggi), sotto l'albo d'oro con tutti i mesi chiusi e quante volte ha vinto ognuno.
+  // Prima l'albo d'oro (il premio), poi la corsa del mese in corso (la gara che lo assegnera').
+  // Nell'albo tutti i vincitori hanno lo stesso peso; nella corsa nessuno e' in oro, perche'
+  // non ha ancora vinto niente.
   const el = document.getElementById("meseBody");
   if(!el) return;
   const link = (n) => `<span class="player-link" data-player="${n}">${n}</span>`;
@@ -3903,49 +3911,62 @@ function valoreRecord(r, v){
   const corrente = GIOCATORI_DEL_MESE.find(g => g.inCorso);
   const chiusi = GIOCATORI_DEL_MESE.filter(g => !g.inCorso);
   const [ay, am] = MESE_ADESSO.split("-").map(Number);
-  const mancano = new Date(ay, am, 0).getDate() - GIORNO_ADESSO;
-  const quando = mancano === 0 ? "ultimo giorno" : mancano === 1 ? "manca 1 giorno" : `mancano ${mancano} giorni`;
+  const giorniMese = new Date(ay, am, 0).getDate();
   const nomeOra = maiusc(NOMI_MESI[am - 1]) + " " + ay;
+  const prossimo = NOMI_MESI[am % 12];
 
-  let ora;
-  if(corrente){
-    const c = corrente.classifica;
-    ora = `<div class="panel mese-ora" data-mese="${corrente.mese}" data-stato="in-corso">
-      <div class="mese-testa"><span class="mese-stato">In corso</span><strong class="mese-titolo">${nomeOra}</strong><span class="mese-quando">${quando}</span></div>
-      ${c.length
-        ? `<div class="mese-eti">Se il mese finisse oggi</div>
-           <ol class="mese-podio">${c.slice(0, 3).map((x, i) => `<li class="${i === 0 ? "primo" : ""}"><span class="mese-pos">${i + 1}</span>${link(x.name)}<span class="mese-punti">${x.score.toFixed(1)}</span><span class="mese-pg">${x.games} partite</span></li>`).join("")}</ol>`
-        : `<div class="muted">Nessuno ha ancora le presenze che servono.</div>`}
-      <div class="mese-nota">${corrente.partite} partite giocate nel mese · per concorrere ne servono almeno ${corrente.soglia}</div>
-    </div>`;
-  } else {
-    ora = `<div class="panel mese-ora" data-mese="${MESE_ADESSO}" data-stato="in-corso">
-      <div class="mese-testa"><span class="mese-stato">In corso</span><strong class="mese-titolo">${nomeOra}</strong><span class="mese-quando">${quando}</span></div>
-      <div class="muted">Nessuna partita ancora questo mese.</div>
-    </div>`;
-  }
+  // Il numero del titolo su ogni tessera: quante volte quel giocatore aveva vinto fino a quel
+  // mese compreso. Si conta in ordine di tempo, dal mese piu' vecchio.
+  const ordinale = new Map(), totali = new Map();
+  [...chiusi].reverse().forEach(g => { const v = g.classifica[0]; if(!v) return;
+    totali.set(v.name, (totali.get(v.name) || 0) + 1);
+    ordinale.set(g.mese, totali.get(v.name)); });
+  const classificaTitoli = [...totali.entries()].sort((a, b) => b[1] - a[1]);
 
-  // Quante volte ha vinto ognuno, su tutti i mesi chiusi del titolo (anche quelli prima che
-  // il premio esistesse: si rifanno dalle partite).
-  const vinti = new Map();
-  chiusi.forEach(g => { const v = g.classifica[0]; if(!v) return;
-    if(!vinti.has(v.name)) vinti.set(v.name, []);
-    vinti.get(v.name).push(g.nome); });
-  const palmares = [...vinti.entries()].sort((a, b) => b[1].length - a[1].length);
-  const albo = chiusi.length ? `<div class="panel mese-albo">
-      <div class="mese-testa"><strong class="mese-titolo">Albo d'oro</strong><span class="mese-quando">mesi chiusi</span></div>
-      <div class="mese-righe">${chiusi.map(g => {
-        const v = g.classifica[0];
-        return `<div class="mese-riga" data-mese="${g.mese}" data-stato="chiuso">
-          <span class="mese-nome">${maiusc(g.nome)}</span>
-          ${v ? `<span class="mese-chi">${link(v.name)}</span><span class="mese-punti">${v.score.toFixed(1)}</span><span class="mese-pg">${v.games} su ${g.partite} partite</span>`
-              : `<span class="mese-chi muted">nessuno con le presenze</span>`}
+  const tessere = chiusi.map(g => {
+    const v = g.classifica[0];
+    return v
+      ? `<div class="albo-tessera" data-mese="${g.mese}" data-stato="chiuso">
+          <div class="albo-mese"><span>${maiusc(g.nome)}</span><span class="albo-coppa" aria-hidden="true"></span></div>
+          <div class="albo-chi">${link(v.name)}</div>
+          <div class="albo-dati"><span class="mese-punti">${v.score.toFixed(1)}</span> · ${v.games} su ${g.partite} partite</div>
+          <span class="albo-titolo" data-titolo="${ordinale.get(g.mese)}">${ordinale.get(g.mese)}° titolo</span>
+        </div>`
+      : `<div class="albo-tessera albo-vuota" data-mese="${g.mese}" data-stato="chiuso">
+          <div class="albo-mese"><span>${maiusc(g.nome)}</span></div>
+          <div class="albo-dati">Non assegnato: nessuno con ${g.soglia} presenze su ${g.partite}.</div>
         </div>`;
-      }).join("")}</div>
-      ${palmares.length ? `<div class="mese-palmares"><div class="mese-eti">Quante volte ha vinto ognuno</div>${palmares.map(([n, mesi]) =>
-        `<span class="mese-vinti" data-player="${n}" title="${mesi.join(", ")}">${link(n)}<span><strong class="mese-quante">${mesi.length}</strong> ${mesi.length === 1 ? "volta" : "volte"}</span></span>`).join("")}</div>` : ""}
-    </div>` : "";
-  el.innerHTML = ora + albo;
+  });
+  // Nell'archivio di un titolo chiuso non c'e' un mese in corso: niente tessera d'attesa ne' corsa.
+  const chiuso = !!DATA.titoloChiuso;
+  if(!chiuso) tessere.unshift(`<div class="albo-tessera albo-prossima" data-prossimo="${MESE_ADESSO}">
+      <div class="albo-mese"><span>${nomeOra}</span></div>
+      <div class="albo-attesa">si assegna il 1° ${prossimo}</div>
+    </div>`);
+
+  const albo = `<div class="albo-testa"><span class="mese-eti">Albo d'oro</span>${classificaTitoli.length
+      ? `<span class="albo-totali">${classificaTitoli.map(([n, k]) => `<span class="mese-vinti" data-player="${n}">${n} · <strong class="mese-quante">${k}</strong> ${k === 1 ? "titolo" : "titoli"}</span>`).join("")}</span>` : ""}</div>
+    <div class="albo-griglia">${tessere.join("")}</div>`;
+
+  // La corsa: tutti quelli che hanno gia' le presenze. Le barre partono poco sotto l'ultimo
+  // in corsa, non da zero: con punteggi fra 35 e 55 una barra da zero schiaccerebbe i distacchi.
+  const c = corrente ? corrente.classifica : [];
+  const alto = c.length ? c[0].score : 0, basso = c.length ? c[c.length - 1].score : 0;
+  const larghezza = (x) => (alto > basso ? 15 + 85 * (x - basso) / (alto - basso) : 100).toFixed(1);
+  const corsa = `<div class="panel mese-corsa" data-mese="${MESE_ADESSO}" data-stato="in-corso">
+      <div class="corsa-testa"><strong>La corsa di ${NOMI_MESI[am - 1]}</strong><span>giorno ${GIORNO_ADESSO} di ${giorniMese}</span></div>
+      <div class="corsa-tempo"><div style="width:${(100 * GIORNO_ADESSO / giorniMese).toFixed(1)}%"></div></div>
+      ${c.length
+        ? `<div class="corsa-righe">${c.map((x, i) => `<div class="corsa-riga">
+            <span class="corsa-pos">${i + 1}</span><span class="corsa-chi">${link(x.name)}</span>
+            <div class="corsa-barra"><div style="width:${larghezza(x.score)}%"></div></div>
+            <span class="mese-punti">${x.score.toFixed(1)}</span><span class="corsa-pg">${x.games} partite</span>
+          </div>`).join("")}</div>`
+        : `<div class="muted">${corrente ? "Nessuno ha ancora le presenze che servono." : "Nessuna partita ancora questo mese."}</div>`}
+      <div class="mese-nota">${corrente ? `${corrente.partite} partite nel mese · in corsa chi ne ha giocate almeno ${corrente.soglia}` : "In corsa chi gioca almeno un terzo delle partite del mese"}</div>
+    </div>`;
+
+  el.innerHTML = albo + (chiuso ? "" : corsa);
 })();
 
 // ---- Share card: immagine PNG generata su canvas, senza librerie esterne ----

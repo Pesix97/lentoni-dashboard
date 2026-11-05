@@ -2438,8 +2438,9 @@ function valoreRecord(r, v){
 
 // ---- Giocatore del mese, nella pagina Record ----
 (function renderMese(){
-  // Due pannelli che non si confondono: sopra il mese in corso (chi vincerebbe se finisse
-  // oggi), sotto l'albo d'oro con tutti i mesi chiusi e quante volte ha vinto ognuno.
+  // Prima l'albo d'oro (il premio), poi la corsa del mese in corso (la gara che lo assegnera').
+  // Nell'albo tutti i vincitori hanno lo stesso peso; nella corsa nessuno e' in oro, perche'
+  // non ha ancora vinto niente.
   const el = document.getElementById("meseBody");
   if(!el) return;
   const link = (n) => `<span class="player-link" data-player="${n}">${n}</span>`;
@@ -2447,49 +2448,62 @@ function valoreRecord(r, v){
   const corrente = GIOCATORI_DEL_MESE.find(g => g.inCorso);
   const chiusi = GIOCATORI_DEL_MESE.filter(g => !g.inCorso);
   const [ay, am] = MESE_ADESSO.split("-").map(Number);
-  const mancano = new Date(ay, am, 0).getDate() - GIORNO_ADESSO;
-  const quando = mancano === 0 ? "ultimo giorno" : mancano === 1 ? "manca 1 giorno" : `mancano ${mancano} giorni`;
+  const giorniMese = new Date(ay, am, 0).getDate();
   const nomeOra = maiusc(NOMI_MESI[am - 1]) + " " + ay;
+  const prossimo = NOMI_MESI[am % 12];
 
-  let ora;
-  if(corrente){
-    const c = corrente.classifica;
-    ora = `<div class="panel mese-ora" data-mese="${corrente.mese}" data-stato="in-corso">
-      <div class="mese-testa"><span class="mese-stato">In corso</span><strong class="mese-titolo">${nomeOra}</strong><span class="mese-quando">${quando}</span></div>
-      ${c.length
-        ? `<div class="mese-eti">Se il mese finisse oggi</div>
-           <ol class="mese-podio">${c.slice(0, 3).map((x, i) => `<li class="${i === 0 ? "primo" : ""}"><span class="mese-pos">${i + 1}</span>${link(x.name)}<span class="mese-punti">${x.score.toFixed(1)}</span><span class="mese-pg">${x.games} partite</span></li>`).join("")}</ol>`
-        : `<div class="muted">Nessuno ha ancora le presenze che servono.</div>`}
-      <div class="mese-nota">${corrente.partite} partite giocate nel mese · per concorrere ne servono almeno ${corrente.soglia}</div>
-    </div>`;
-  } else {
-    ora = `<div class="panel mese-ora" data-mese="${MESE_ADESSO}" data-stato="in-corso">
-      <div class="mese-testa"><span class="mese-stato">In corso</span><strong class="mese-titolo">${nomeOra}</strong><span class="mese-quando">${quando}</span></div>
-      <div class="muted">Nessuna partita ancora questo mese.</div>
-    </div>`;
-  }
+  // Il numero del titolo su ogni tessera: quante volte quel giocatore aveva vinto fino a quel
+  // mese compreso. Si conta in ordine di tempo, dal mese piu' vecchio.
+  const ordinale = new Map(), totali = new Map();
+  [...chiusi].reverse().forEach(g => { const v = g.classifica[0]; if(!v) return;
+    totali.set(v.name, (totali.get(v.name) || 0) + 1);
+    ordinale.set(g.mese, totali.get(v.name)); });
+  const classificaTitoli = [...totali.entries()].sort((a, b) => b[1] - a[1]);
 
-  // Quante volte ha vinto ognuno, su tutti i mesi chiusi del titolo (anche quelli prima che
-  // il premio esistesse: si rifanno dalle partite).
-  const vinti = new Map();
-  chiusi.forEach(g => { const v = g.classifica[0]; if(!v) return;
-    if(!vinti.has(v.name)) vinti.set(v.name, []);
-    vinti.get(v.name).push(g.nome); });
-  const palmares = [...vinti.entries()].sort((a, b) => b[1].length - a[1].length);
-  const albo = chiusi.length ? `<div class="panel mese-albo">
-      <div class="mese-testa"><strong class="mese-titolo">Albo d'oro</strong><span class="mese-quando">mesi chiusi</span></div>
-      <div class="mese-righe">${chiusi.map(g => {
-        const v = g.classifica[0];
-        return `<div class="mese-riga" data-mese="${g.mese}" data-stato="chiuso">
-          <span class="mese-nome">${maiusc(g.nome)}</span>
-          ${v ? `<span class="mese-chi">${link(v.name)}</span><span class="mese-punti">${v.score.toFixed(1)}</span><span class="mese-pg">${v.games} su ${g.partite} partite</span>`
-              : `<span class="mese-chi muted">nessuno con le presenze</span>`}
+  const tessere = chiusi.map(g => {
+    const v = g.classifica[0];
+    return v
+      ? `<div class="albo-tessera" data-mese="${g.mese}" data-stato="chiuso">
+          <div class="albo-mese"><span>${maiusc(g.nome)}</span><span class="albo-coppa" aria-hidden="true"></span></div>
+          <div class="albo-chi">${link(v.name)}</div>
+          <div class="albo-dati"><span class="mese-punti">${v.score.toFixed(1)}</span> · ${v.games} su ${g.partite} partite</div>
+          <span class="albo-titolo" data-titolo="${ordinale.get(g.mese)}">${ordinale.get(g.mese)}° titolo</span>
+        </div>`
+      : `<div class="albo-tessera albo-vuota" data-mese="${g.mese}" data-stato="chiuso">
+          <div class="albo-mese"><span>${maiusc(g.nome)}</span></div>
+          <div class="albo-dati">Non assegnato: nessuno con ${g.soglia} presenze su ${g.partite}.</div>
         </div>`;
-      }).join("")}</div>
-      ${palmares.length ? `<div class="mese-palmares"><div class="mese-eti">Quante volte ha vinto ognuno</div>${palmares.map(([n, mesi]) =>
-        `<span class="mese-vinti" data-player="${n}" title="${mesi.join(", ")}">${link(n)}<span><strong class="mese-quante">${mesi.length}</strong> ${mesi.length === 1 ? "volta" : "volte"}</span></span>`).join("")}</div>` : ""}
-    </div>` : "";
-  el.innerHTML = ora + albo;
+  });
+  // Nell'archivio di un titolo chiuso non c'e' un mese in corso: niente tessera d'attesa ne' corsa.
+  const chiuso = !!DATA.titoloChiuso;
+  if(!chiuso) tessere.unshift(`<div class="albo-tessera albo-prossima" data-prossimo="${MESE_ADESSO}">
+      <div class="albo-mese"><span>${nomeOra}</span></div>
+      <div class="albo-attesa">si assegna il 1° ${prossimo}</div>
+    </div>`);
+
+  const albo = `<div class="albo-testa"><span class="mese-eti">Albo d'oro</span>${classificaTitoli.length
+      ? `<span class="albo-totali">${classificaTitoli.map(([n, k]) => `<span class="mese-vinti" data-player="${n}">${n} · <strong class="mese-quante">${k}</strong> ${k === 1 ? "titolo" : "titoli"}</span>`).join("")}</span>` : ""}</div>
+    <div class="albo-griglia">${tessere.join("")}</div>`;
+
+  // La corsa: tutti quelli che hanno gia' le presenze. Le barre partono poco sotto l'ultimo
+  // in corsa, non da zero: con punteggi fra 35 e 55 una barra da zero schiaccerebbe i distacchi.
+  const c = corrente ? corrente.classifica : [];
+  const alto = c.length ? c[0].score : 0, basso = c.length ? c[c.length - 1].score : 0;
+  const larghezza = (x) => (alto > basso ? 15 + 85 * (x - basso) / (alto - basso) : 100).toFixed(1);
+  const corsa = `<div class="panel mese-corsa" data-mese="${MESE_ADESSO}" data-stato="in-corso">
+      <div class="corsa-testa"><strong>La corsa di ${NOMI_MESI[am - 1]}</strong><span>giorno ${GIORNO_ADESSO} di ${giorniMese}</span></div>
+      <div class="corsa-tempo"><div style="width:${(100 * GIORNO_ADESSO / giorniMese).toFixed(1)}%"></div></div>
+      ${c.length
+        ? `<div class="corsa-righe">${c.map((x, i) => `<div class="corsa-riga">
+            <span class="corsa-pos">${i + 1}</span><span class="corsa-chi">${link(x.name)}</span>
+            <div class="corsa-barra"><div style="width:${larghezza(x.score)}%"></div></div>
+            <span class="mese-punti">${x.score.toFixed(1)}</span><span class="corsa-pg">${x.games} partite</span>
+          </div>`).join("")}</div>`
+        : `<div class="muted">${corrente ? "Nessuno ha ancora le presenze che servono." : "Nessuna partita ancora questo mese."}</div>`}
+      <div class="mese-nota">${corrente ? `${corrente.partite} partite nel mese · in corsa chi ne ha giocate almeno ${corrente.soglia}` : "In corsa chi gioca almeno un terzo delle partite del mese"}</div>
+    </div>`;
+
+  el.innerHTML = albo + (chiuso ? "" : corsa);
 })();
 
 // ---- Share card: immagine PNG generata su canvas, senza librerie esterne ----

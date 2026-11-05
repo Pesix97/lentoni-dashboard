@@ -490,11 +490,12 @@ function puntiDaTesto(t, sinistra) {
     const nomi = [...blocco.querySelectorAll(".player-link")].map(x => T(x));
     if (mese === adesso) {
       if (blocco.dataset.stato !== "in-corso") errM.push(`${mese}: e' il mese in corso, la pagina lo dice chiuso`);
-      const attesi = cl.slice(0, 3).map(([n]) => n);
+      // La corsa: tutti quelli con le presenze, in ordine.
+      const attesi = cl.map(([n]) => n);
       if (nomi.join() !== attesi.join()) errM.push(`${mese} in corso: [${nomi}], attesi [${attesi}]`);
-      if (!T(blocco).includes(`${lista.length} partite giocate nel mese · per concorrere ne servono almeno ${soglia}`)) errM.push(`${mese}: "${T(blocco.querySelector(".mese-nota"))}", attese ${lista.length} partite e soglia ${soglia}`);
+      if (!T(blocco).includes(`${lista.length} partite nel mese · in corsa chi ne ha giocate almeno ${soglia}`)) errM.push(`${mese}: "${T(blocco.querySelector(".mese-nota"))}", attese ${lista.length} partite e soglia ${soglia}`);
       const pp = [...blocco.querySelectorAll(".mese-punti")].map(x => num(T(x)));
-      cl.slice(0, 3).forEach(([n, x], i) => { if (!(Math.abs(pp[i] - x.score) <= 0.051)) errM.push(`${mese} ${n}: ${pp[i]}, atteso ${x.score.toFixed(2)}`); });
+      cl.forEach(([n, x], i) => { if (!(Math.abs(pp[i] - x.score) <= 0.051)) errM.push(`${mese} ${n}: ${pp[i]}, atteso ${x.score.toFixed(2)}`); });
     } else {
       if (blocco.dataset.stato === "in-corso") errM.push(`${mese}: e' chiuso, la pagina lo dice in corso`);
       const v = cl[0];
@@ -505,7 +506,7 @@ function puntiDaTesto(t, sinistra) {
       if (v && !(Math.abs(num(testoPunti) - v[1].score) <= 0.051)) errM.push(`${mese}: punteggio "${testoPunti}", atteso ${v[1].score.toFixed(2)}`);
     }
   }
-  verifica(`${mesiVisti} mesi su ${perMese.size}: vincitore, punteggio, chi e' in testa nel mese in corso`, mesiVisti === perMese.size ? errM : errM.concat([`mesi in pagina ${mesiVisti}`]));
+  verifica(`${mesiVisti} mesi su ${perMese.size}: vincitore, punteggio, la corsa del mese in corso`, mesiVisti === perMese.size ? errM : errM.concat([`mesi in pagina ${mesiVisti}`]));
 
   // Le vittorie di ognuno: si contano dai mesi chiusi rifatti qui sopra, non dall'albo stampato.
   const errV = [], attese = new Map();
@@ -514,6 +515,17 @@ function puntiDaTesto(t, sinistra) {
     const soglia = Math.ceil(lista.length / 3);
     const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
     if (cl.length) attese.set(cl[0][0], (attese.get(cl[0][0]) || 0) + 1);
+  }
+  // Il «N° titolo» di ogni tessera: le vittorie di quel giocatore fino a quel mese compreso.
+  const finora = new Map();
+  for (const mese of [...perMese.keys()].filter(k => k !== adesso).sort()) {
+    const lista = perMese.get(mese), soglia = Math.ceil(lista.length / 3);
+    const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
+    if (!cl.length) continue;
+    finora.set(cl[0][0], (finora.get(cl[0][0]) || 0) + 1);
+    const t = d.querySelector(`#meseBody [data-mese="${mese}"] .albo-titolo`);
+    const letto = t ? num(T(t)) : null;
+    if (letto !== finora.get(cl[0][0])) errV.push(`${mese}: "${t ? T(t) : "nessun titolo"}", atteso ${finora.get(cl[0][0])}° titolo di ${cl[0][0]}`);
   }
   const righeV = [...d.querySelectorAll("#meseBody .mese-vinti")];
   const lette = new Map(righeV.map(r => [r.dataset.player, num(T(r.querySelector(".mese-quante")))]));
