@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-j1amu3Pkkh78Wzm0LvhaLlOvHal2HR6mR+cfaAN34xw='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-t1aaQUV5X8bZqLQ7nX0XWe1Saq5YQlFz+AdDSzcbkO0='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -458,6 +458,8 @@ button{font-family:inherit;}
   .mese-podio .mese-punti{color:var(--text); font-weight:600; margin:0 4px;}
   .mese-nota{font-size:12.5px; color:var(--muted); margin-top:6px;}
   .mese-albo{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
+  .mese-palmares{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
+  .mese-quante{color:var(--gold); margin:0 4px;}
   #meseBody .muted{color:var(--muted);}
   .mese-annuncio{border-left:3px solid var(--gold);}
   #meseAnnuncio:empty{display:none;}
@@ -1076,6 +1078,7 @@ canvas{max-height:340px;}
         mese</strong>, con gli stessi pesi della pagina Indice di Forza. Concorre chi ha giocato almeno un terzo
         delle partite del mese; a parità di punteggio, chi ne ha giocate di più. Una partita dopo mezzanotte conta
         nel mese della sua serata. Il vincitore viene annunciato in Home il giorno 1 del mese dopo.
+        «Vittorie» conta i mesi chiusi di questo titolo, anche quelli precedenti al premio.
       </div>
     </div>
   </details>
@@ -3900,12 +3903,21 @@ function valoreRecord(r, v){
     </div>`);
   }
   const albo = chiusi.slice(1);
+  // Quante volte ha vinto ognuno, su tutti i mesi chiusi del titolo (anche quelli prima che
+  // il premio esistesse: si rifanno dalle partite). In parita' prima chi ha vinto per ultimo.
+  const vinti = new Map();
+  chiusi.forEach(g => { const v = g.classifica[0]; if(!v) return;
+    if(!vinti.has(v.name)) vinti.set(v.name, []);
+    vinti.get(v.name).push(g.nome); });
+  const palmares = [...vinti.entries()].sort((a, b) => b[1].length - a[1].length);
   el.innerHTML = `<div class="panel">
     <div class="mese-griglia">${blocchi.join("")}</div>
     ${albo.length ? `<div class="mese-albo"><div class="mese-eti">Albo</div>${albo.map(g => {
       const v = g.classifica[0];
       return `<div class="mese-riga" data-mese="${g.mese}">${g.nome}: ${v ? `${link(v.name)} <span class="muted">${v.score.toFixed(1)} · ${v.games} partite</span>` : '<span class="muted">nessuno</span>'}</div>`;
     }).join("")}</div>` : ""}
+    ${palmares.length ? `<div class="mese-palmares"><div class="mese-eti">Vittorie</div>${palmares.map(([n, mesi]) =>
+      `<div class="mese-vinti" data-player="${n}">${link(n)} <strong class="mese-quante">${mesi.length}</strong> <span class="muted">${mesi.join(", ")}</span></div>`).join("")}</div>` : ""}
   </div>`;
 })();
 

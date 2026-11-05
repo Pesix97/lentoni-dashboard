@@ -2466,12 +2466,21 @@ function valoreRecord(r, v){
     </div>`);
   }
   const albo = chiusi.slice(1);
+  // Quante volte ha vinto ognuno, su tutti i mesi chiusi del titolo (anche quelli prima che
+  // il premio esistesse: si rifanno dalle partite). In parita' prima chi ha vinto per ultimo.
+  const vinti = new Map();
+  chiusi.forEach(g => { const v = g.classifica[0]; if(!v) return;
+    if(!vinti.has(v.name)) vinti.set(v.name, []);
+    vinti.get(v.name).push(g.nome); });
+  const palmares = [...vinti.entries()].sort((a, b) => b[1].length - a[1].length);
   el.innerHTML = `<div class="panel">
     <div class="mese-griglia">${blocchi.join("")}</div>
     ${albo.length ? `<div class="mese-albo"><div class="mese-eti">Albo</div>${albo.map(g => {
       const v = g.classifica[0];
       return `<div class="mese-riga" data-mese="${g.mese}">${g.nome}: ${v ? `${link(v.name)} <span class="muted">${v.score.toFixed(1)} · ${v.games} partite</span>` : '<span class="muted">nessuno</span>'}</div>`;
     }).join("")}</div>` : ""}
+    ${palmares.length ? `<div class="mese-palmares"><div class="mese-eti">Vittorie</div>${palmares.map(([n, mesi]) =>
+      `<div class="mese-vinti" data-player="${n}">${link(n)} <strong class="mese-quante">${mesi.length}</strong> <span class="muted">${mesi.join(", ")}</span></div>`).join("")}</div>` : ""}
   </div>`;
 })();
 

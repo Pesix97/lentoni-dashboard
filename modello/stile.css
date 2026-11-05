@@ -427,6 +427,8 @@ button{font-family:inherit;}
   .mese-podio .mese-punti{color:var(--text); font-weight:600; margin:0 4px;}
   .mese-nota{font-size:12.5px; color:var(--muted); margin-top:6px;}
   .mese-albo{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
+  .mese-palmares{margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:13.5px; line-height:1.8;}
+  .mese-quante{color:var(--gold); margin:0 4px;}
   #meseBody .muted{color:var(--muted);}
   .mese-annuncio{border-left:3px solid var(--gold);}
   #meseAnnuncio:empty{display:none;}

@@ -507,6 +507,20 @@ function puntiDaTesto(t, sinistra) {
   }
   verifica(`${mesiVisti} mesi su ${perMese.size}: vincitore, punteggio, chi e' in testa nel mese in corso`, mesiVisti === perMese.size ? errM : errM.concat([`mesi in pagina ${mesiVisti}`]));
 
+  // Le vittorie di ognuno: si contano dai mesi chiusi rifatti qui sopra, non dall'albo stampato.
+  const errV = [], attese = new Map();
+  for (const [mese, lista] of perMese) {
+    if (mese === adesso) continue;
+    const soglia = Math.ceil(lista.length / 3);
+    const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
+    if (cl.length) attese.set(cl[0][0], (attese.get(cl[0][0]) || 0) + 1);
+  }
+  const righeV = [...d.querySelectorAll("#meseBody .mese-vinti")];
+  const lette = new Map(righeV.map(r => [r.dataset.player, num(T(r.querySelector(".mese-quante")))]));
+  for (const [n, k] of attese) if (lette.get(n) !== k) errV.push(`${n}: ${lette.get(n)} vittorie in pagina, attese ${k}`);
+  for (const [n] of lette) if (!attese.has(n)) errV.push(`${n} in pagina senza aver vinto`);
+  verifica(`vittorie per giocatore (${attese.size} vincitori su ${[...perMese.keys()].filter(k => k !== adesso).length} mesi chiusi)`, attese.size ? errV : errV.concat(["nessun mese chiuso: il controllo non prova niente"]));
+
   // L'annuncio in Home: c'e' il giorno 1 e premia il mese prima; gli altri giorni no. Si
   // provano tre orologi: il giorno 1 di questo mese e di quello prima, e il giorno 2.
   console.log("\nGiocatore del mese: l'annuncio in Home");

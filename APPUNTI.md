@@ -1765,3 +1765,8 @@ Al primo calcolo **Pesix_97 vince tutti e tre i mesi** (settembre 51,9, ottobre 
 in testa con 53,2), con 8-10 punti sul secondo. Detto a Peppe prima di pubblicare: è il
 risultato dell'indice, non un difetto, ma un premio che va sempre allo stesso giocatore dice
 poco. Se diventa un problema, la leva è decidere cosa si vuole premiare, non ritoccare i pesi.
+
+Lo storico delle vittorie (chiesto da Peppe il 05/11/2026, «anche in maniera retroattiva»)
+conta **solo FC 27**: scelta sua, fra tre (due premi per settembre, uno su partite unite, solo
+FC 27). Al 05/11: Pesix_97 2 (settembre e ottobre). FC 26 avrebbe dato 2 a FFLI_Adriano
+(agosto 58,6, settembre 1–9 56,8): restano visibili nell'archivio di FC 26.
