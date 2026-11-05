@@ -1747,9 +1747,9 @@ perché di ognuna è nel README, «La Home».
 - La fascia unica per serata sul grafico **non funzionava**: provata a occhio, copriva quasi
   tutto, perché lo storico ha punti quasi solo durante le serate. Diventata verde/rossa per
   saldo. Delta controllati a mano contro lo storico per quattro serate fra il 31/10 e il 04/11.
-- **Da verificare su un telefono vero**: l'installazione (Android: menu ⋮ → «Installa app» o
-  «Aggiungi a schermata Home»; iPhone: Condividi → «Aggiungi a Home»). Il manifest si è
-  potuto provare solo in Chrome desktop, senza violazioni della CSP.
+- **Installazione sul telefono: provata da Peppe il 05/11/2026 su un telefono vero, funziona.**
+  (Android: menu ⋮ → «Installa app» o «Aggiungi a schermata Home»; iPhone: Condividi →
+  «Aggiungi a Home».) Prima si era potuto provare il manifest solo in Chrome desktop.
 - **Giocatore del mese: proposto e lasciato fuori** perché andava contro la decisione del
   23/08. Poi istituito da Peppe lo stesso giorno (sotto, e «Decisioni prese»).
 
