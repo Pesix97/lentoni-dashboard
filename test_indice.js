@@ -252,6 +252,7 @@ const apri = (adesso) => new JSDOM(html.replace(/<script id="lib-chartjs">[\s\S]
   runScripts: "dangerously", pretendToBeVisual: true, url: "https://pesix97.github.io/lentoni-dashboard/",
   beforeParse(w) {
     if (adesso !== undefined) w.Date.now = () => adesso;
+    w.Element.prototype.scrollIntoView = nulla;   // jsdom non lo ha: serve al link dell'annuncio
     w.Chart = function () { return { destroy() {}, update() {} }; }; w.Chart.register = nulla;
     const ctx = new Proxy({}, { get: (_, k) => {
       if (k === "createLinearGradient" || k === "createRadialGradient" || k === "createPattern") return () => ({ addColorStop: nulla });
@@ -567,6 +568,11 @@ function puntiDaTesto(t, sinistra) {
       if (nome !== atteso) errA.push(`${giorno}: annuncia "${nome}", atteso ${atteso} (${c.premia})`);
       const pannello = el && el.querySelector(".mese-annuncio");
       if (!pannello || pannello.dataset.mese !== c.premia) errA.push(`${giorno}: mese ${pannello && pannello.dataset.mese}, atteso ${c.premia}`);
+      // Il link dell'annuncio deve aprire la pagina POTM: l'albo visibile, Home e Record nascosti.
+      const vai = el && el.querySelector(".vai-a");
+      if (vai) vai.click();
+      const nascosta = id => { const x = dd.window.document.getElementById(id); return !x || x.classList.contains("page-hidden"); };
+      if (!vai || nascosta("mese") || !nascosta("meseAnnuncio") || !nascosta("record")) errA.push(`${giorno}: il link dell'annuncio non apre la pagina POTM`);
     }
     dd.window.close();
   }
