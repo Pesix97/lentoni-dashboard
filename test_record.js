@@ -249,6 +249,84 @@ const num = s => { const m = String(s).match(/-?\d+(?:\.\d+)?/); return m ? pars
   }
   verifica("partite, esito, gol, il migliore, record e divisione", errR);
 
+  // ---- Serie in corso e forma, in home (05/11/2026) ----
+  // La serie si rifa' contando all'indietro dall'ultima partita, con regole scritte qui in
+  // un'altra forma: prima la serie dello stesso esito, poi quella larga se e' piu' lunga.
+  console.log("\nSerie in corso e forma, in home");
+  function serieAttesa(lista) {
+    if (!lista.length) return "—";
+    const indietro = ok => { let k = 0; while (k < lista.length && ok(lista[lista.length - 1 - k])) k++; return k; };
+    const W = indietro(m => m.win), L = indietro(m => m.loss), U = indietro(m => !m.loss), N = indietro(m => !m.win);
+    const u = lista[lista.length - 1];
+    if (u.win) return W > 1 ? `${W} vittorie di fila` : U > 1 ? `${U} senza perdere` : "1 vittoria";
+    if (u.loss) return L > 1 ? `${L} sconfitte di fila` : N > 1 ? `${N} senza vincere` : "1 sconfitta";
+    if (U === 1 && N === 1) return "1 pareggio";
+    return U >= N ? `${U} senza perdere` : `${N} senza vincere`;
+  }
+  const errSerie = [];
+  const scheda = T(d.querySelector('#cards [data-card="serie"] .value'));
+  if (scheda !== serieAttesa(partite)) errSerie.push(`scheda: "${scheda}", attesa "${serieAttesa(partite)}"`);
+  // Tutti i casi, non solo quello di oggi: la serie come sarebbe stata dopo ogni partita.
+  const tipi = new Set();
+  for (let k = 1; k <= partite.length; k++) {
+    const pref = partite.slice(0, k), r = dom.window.serieInCorso(pref), a = serieAttesa(pref);
+    tipi.add(a.replace(/^\d+ /, ""));
+    if (!r || r.testo !== a) errSerie.push(`dopo la partita ${k}: "${r && r.testo}", attesa "${a}"`);
+  }
+  verifica(`la scheda, e la serie dopo ognuna delle ${partite.length} partite (${tipi.size} forme diverse)`, errSerie);
+
+  const errForma = [];
+  const ultime = partite.slice(-20);
+  const pill = [...d.querySelectorAll("#formStrip .forma-pill")];
+  if (pill.length !== ultime.length) errForma.push(`pillole ${pill.length}, attese ${ultime.length}`);
+  pill.forEach((b, i) => {
+    const m = ultime[i]; if (!m) return;
+    const e = m.win ? "W" : m.tie ? "T" : "L";
+    if (T(b) !== `${m.goals_for}-${m.goals_against}`) errForma.push(`pillola ${i + 1}: "${T(b)}", attesa ${m.goals_for}-${m.goals_against}`);
+    if (!b.classList.contains(e)) errForma.push(`pillola ${i + 1}: colore sbagliato, atteso ${e}`);
+  });
+  const bil = `${ultime.filter(m => m.win).length}V ${ultime.filter(m => m.tie).length}P ${ultime.filter(m => m.loss).length}S`;
+  if (T(d.querySelector('[data-forma="bilancio"]')) !== bil) errForma.push(`bilancio "${T(d.querySelector('[data-forma="bilancio"]'))}", atteso "${bil}"`);
+  // Il dettaglio segue il tocco: si prova su ogni pillola, non solo sull'ultima che si apre da sola.
+  pill.forEach((b, i) => {
+    b.click();
+    const m = ultime[i], dt = T(d.getElementById("formaDettaglio"));
+    // Spazi normalizzati come fa T(): un avversario si chiama "VPK  Biograd", con due spazi.
+    if (!dt.includes(`${m.goals_for}-${m.goals_against} contro ${m.opponent_name}`.replace(/\s+/g, " "))) errForma.push(`tocco ${i + 1}: "${dt}"`);
+  });
+  verifica(`le ultime ${ultime.length} partite, il bilancio e il dettaglio al tocco`, errForma);
+
+  // In corso o no: deciso dall'ora dell'ultima partita della serata, rispetto ad adesso.
+  if (ultima) {
+    const fineUltima = Math.max(...ultima.matchIds.map(id => Date.parse(partite.find(m => m.match_id === id).played_at)));
+    const attesa = Date.now() - fineUltima < 3 * 3600 * 1000;
+    const intest = T(corpo.querySelector('[data-riga="intestazione"]'));
+    const errC = [];
+    if (/In corso/.test(intest) !== attesa) errC.push(`intestazione "${intest}", in corso atteso: ${attesa}`);
+    if ((d.body.dataset.homeTab === "serata") !== attesa) errC.push(`scheda della home "${d.body.dataset.homeTab}", in corso atteso: ${attesa}`);
+    verifica(`serata ${attesa ? "in corso" : "finita"} (ultima partita ${Math.round((Date.now() - fineUltima) / 60000)} minuti fa)`, errC);
+    // E il caso opposto, con l'orologio spostato: un'ora dopo l'ultima partita se adesso e'
+    // finita, un giorno dopo se e' in corso. Senza, uno dei due casi non si proverebbe mai.
+    const ora = attesa ? fineUltima + 24 * 3600 * 1000 : fineUltima + 3600 * 1000;
+    const dom2 = new JSDOM(htmlPagina.replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/, ""), {
+      runScripts: "dangerously", pretendToBeVisual: true, url: "https://pesix97.github.io/lentoni-dashboard/",
+      beforeParse(w) {
+        w.Date.now = () => ora;
+        w.Chart = function () { return { destroy() {}, update() {} }; }; w.Chart.register = nulla;
+        w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: (_, k) => k === "measureText" ? () => ({ width: 10 }) : k === "createLinearGradient" ? () => ({ addColorStop: nulla }) : nulla });
+        w.scrollTo = nulla;
+      },
+    });
+    await new Promise(r => setTimeout(r, 1000));
+    const d2 = dom2.window.document, errC2 = [];
+    const intest2 = T(d2.querySelector('#resocontoBody [data-riga="intestazione"]'));
+    if (/In corso/.test(intest2) === attesa) errC2.push(`intestazione "${intest2}", in corso atteso: ${!attesa}`);
+    if ((d2.body.dataset.homeTab === "serata") === attesa) errC2.push(`scheda della home "${d2.body.dataset.homeTab}"`);
+    if (!attesa && d2.querySelector(".home-duo").nextElementSibling !== d2.getElementById("andamento"))
+      errC2.push("in corso, il resoconto non sta sopra il grafico");
+    verifica(`e con l'orologio spostato: serata ${attesa ? "finita" : "in corso"}`, errC2);
+  }
+
   if (FINO_A) {
     verifica("nella serata simulata e' caduto almeno un record (il caso da provare)",
       Object.values(ATTESE_NOVITA).includes("battuto") ? [] : ["nessun record battuto: la simulazione non prova niente"]);

@@ -403,6 +403,25 @@ button{font-family:inherit;}
   .form-chip.L{background:var(--loss);}
   .form-chip.T{background:var(--tie);}
   .form-chip-info{font-size:13px; color:var(--muted); flex-basis:100%; margin:8px 0 0;}
+  /* Forma in Home (05/11/2026): le ultime 20, dieci per riga, col risultato dentro. */
+  .forma-griglia{display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:6px; max-width:620px;}
+  .forma-pill{height:34px; border:0; border-radius:8px; font:inherit; font-size:12px; font-weight:600;
+    color:#0f1420; cursor:pointer; padding:0; font-variant-numeric:tabular-nums; outline-offset:2px;}
+  .forma-pill.W{background:var(--win);} .forma-pill.L{background:var(--loss);} .forma-pill.T{background:var(--tie);}
+  .forma-pill:not(.sel){opacity:.72;}
+  .forma-pill.sel{opacity:1; box-shadow:0 0 0 2px var(--text);}
+  .forma-pill:hover{opacity:1;}
+  .forma-dettaglio{margin:14px 0 4px; font-size:14px; line-height:1.5; min-height:21px;}
+  .forma-dettaglio .muted{color:var(--muted);}
+  .forma-esito{display:inline-block; padding:1px 8px; border-radius:6px; font-size:12px; font-weight:600; color:#0f1420; margin-right:4px;}
+  .forma-esito.W{background:var(--win);} .forma-esito.L{background:var(--loss);} .forma-esito.T{background:var(--tie);}
+  #formStrip .form-chip-info a{color:var(--accent);}
+  /* Serata in corso: un'etichetta col pallino, nel resoconto in Home. */
+  .in-corso{display:inline-flex; align-items:center; gap:6px; padding:1px 8px 1px 6px; margin-right:6px; border-radius:6px;
+    background:rgba(229,86,109,.16); color:var(--loss); font-weight:600;}
+  .in-corso::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--loss); animation:pulsa 1.6s ease-in-out infinite;}
+  @keyframes pulsa{50%{opacity:.25;}}
+  @media (prefers-reduced-motion: reduce){ .in-corso::before{animation:none;} }
 
   .trend-up{color:var(--win); font-weight:600;}
   .trend-down{color:var(--loss); font-weight:600;}

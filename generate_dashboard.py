@@ -639,6 +639,9 @@ def con_politica_di_sicurezza(pagina):
         "style-src 'unsafe-inline'",
         "img-src 'self' data: blob:",
         "font-src data:",
+        # Il manifest per installare la pagina come app sul telefono (05/11/2026): senza,
+        # default-src 'none' lo blocca e il telefono la salva come un segnalibro qualsiasi.
+        "manifest-src 'self'",
         "base-uri 'none'",
         "form-action 'none'",
         "object-src 'none'",
@@ -975,6 +978,9 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path, data=None, car
         .replace("__UPDATED_AT__", str(updated_at))
         .replace("__MIN_GAMES__", str(min_games))
         .replace("__SELETTORE_TITOLI__", selettore_titoli_html(titoli, corrente_file))
+        # Icona e manifest per installare la pagina sul telefono (05/11/2026) stanno nella
+        # radice del sito: una pagina in archivio/ li raggiunge risalendo.
+        .replace("__RADICE__", href_relativo(corrente_file, "x")[:-1])
         .replace("__DATA_JSON__", dati_js)
     )
 

@@ -2,10 +2,18 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-U8T+G1ftRoZ9BjYQQw2xsr49/yw6io9tqflwCqLpxIc='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-E9beBbs6SVfxsDaGcghcu5odxSqhmE4Jg+Lyos7p7LU='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icone/icona-192.png">
+<link rel="apple-touch-icon" href="icone/icona-180.png">
+<meta name="theme-color" content="#0b0e13">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Lentoni">
 <script id="lib-chartjs">/*!
  * Chart.js v4.4.0
  * https://www.chartjs.org
@@ -426,6 +434,25 @@ button{font-family:inherit;}
   .form-chip.L{background:var(--loss);}
   .form-chip.T{background:var(--tie);}
   .form-chip-info{font-size:13px; color:var(--muted); flex-basis:100%; margin:8px 0 0;}
+  /* Forma in Home (05/11/2026): le ultime 20, dieci per riga, col risultato dentro. */
+  .forma-griglia{display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:6px; max-width:620px;}
+  .forma-pill{height:34px; border:0; border-radius:8px; font:inherit; font-size:12px; font-weight:600;
+    color:#0f1420; cursor:pointer; padding:0; font-variant-numeric:tabular-nums; outline-offset:2px;}
+  .forma-pill.W{background:var(--win);} .forma-pill.L{background:var(--loss);} .forma-pill.T{background:var(--tie);}
+  .forma-pill:not(.sel){opacity:.72;}
+  .forma-pill.sel{opacity:1; box-shadow:0 0 0 2px var(--text);}
+  .forma-pill:hover{opacity:1;}
+  .forma-dettaglio{margin:14px 0 4px; font-size:14px; line-height:1.5; min-height:21px;}
+  .forma-dettaglio .muted{color:var(--muted);}
+  .forma-esito{display:inline-block; padding:1px 8px; border-radius:6px; font-size:12px; font-weight:600; color:#0f1420; margin-right:4px;}
+  .forma-esito.W{background:var(--win);} .forma-esito.L{background:var(--loss);} .forma-esito.T{background:var(--tie);}
+  #formStrip .form-chip-info a{color:var(--accent);}
+  /* Serata in corso: un'etichetta col pallino, nel resoconto in Home. */
+  .in-corso{display:inline-flex; align-items:center; gap:6px; padding:1px 8px 1px 6px; margin-right:6px; border-radius:6px;
+    background:rgba(229,86,109,.16); color:var(--loss); font-weight:600;}
+  .in-corso::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--loss); animation:pulsa 1.6s ease-in-out infinite;}
+  @keyframes pulsa{50%{opacity:.25;}}
+  @media (prefers-reduced-motion: reduce){ .in-corso::before{animation:none;} }
 
   .trend-up{color:var(--win); font-weight:600;}
   .trend-down{color:var(--loss); font-weight:600;}
@@ -868,7 +895,7 @@ canvas{max-height:340px;}
 <section id="forma">
   <h2>Forma recente</h2>
   <div class="panel">
-    <div class="form-strip" id="formStrip"></div>
+    <div id="formStrip"></div>
   </div>
 </section>
 <section id="condividi">
@@ -2541,6 +2568,8 @@ function computeBlendedScores(windowSize, weight){
 
 const PARTITE_CRONO = [...(DATA.matches || [])]
   .sort((a, b) => String(a.played_at || "").localeCompare(String(b.played_at || "")));
+// Quante partite mostra la Forma in Home.
+const ULTIME_FORMA = 20;
 const SERATA_DI_PARTITA = new Map();
 (DATA.serate || []).forEach(s => (s.matchIds || []).forEach(id => SERATA_DI_PARTITA.set(id, s)));
 const PARTITA_PER_ID = new Map((DATA.matches || []).map(m => [m.match_id, m]));
@@ -2572,6 +2601,34 @@ function serieDi(partite, condizione, nome){
   partite.forEach(m => { if(condizione(m)) corsa.push(m); else chiudi(false); });
   chiudi(true);
   return out;
+}
+
+// La serie in corso, per la scheda in Home: le partite di fila, a partire dall'ultima, che
+// condividono il suo esito. Si conta sulle partite in archivio, come le serie dei Record.
+// Prima arrivava dai contatori di EA, che hanno solo vittorie di fila e imbattibilita': dopo
+// una sconfitta la scheda diceva "0 imbattuta", cioe' niente.
+// Dopo una vittoria o una sconfitta vale la serie dello stesso esito; se e' lunga una partita
+// sola e la serie piu' larga (senza perdere / senza vincere) e' piu' lunga, si mostra quella.
+// Dopo un pareggio si mostra la piu' lunga fra "senza perdere" e "senza vincere".
+function serieInCorso(partite){
+  const n = partite.length;
+  if(!n) return null;
+  const coda = (ok) => { let k = 0; for(let i = n - 1; i >= 0 && ok(partite[i]); i--) k++; return k; };
+  const ultima = partite[n - 1];
+  const vinte = coda(m => !!m.win), perse = coda(m => !!m.loss);
+  const senzaPerdere = coda(m => !m.loss), senzaVincere = coda(m => !m.win);
+  if(ultima.win){
+    if(vinte === 1 && senzaPerdere > 1) return { tipo: "senzaPerdere", n: senzaPerdere, testo: `${senzaPerdere} senza perdere` };
+    return { tipo: "vittorie", n: vinte, testo: vinte === 1 ? "1 vittoria" : `${vinte} vittorie di fila` };
+  }
+  if(ultima.loss){
+    if(perse === 1 && senzaVincere > 1) return { tipo: "senzaVincere", n: senzaVincere, testo: `${senzaVincere} senza vincere` };
+    return { tipo: "sconfitte", n: perse, testo: perse === 1 ? "1 sconfitta" : `${perse} sconfitte di fila` };
+  }
+  if(senzaPerdere === 1 && senzaVincere === 1) return { tipo: "pareggio", n: 1, testo: "1 pareggio" };
+  return senzaPerdere >= senzaVincere
+    ? { tipo: "senzaPerdere", n: senzaPerdere, testo: `${senzaPerdere} senza perdere` }
+    : { tipo: "senzaVincere", n: senzaVincere, testo: `${senzaVincere} senza vincere` };
 }
 
 // Le serate presenti in un elenco di partite, ognuna con le SOLE partite dell'elenco (cosi'
@@ -2694,6 +2751,18 @@ const ULTIMA_SERATA = (DATA.serate || [])[0] || null;
 const INIZIO_ULTIMA = ULTIMA_SERATA
   ? (ULTIMA_SERATA.matchIds || []).map(id => (PARTITA_PER_ID.get(id) || {}).played_at).filter(Boolean).sort()[0] || null
   : null;
+// La serata e' "in corso" se la sua ultima partita e' di meno di tre ore fa, misurate quando
+// la pagina si apre (05/11/2026). Non un orario fisso (22-03): si gioca anche prima, e una
+// pagina aperta la mattina dopo non deve dire "in corso". Tre ore coprono il buco piu' lungo
+// fra due partite della stessa serata piu' il ritardo del giro che le porta qui.
+const SERATA_IN_CORSO = (function(){
+  if(!ULTIMA_SERATA) return false;
+  const ultima = (ULTIMA_SERATA.matchIds || []).map(id => (PARTITA_PER_ID.get(id) || {}).played_at)
+    .filter(Boolean).map(t => new Date(t).getTime()).filter(t => !isNaN(t));
+  if(!ultima.length) return false;
+  const fa = Date.now() - Math.max(...ultima);
+  return fa >= 0 && fa < 3 * 3600 * 1000;
+})();
 const RECORD = calcolaRecord(PARTITE_CRONO, null);
 const RECORD_PRIMA = INIZIO_ULTIMA
   ? calcolaRecord(PARTITE_CRONO.filter(m => !(ULTIMA_SERATA.matchIds || []).includes(m.match_id)), INIZIO_ULTIMA)
@@ -2826,29 +2895,45 @@ function righeCarriera(nome, conNome){
     ["Win rate", winPct + "%", ""],
     ["Gol fatti/subiti", `${l.goals ?? 0} / ${l.goals_against ?? 0}`, ""],
     ["Promozioni / retrocessioni", `${l.promotions ?? 0} / ${l.relegations ?? 0}`, ""],
-    ["Serie in corso", (l.wstreak ?? 0) > 0 ? `${l.wstreak}V consecutive` : `${l.unbeatenstreak ?? 0} imbattuta`, ""],
+    ["Serie in corso", (serieInCorso(PARTITE_CRONO) || { testo: "—" }).testo, "", "serie"],
     ["Partite playoff", l.games_played_playoff ?? 0, ""],
   ];
   const el = document.getElementById("cards");
-  el.innerHTML = cards.map(([label, value, cls]) =>
-    `<div class="card"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`
+  el.innerHTML = cards.map(([label, value, cls, chiave]) =>
+    `<div class="card"${chiave ? ` data-card="${chiave}"` : ""}><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`
   ).join("");
 })();
 
 // ---- Form strip ----
 (function renderFormStrip(){
   const el = document.getElementById("formStrip");
-  const matches = [...(DATA.matches || [])].reverse(); // cronologico
+  // Solo le ultime ULTIME_FORMA partite (05/11/2026): con tutto lo storico erano sei righe di
+  // barrette in cui l'ultima serata non si distingueva. Lo storico intero sta in Partite.
+  const matches = PARTITE_CRONO.slice(-ULTIME_FORMA);
   if(matches.length === 0){
     el.innerHTML = '<span class="empty">Nessuna partita nel database ancora.</span>';
     return;
   }
-  const chips = matches.map(m => {
-    const outcome = m.win ? "W" : (m.tie ? "T" : "L");
-    const title = `${fmtDate(m.played_at)} vs ${m.opponent_name || "?"} (${m.goals_for}-${m.goals_against})`;
-    return `<div class="form-chip ${outcome}" title="${title}">${outcome}</div>`;
-  }).join("");
-  el.innerHTML = chips + `<span class="form-chip-info">${matches.length} partite tracciate, dalla più vecchia (sinistra) alla più recente (destra)</span>`;
+  const esito = m => m.win ? "W" : (m.tie ? "T" : "L");
+  const chips = matches.map((m, i) =>
+    `<button type="button" class="forma-pill ${esito(m)}" data-i="${i}" aria-label="${fmtDate(m.played_at)}: ${controChi(m)}">${m.goals_for}-${m.goals_against}</button>`
+  ).join("");
+  const v = matches.filter(m => m.win).length, p = matches.filter(m => m.tie).length, s = matches.filter(m => m.loss).length;
+  el.innerHTML = `<div class="forma-griglia">${chips}</div>` +
+    `<div class="forma-dettaglio" id="formaDettaglio" aria-live="polite"></div>` +
+    `<div class="form-chip-info">Ultime ${matches.length} partite, dalla più vecchia alla più recente: ` +
+    `<strong data-forma="bilancio">${v}V ${p}P ${s}S</strong>. Tocca una partita per vederla. Lo storico completo è in <a href="#partite">Partite</a>.</div>`;
+  const dett = document.getElementById("formaDettaglio");
+  const mostra = (i) => {
+    const m = matches[i];
+    el.querySelectorAll(".forma-pill").forEach(b => b.classList.toggle("sel", Number(b.dataset.i) === i));
+    const s = SERATA_DI_PARTITA.get(m.match_id);
+    dett.innerHTML = `<span class="forma-esito ${esito(m)}">${m.win ? "Vinta" : (m.tie ? "Pareggiata" : "Persa")}</span> ` +
+      `<strong>${m.goals_for}-${m.goals_against}</strong> contro <strong>${m.opponent_name || "?"}</strong>` +
+      ` <span class="muted">· ${fmtDate(m.played_at)}${s ? ` · serata del ${s.giorno}` : ""}</span>`;
+  };
+  el.querySelectorAll(".forma-pill").forEach(b => b.addEventListener("click", () => mostra(Number(b.dataset.i))));
+  mostra(matches.length - 1);
 })();
 
 // ---- Disegnare quando serve, non tutto all'apertura (27/10/2026) ----
@@ -2912,6 +2997,29 @@ disegnaQuando("home", function renderHistoryChart(){
     return conTempo.filter(h => h.t >= da);
   }
 
+  // Le serate da segnare sul grafico, come indici dei punti mostrati: la fascia va dall'ultima
+  // rilevazione PRIMA della serata (il punteggio di partenza) all'ultima entro un'ora dalla
+  // fine (EA aggiorna i contatori qualche minuto dopo la partita, e il giro passa ogni venti
+  // minuti). Una serata senza rilevazioni dentro quella finestra non si segna.
+  function fasceSerate(punti){
+    return (DATA.serate || []).map(s => {
+      const orari = (s.matchIds || []).map(id => (PARTITA_PER_ID.get(id) || {}).played_at)
+        .filter(Boolean).map(t => new Date(t).getTime()).filter(t => !isNaN(t)).sort((a, b) => a - b);
+      if(!orari.length) return null;
+      const inizio = orari[0], fine = orari[orari.length - 1] + 3600 * 1000;
+      let da = -1, a = -1;
+      punti.forEach((p, i) => { if(p.t < inizio) da = i; else if(p.t <= fine) a = i; });
+      if(a < 0) return null;
+      if(da < 0) da = Math.max(0, punti.findIndex(p => p.t >= inizio) - 1);
+      if(a <= da) return null;
+      const P = (s.matchIds || []).map(id => PARTITA_PER_ID.get(id)).filter(Boolean);
+      const v = P.filter(m => m.win).length, pa = P.filter(m => m.tie).length, pe = P.filter(m => m.loss).length;
+      const d = punti[a].skill_rating - punti[da].skill_rating;
+      return { da, a, delta: d,
+        testo: `Serata del ${s.giorno}: ${v}V ${pa}P ${pe}S, ${d > 0 ? "+" : ""}${d} punti` };
+    }).filter(Boolean);
+  }
+
   // Un periodo con meno di due punti non disegna una linea: il bottone resta visibile ma
   // spento, cosi' si capisce che quel periodo esiste e semplicemente non ha ancora dati,
   // invece di sembrare un grafico rotto.
@@ -2923,9 +3031,32 @@ disegnaQuando("home", function renderHistoryChart(){
 
   function disegna(){
     const punti = puntiDi(scelto);
+    const fasce = fasceSerate(punti);
+    const fasciaDi = (i) => fasce.find(f => i > f.da && i <= f.a) || null;
     if(grafico) grafico.destroy();
     grafico = new Chart(ctx, {
       type: "line",
+      plugins: [{
+        // Le serate come fasce dietro la linea (05/11/2026), verdi se hanno fatto salire il
+        // punteggio e rosse se l'hanno fatto scendere. Lo storico salva un punto solo quando i
+        // dati cambiano, cioe' quasi solo durante le serate: una fascia di un colore solo
+        // copriva tutto il grafico. Fra una serata e l'altra resta un pixel di stacco.
+        id: "fasceSerate",
+        beforeDatasetsDraw(chart){
+          const { ctx: c, chartArea: a, scales: { x } } = chart;
+          if(!a) return;
+          const su = cssVar("--win", "#33c17a"), giu = cssVar("--loss", "#e5566d");
+          c.save();
+          c.globalAlpha = .13;
+          fasce.forEach(f => {
+            if(f.delta === 0) return;
+            const x0 = Math.max(a.left, x.getPixelForValue(f.da) + 1), x1 = Math.min(a.right, x.getPixelForValue(f.a));
+            c.fillStyle = f.delta > 0 ? su : giu;
+            c.fillRect(x0, a.top, Math.max(2, x1 - x0), a.bottom - a.top);
+          });
+          c.restore();
+        },
+      }],
       data: {
         labels: punti.map(h => fmtDate(h.fetched_at)),   // intera: la legge il tooltip
         datasets: [{
@@ -2955,7 +3086,11 @@ disegnaQuando("home", function renderHistoryChart(){
       options: {
         responsive: true,
         aspectRatio: window.innerWidth < 700 ? 1.45 : 2.7,
-        plugins: { legend: { display: false } },
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { footer: (voci) => {
+            const f = voci.length ? fasciaDi(voci[0].dataIndex) : null;
+            return f ? f.testo : "";
+          } } } },
         scales: {
           // Sull'asse una data corta (giorno e mese); quella intera, con l'ora, resta nel tooltip.
           x: { ticks: { color: cssVar("--muted", "#8f9aae"), maxRotation: 0, autoSkipPadding: 16, maxTicksLimit: window.innerWidth < 700 ? 4 : 8,
@@ -3618,7 +3753,9 @@ function valoreRecord(r, v){
 
   el.innerHTML = `
     <div class="panel resoconto">
-      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">L'ultima serata · ${ULTIMA_SERATA.giorno}, ${ULTIMA_SERATA.inizio}–${ULTIMA_SERATA.fine}</div>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;" data-riga="intestazione">${SERATA_IN_CORSO
+        ? `<span class="in-corso">In corso</span> Stasera · dalle ${ULTIMA_SERATA.inizio}, ultima partita alle ${ULTIMA_SERATA.fine}`
+        : `L'ultima serata · ${ULTIMA_SERATA.giorno}, ${ULTIMA_SERATA.inizio}–${ULTIMA_SERATA.fine}`}</div>
       <div style="display:flex; flex-direction:column; gap:6px; font-size:14px; line-height:1.5;">${righe.join("")}</div>
       <div style="margin-top:10px; font-size:12px;"><span class="vai-a" data-vai="record">Tutti i record →</span></div>
     </div>`;
@@ -6138,6 +6275,13 @@ function impostaSchedaHome(nome){
 }
 document.querySelectorAll("#homeTabs [data-home-tab]").forEach(b =>
   b.addEventListener("click", () => { impostaSchedaHome(b.dataset.homeTab); window.scrollTo(0, 0); }));
+// Durante una serata la Home apre sulla serata: su telefono la scheda Serata, su schermo largo
+// il resoconto sale sopra il grafico.
+if(SERATA_IN_CORSO){
+  impostaSchedaHome("serata");
+  const duo = document.querySelector(".home-duo"), andamento = document.getElementById("andamento");
+  if(duo && andamento) andamento.before(duo);
+}
 
 function showPage(pageKey){
   if(PAGINE_TRASLOCATE[pageKey]) pageKey = PAGINE_TRASLOCATE[pageKey];

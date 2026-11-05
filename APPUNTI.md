@@ -1725,7 +1725,23 @@ rompe una cosa alla volta (gol, partita tolta, partita aggiunta, esito, contator
 ## Home su telefono: tre schede (04/11/2026)
 
 Sotto i 900px la Home mostra una scheda alla volta — Andamento (grafico e numeri), Serata
-(resoconto, novità, condividi), Forma — scelta con una barra in alto. Si parte sempre da
-Andamento. Su schermo largo la barra non c'è e si vede tutto insieme, come prima. La scelta la
+(resoconto, novità, condividi), Forma — scelta con una barra in alto. Si parte da
+Andamento, tranne durante una serata (sotto, 05/11/2026). Su schermo largo la barra non c'è e si vede tutto insieme, come prima. La scelta la
 fa solo il CSS leggendo `body[data-home-tab]`; il JavaScript cambia l'attributo. `test_apertura.js`
 verifica che i clic lo cambino (il CSS non si può provare in jsdom: schede viste a 390px in Chromium).
+
+## Home: serie, forma, serate sul grafico, serata in corso, icona (05/11/2026)
+
+Cinque proposte fatte guardando la pagina dopo il restyling, tutte accettate da Peppe. Il
+perché di ognuna è nel README, «La Home».
+
+- «Serie in corso» diceva **0 imbattuta** dopo quattro sconfitte: i contatori di EA non
+  hanno le serie negative. Ora si conta sull'archivio, come i Record.
+- La fascia unica per serata sul grafico **non funzionava**: provata a occhio, copriva quasi
+  tutto, perché lo storico ha punti quasi solo durante le serate. Diventata verde/rossa per
+  saldo. Delta controllati a mano contro lo storico per quattro serate fra il 31/10 e il 04/11.
+- **Da verificare su un telefono vero**: l'installazione (Android: menu ⋮ → «Installa app» o
+  «Aggiungi a schermata Home»; iPhone: Condividi → «Aggiungi a Home»). Il manifest si è
+  potuto provare solo in Chrome desktop, senza violazioni della CSP.
+- **Giocatore del mese: proposto e non fatto.** Va contro la decisione del 23/08 (Premi tolti:
+  descrivere come si gioca, non premiare chi sta davanti). Resta lì finché Peppe non decide.

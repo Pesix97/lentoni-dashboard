@@ -399,6 +399,8 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `modello/stile.css` | Tutto il CSS. |
 | `modello/pagina.js` | Tutta la logica che gira nel browser. **File .js vero**: `node --check` lo verifica. |
 | `modello/chart.umd.min.js` | Chart.js 4.4.0, vendorizzato (non più da CDN dal 30/09/2026 — vedi sotto). |
+| `manifest.webmanifest` | Nome, colori e icone per **installare la pagina sul telefono** come un'app (vedi «La Home»). File statico: `giro.sh` non lo tocca. |
+| `icone/icona-512.png` | Icona dell'app, ridisegnata dallo stemma della barra laterale con Chrome headless; anche `icona-192.png` e `icona-180.png` (quella che usa iPhone). |
 | `modello/geist-sub.woff2` | Font Geist (solo caratteri latini, 24 KB), incorporato nella pagina come data URI al posto di `__FONT_GEIST__` in `stile.css`: la pagina resta un file solo e non chiede nulla a terzi. Per questo la CSP ha `font-src data:`. |
 | `giro.sh` | Un singolo giro completo: scarica, aggiorna, rigenera, pubblica, batte. Con `--solo-avvio` segna solo «sono partito» ed esce, senza toccare la fonte. |
 | `potatura.py` | Toglie dal database il grezzo di EA che nessuno legge più. Era il **77%** del peso, e il database intero viene committato ad ogni giro con novità. |
@@ -416,7 +418,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
 | `test_indice.js` | 22 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; e i passaggi tentati a partita, in tabella e in ogni scheda. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
-| `test_record.js` | 10 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
+| `test_record.js` | 14 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
@@ -1258,6 +1260,39 @@ andate, il migliore della serata (la media voto più alta fra chi ha giocato alm
 delle partite; a parità più gol e assist), i record battuti o eguagliati, una promozione o
 una retrocessione, una serie aperta che valga la pena dire. I dettagli restano nelle Novità.
 
+## La Home: serie, forma, serate sul grafico, serata in corso (05/11/2026)
+
+**Serie in corso.** Si conta sulle partite in archivio, all'indietro dall'ultima, come le
+serie dei Record (`serieInCorso()` in `pagina.js`). Prima arrivava dai contatori di EA, che
+hanno solo `wstreak` e `unbeatenstreak`: dopo una sconfitta la scheda diceva «0 imbattuta».
+Dopo una vittoria o una sconfitta vale la serie dello stesso esito; se è lunga una partita
+sola e quella più larga («senza perdere» / «senza vincere») è più lunga, si mostra quella.
+Dopo un pareggio, la più lunga delle due larghe. Le altre schede della riga restano i
+contatori di EA: archivio e contatori possono differire di qualche partita (vedi «Salute
+dell'archivio»), e la serie deve stare sulle stesse partite dei Record.
+
+**Forma.** Le ultime 20 partite, col risultato dentro ogni pillola; un tocco mostra
+avversario, data e serata. Con tutto lo storico erano sei righe di barrette in cui l'ultima
+serata non si distingueva; lo storico intero sta in Partite.
+
+**Serate sul grafico.** Ogni serata è una fascia dietro la linea dello skill rating, verde se
+ha fatto salire il punteggio e rossa se l'ha fatto scendere; il tooltip dice bilancio e
+punti. La fascia va dall'ultima rilevazione prima della prima partita all'ultima entro un'ora
+dall'ultima partita. Una fascia di un colore solo copriva quasi tutto il grafico: lo storico
+salva un punto solo quando i dati cambiano, cioè quasi solo durante le serate, e l'asse è a
+categorie (un punto per rilevazione), non a tempo.
+
+**Serata in corso.** Se l'ultima partita della serata è di meno di tre ore fa, misurate quando
+la pagina si apre, la Home apre sulla serata: su telefono la scheda Serata, su schermo largo
+il resoconto sopra il grafico, con l'etichetta «In corso». Non un orario fisso: si gioca anche
+prima delle 22, e una pagina aperta la mattina dopo non deve dirlo.
+
+**Installabile sul telefono.** `manifest.webmanifest` e le icone in `icone/` fanno aggiungere
+la pagina alla schermata Home come un'app a schermo intero. La CSP ammette il manifest con
+`manifest-src 'self'`. Niente service worker, di proposito: servirebbe solo a far funzionare
+la pagina offline, e il prezzo sarebbe una dashboard vecchia servita dalla cache dopo ogni
+aggiornamento.
+
 ## Novità dall'ultima serata
 
 La sezione in cima confronta **l'ultima serata con la penultima**. Prima confrontava gli
@@ -1545,7 +1580,9 @@ e sono ammessi solo quelli, per impronta SHA-256, ricalcolata a ogni generazione
 cambiano. Di conseguenza **nessun gestore `on…=` può stare nell'HTML**: il menu dei titoli
 aveva un `onchange`, trovato provando la pagina in Chrome (jsdom la CSP non la applica), e
 ora lo gestisce `pagina.js`. Un test lo impedisce. GitHub Pages non permette di impostare
-header, per questo la politica sta in un `<meta>`.
+header, per questo la politica sta in un `<meta>`. Oltre agli script ammette solo il font
+incorporato (`font-src data:`), le immagini della pagina stessa e il manifest per installarla
+(`manifest-src 'self'`): qualunque altra richiesta, `fetch` comprese, è bloccata.
 
 Nei workflow: `test.yml` ha permessi in sola lettura; `actions/checkout` è fissata al
 commit (v4.4.0) e `jsdom` alla versione 30.1.1, perché il job di aggiornamento può scrivere
