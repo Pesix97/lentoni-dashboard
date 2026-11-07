@@ -17,8 +17,9 @@ senza eccezioni oggi, altrimenti non sarebbero un controllo ma un falso allarme 
   3. i contatori in alto (V/P/S, partite, gol, skill rating) sono quelli dell'ultimo
      scaricamento nel database, e V+P+S fa le partite giocate;
   4. l'ultimo punto del grafico e' lo skill rating di oggi;
-  5. gol e assist della rosa sono quelli dell'ultimo scaricamento dei giocatori (non per un
-     titolo chiuso, la cui rosa e' fotografata a un'altra data);
+  5. gol e assist della rosa sono quelli della lettura con PIU' PARTITE di ogni giocatore,
+     la stessa regola della pagina (non per un titolo chiuso, la cui rosa e' fotografata a
+     un'altra data);
   6. nessun valore impossibile nelle prestazioni: voto fuori da 0-10, passaggi riusciti piu'
      dei tentati, contrasti vinti piu' dei tentati, gol o assist negativi.
 
@@ -119,21 +120,33 @@ def controlla(db, dati):
     # carriera di allora), non nell'ultimo scaricamento del club. Misurato il 04/11/2026 su
     # archivio/fc-26.html: 25 differenze, tutte legittime. Un controllo che li segnala suona
     # sempre, quindi per i titoli chiusi non si applica.
+    #
+    # La lettura giusta di ogni giocatore e' quella con PIU' PARTITE (a parita' la piu'
+    # recente), non l'ultima: EA ogni tanto restituisce valori vecchi, e una carriera puo'
+    # solo crescere (README, "Carriera nel club"). E' la regola della pagina dal 29/10/2026;
+    # fino al 07/11/2026 qui c'era l'ultima lettura, e la notte della Divisione 1 il controllo
+    # ha fermato due volte la pagina, alle 22:58 e alle 00:44 UTC, esattamente nei due giri
+    # in cui EA aveva restituito numeri vecchi (Ironman-6-6 a 71 partite quando l'archivio ne
+    # contava gia' 74). La pagina era giusta, il controllo seguiva un'altra regola. La SQL
+    # resta scritta qui, non presa dal generatore: il controllo deve restare indipendente.
     ultimo_giro = None if dati.get("titoloChiuso") else db.execute(
         "SELECT MAX(fetched_at) FROM member_stats_history WHERE club_id=?", (club_id,)).fetchone()[0]
     if ultimo_giro:
         ref = {r["player_name"]: r for r in db.execute(
-            "SELECT player_name, goals, assists FROM member_stats_history "
-            "WHERE club_id=? AND fetched_at=?", (club_id, ultimo_giro))}
+            "SELECT player_name, goals, assists FROM ("
+            "  SELECT player_name, goals, assists, ROW_NUMBER() OVER ("
+            "    PARTITION BY player_name ORDER BY games_played DESC, fetched_at DESC) AS posto"
+            "  FROM member_stats_history WHERE club_id=?"
+            ") WHERE posto = 1", (club_id,))}
         errori = []
         for r in dati.get("roster", []):
             n = r["player_name"]
             if n not in ref:
-                errori.append(f"{n}: in rosa nella pagina ma assente dall'ultimo scaricamento")
+                errori.append(f"{n}: in rosa nella pagina ma assente dalle letture dei giocatori")
             elif (ref[n]["goals"], ref[n]["assists"]) != (r["goals"], r["assists"]):
                 errori.append(f"{n}: gol/assist database {ref[n]['goals']}/{ref[n]['assists']}, "
                               f"pagina {r['goals']}/{r['assists']}")
-        segnala("rosa: gol o assist diversi dall'ultimo scaricamento", errori)
+        segnala("rosa: gol o assist diversi dalla lettura con piu' partite", errori)
 
     # 6. valori impossibili nelle prestazioni mostrate
     assurdi = []

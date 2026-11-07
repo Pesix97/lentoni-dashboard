@@ -1780,3 +1780,15 @@ quattro le partite della promozione), che resta finché non si retrocede; poi ne
 `traguardi.json` (congelato) e `test_traguardi.js`. Dettagli nel README, «Traguardi storici».
 Per un traguardo futuro basta aggiungere una voce a `traguardi.json`.
 
+## La pagina ferma due volte la notte della Divisione 1 (07/11/2026)
+
+Alle 22:58 e alle 00:44 UTC il ciclo ha pubblicato solo il database: «i numeri della pagina
+non tornavano». Riprodotto con il codice e il database di quei giri: erano i due giri in cui
+EA aveva restituito letture vecchie (Ironman-6-6 a 71 partite quando l'archivio ne contava
+74). La pagina usava la lettura con più partite, quella giusta (regola del 29/10/2026);
+`controllo_dati.py`, nato il 04/11/2026, usava l'ultima. Due controlli con due regole per la
+stessa cosa: confrontare cose non confrontabili, di nuovo. Corretto il controllo, con un test
+che simula quella lettura vecchia (visto fallire con il controllo di prima); sui due database
+di quella notte il controllo corretto dà «i numeri tornano». Nessun dato perso: le partite
+erano entrate, era ferma solo la pagina, per un giro.
+

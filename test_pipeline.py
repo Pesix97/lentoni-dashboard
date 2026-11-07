@@ -2416,6 +2416,30 @@ class TestControlloDati(BaseConArchivio):
         self.assertEqual(codice, 1, out)
         self.assertIn(nome, out)
 
+    def test_una_lettura_vecchia_di_ea_non_e_un_allarme(self):
+        """La notte del 07/11/2026: EA restituisce per un giro numeri vecchi (meno partite,
+        meno gol) e poi torna normale. La pagina usa la lettura con piu' partite; il controllo
+        deve usare la stessa regola, o ferma la pagina per niente. Qui si simula quel giro:
+        una lettura PIU' RECENTE e piu' bassa per un giocatore."""
+        con = sqlite3.connect(self.db)
+        nome, pg = con.execute(
+            "SELECT player_name, MAX(games_played) FROM member_stats_history WHERE club_id=? "
+            "GROUP BY player_name HAVING MAX(goals) >= 4 ORDER BY 2 DESC LIMIT 1", (CLUB_ATTIVO,)).fetchone()
+        ultima = con.execute("SELECT MAX(fetched_at) FROM member_stats_history WHERE club_id=?",
+                             (CLUB_ATTIVO,)).fetchone()[0]
+        # Una lettura un minuto dopo l'ultima, con due partite e quattro gol in meno.
+        con.execute("INSERT INTO member_stats_history (club_id, fetched_at, player_name, games_played, "
+                    "goals, assists, rating_ave, pro_name) SELECT club_id, ?, player_name, games_played - 2, "
+                    "goals - 4, assists, rating_ave, pro_name FROM member_stats_history "
+                    "WHERE club_id=? AND player_name=? AND games_played=? LIMIT 1",
+                    (ultima[:17] + "59.999999+00:00", CLUB_ATTIVO, nome, pg))
+        con.commit()
+        con.close()
+        esegui("generate_dashboard.py", "--db", str(self.db), "--out", str(self.html),
+               "--club-json", str(self.club_json))
+        codice, out = self._esito()
+        self.assertEqual(codice, 0, out)
+
     def test_un_valore_impossibile_nella_pagina_viene_segnalato(self):
         sys.path.insert(0, str(QUI))
         import controllo_dati
