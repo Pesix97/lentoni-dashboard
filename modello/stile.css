@@ -831,3 +831,36 @@ canvas{max-height:340px;}
   .table-wrap table.responsive-table:has(.col-rango) td:not(.col-rango):not([data-label="Giocatore"]):not([data-label="Ruolo"]){order:2;}
   .table-wrap table.responsive-table:has(.col-rango) td:nth-child(2){margin-right:auto;}
 }
+
+/* La festa per un traguardo storico (07/11/2026) */
+#festa:empty{display:none;}
+.festa{position:relative; overflow:hidden; border:1px solid var(--gold); padding:22px 20px 20px;
+  background:linear-gradient(135deg, rgba(255,217,102,.18), rgba(255,217,102,.04) 55%, rgba(110,162,255,.10));}
+.festa-coriandoli{position:absolute; inset:0; pointer-events:none;}
+.festa-coriandoli i{position:absolute; top:-12px; width:7px; height:12px; border-radius:2px; opacity:.85;
+  background:var(--gold); animation:festa-cade 3.2s linear infinite;}
+.festa-coriandoli i:nth-child(3n){background:var(--accent);}
+.festa-coriandoli i:nth-child(4n){background:var(--win);}
+.festa-coriandoli i:nth-child(5n){background:var(--loss); width:5px; height:9px;}
+@keyframes festa-cade{0%{transform:translateY(0) rotate(0deg);} 100%{transform:translateY(520px) rotate(540deg); opacity:0;}}
+@media (prefers-reduced-motion: reduce){.festa-coriandoli{display:none;}}
+.festa > *:not(.festa-coriandoli){position:relative;}
+.festa-eti{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); font-weight:700;}
+.festa-titolo{font-size:28px; font-weight:800; margin:4px 0 6px; line-height:1.15;}
+.festa-sotto{font-size:13px; color:var(--muted); line-height:1.5;}
+.festa-partite{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 16px;}
+.festa-partita{font-size:12px; font-weight:700; border:1px solid var(--border, rgba(255,255,255,.15)); border-radius:6px; padding:4px 9px;
+  background:rgba(51,193,122,.12);}
+.festa-partita span{font-weight:400; color:var(--muted);}
+.festa-partita.decisiva{border-color:var(--gold); background:rgba(255,217,102,.18);}
+.festa-partita.decisiva::after{content:" ★ decisiva"; color:var(--gold); font-weight:700;}
+.festa-eroi-titolo{font-size:13px; font-weight:700; margin-bottom:10px;}
+.festa-eroi{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px;}
+.festa-eroe{background:var(--panel, rgba(0,0,0,.25)); border:1px solid var(--border, rgba(255,255,255,.12)); border-top:3px solid var(--gold);
+  border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:6px;}
+.festa-medaglia{font-size:22px; line-height:1;}
+.festa-nome{font-size:15px; font-weight:800;}
+.festa-cifre{display:flex; flex-wrap:wrap; gap:4px 10px; font-size:12px; color:var(--muted);}
+.festa-cifre b{color:var(--text);}
+.festa-motivo{font-size:12px; color:var(--gold); line-height:1.4;}
+.traguardo-riga + .traguardo-riga{margin-top:10px; padding-top:10px; border-top:1px solid var(--border, rgba(255,255,255,.1));}

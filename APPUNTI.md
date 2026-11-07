@@ -1772,3 +1772,11 @@ Lo storico delle vittorie (chiesto da Peppe il 05/11/2026, «anche in maniera re
 conta **solo FC 27**: scelta sua, fra tre (due premi per settembre, uno su partite unite, solo
 FC 27). Al 05/11: Pesix_97 2 (settembre e ottobre). FC 26 avrebbe dato 2 a FFLI_Adriano
 (agosto 58,6, settembre 1–9 56,8): restano visibili nell'archivio di FC 26.
+
+## Divisione 1, e la festa in Home (07/11/2026)
+
+Per la prima volta nella storia del club. Festa in Home con i 6 eroi (titolari di tutte e
+quattro le partite della promozione), che resta finché non si retrocede; poi nei Record.
+`traguardi.json` (congelato) e `test_traguardi.js`. Dettagli nel README, «Traguardi storici».
+Per un traguardo futuro basta aggiungere una voce a `traguardi.json`.
+

@@ -1,0 +1,27 @@
+{
+  "_come_funziona": [
+    "I traguardi storici del club, scritti a mano e CONGELATI, come pagellone_fc26.json.",
+    "Ognuno compare in cima alla Home della pagina del suo titolo finche' il club non",
+    "retrocede (lo dicono i contatori di EA), e per sempre nei Record, sotto 'Traguardi'.",
+    "",
+    "'partite' sono le partite che hanno portato al traguardo, dalla prima all'ultima;",
+    "'decisiva' quella con cui e' arrivato. 'eroi' sono i titolari di TUTTE quelle partite:",
+    "test_traguardi.js controlla che siano esattamente quelli, sui dati della pagina.",
+    "Le loro cifre (gol, assist, media, migliore in campo) la pagina le calcola da sola",
+    "dalle partite: qui non si scrive nessun numero, cosi' non ce n'e' nessuno da sbagliare."
+  ],
+  "traguardi": [
+    {
+      "id": "divisione-1-fc27",
+      "titolo": "FC 27",
+      "data": "2026-11-07",
+      "tipo": "promozione",
+      "divisione": 1,
+      "nome": "Lentoni in Divisione 1",
+      "storia": "Per la prima volta nella storia del club",
+      "partite": ["172884173080089", "172590910380010", "172828415530488", "172868383310285"],
+      "decisiva": "172868383310285",
+      "eroi": ["Ironman-6-6", "Pesix_97", "eredes", "ilmillejr", "VRT_ernestino", "Smilzo_87"]
+    }
+  ]
+}

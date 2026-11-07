@@ -66,6 +66,9 @@ jobs:
       - name: La carriera torna con il ricalcolo
         run: node test_carriera.js /tmp/prova.html
 
+      - name: I traguardi e i loro eroi tornano con i dati
+        run: node test_traguardi.js /tmp/prova.html
+
       - name: Sintassi degli script
         run: |
           bash -n giro.sh

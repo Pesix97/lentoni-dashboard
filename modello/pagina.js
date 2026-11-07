@@ -1536,6 +1536,54 @@ function righeCarriera(nome, conNome){
   return cella(tot, "Totale", "carriera-totale", nome) +
     TITOLI_CARRIERA.filter(t => per[t]).map(t => cella(per[t], t, "carriera-titolo", nome)).join("");
 }
+// ---- I traguardi storici del club (07/11/2026) ----
+// Il primo: la Divisione 1, raggiunta per la prima volta nella storia del club il 07/11/2026.
+// Il traguardo e i suoi eroi sono scritti a mano in traguardi.json (congelati); le loro cifre
+// la pagina le calcola qui dalle partite, cosi' nel file non c'e' nessun numero da sbagliare.
+// Resta in cima alla Home finche' il club non retrocede dopo quelle partite (lo dicono i
+// contatori di EA, vedi EVENTI_DIVISIONE), e per sempre nei Record.
+function motivoEroe(s){
+  const parti = [];
+  if(s.gol + s.assist >= 4) parti.push(`${s.gol} gol e ${s.assist} assist`);
+  else if(s.mom && s.momContro) parti.push(`migliore in campo contro ${s.momContro}`);
+  if(s.dieciContro) parti.push(`un 10 in pagella contro ${s.dieciContro}`);
+  if(s.mom >= 2) parti.push(`${s.mom} volte migliore in campo`);
+  if(!parti.length) parti.push(`in campo dal primo all'ultimo minuto di tutte e ${s.partite} le partite`);
+  return parti.join(" · ");
+}
+const TRAGUARDI = (DATA.traguardi || []).map(t => {
+  const partite = (t.partite || []).map(id => PARTITA_PER_ID.get(id)).filter(Boolean);
+  const eroi = (t.eroi || []).map(nome => {
+    const s = { nome, partite: 0, gol: 0, assist: 0, voto: 0, mom: 0, secondi: 0, momContro: null, dieciContro: null };
+    partite.forEach(m => {
+      const p = (DATA.matchPlayers[m.match_id] || []).find(x => x.player_name === nome);
+      if(!p) return;
+      s.partite++; s.gol += p.goals || 0; s.assist += p.assists || 0; s.voto += p.rating || 0;
+      s.secondi += p.seconds_played || 0;
+      if(p.mom){ s.mom++; if(!s.momContro) s.momContro = m.opponent_name; }
+      if((p.rating || 0) >= 10 && !s.dieciContro) s.dieciContro = m.opponent_name;
+    });
+    s.media = s.partite ? s.voto / s.partite : 0;
+    const inRosa = (DATA.roster || []).find(r => r.player_name === nome);
+    s.gruppo = (inRosa && inRosa.gruppo) || gruppoGiocatore(nome, null);
+    s.motivo = motivoEroe(s);
+    return s;
+  });
+  const ultima = partite[partite.length - 1] || null;
+  const retrocessi = EVENTI_DIVISIONE.some(e => e.tipo === "retrocessione" && e.ultima && ultima
+    && e.ultima.played_at > ultima.played_at);
+  return { ...t, partiteDati: partite, eroiDati: eroi,
+    decisivaDati: PARTITA_PER_ID.get(t.decisiva) || ultima,
+    vinte: partite.filter(m => m.win).length,
+    gf: partite.reduce((x, m) => x + (m.goals_for || 0), 0),
+    gs: partite.reduce((x, m) => x + (m.goals_against || 0), 0),
+    inHome: partite.length > 0 && !retrocessi };
+});
+function dataTraguardo(t){
+  const [a, m, g] = String(t.data || "").split("-");
+  return g ? `${g}/${m}/${a}` : "";
+}
+
 // ---- Cards ----
 (function renderCards(){
   const l = DATA.latest || {};
@@ -2414,6 +2462,54 @@ function valoreRecord(r, v){
       <div style="display:flex; flex-direction:column; gap:6px; font-size:14px; line-height:1.5;">${righe.join("")}</div>
       <div style="margin-top:10px; font-size:12px;"><span class="vai-a" data-vai="record">Tutti i record →</span></div>
     </div>`;
+})();
+
+// ---- La festa in cima alla Home, e i Traguardi nei Record (07/11/2026) ----
+// data-traguardo e data-eroe servono a test_traguardi.js.
+function htmlFesta(t){
+  const coriandoli = Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 37) % 100}%; animation-delay:${(i % 6) * 0.45}s;"></i>`).join("");
+  const partite = t.partiteDati.map(m => `<span class="festa-partita${t.decisivaDati && m.match_id === t.decisivaDati.match_id ? " decisiva" : ""}" data-partita="${m.match_id}">
+      ${m.goals_for}-${m.goals_against} <span>${m.opponent_name}</span></span>`).join("");
+  const eroi = t.eroiDati.map(s => `
+    <div class="festa-eroe" data-eroe="${s.nome}">
+      <div class="festa-medaglia" aria-hidden="true">🎖️</div>
+      <div class="festa-nome"><span class="player-link" data-player="${s.nome}">${s.nome}</span></div>
+      <div>${gruppoBadge(s.gruppo, !GROUP_OF_PLAYER[s.nome])}</div>
+      <div class="festa-cifre">
+        <span><b>${s.gol}</b> gol</span><span><b>${s.assist}</b> assist</span>
+        <span>media <b>${s.media.toFixed(2)}</b></span>${s.mom ? `<span>⭐ <b>${s.mom}</b></span>` : ""}
+      </div>
+      <div class="festa-motivo">${s.motivo}</div>
+    </div>`).join("");
+  const d = t.decisivaDati;
+  return `<div class="panel festa" data-traguardo="${t.id}">
+    <div class="festa-coriandoli" aria-hidden="true">${coriandoli}</div>
+    <div class="festa-eti">${t.storia}</div>
+    <div class="festa-titolo">🏆 ${t.nome}</div>
+    <div class="festa-sotto">${dataTraguardo(t)} · ${t.vinte} ${t.vinte === 1 ? "vittoria" : "vittorie"} su ${t.partiteDati.length} ·
+      ${t.gf} gol fatti, ${t.gs} subiti${d ? ` · decisa dal ${d.goals_for}-${d.goals_against} contro ${d.opponent_name}` : ""}</div>
+    <div class="festa-partite">${partite}</div>
+    <div class="festa-eroi-titolo">${t.eroiDati.length === 6 ? "I 6 eroi" : `Gli eroi (${t.eroiDati.length})`} — in campo in tutte le partite della promozione</div>
+    <div class="festa-eroi">${eroi}</div>
+  </div>`;
+}
+(function renderFesta(){
+  const el = document.getElementById("festa");
+  if(!el) return;
+  // Vuota, non tolta: il CSS nasconde la sezione vuota.
+  el.innerHTML = TRAGUARDI.filter(t => t.inHome).map(htmlFesta).join("");
+})();
+(function renderTraguardi(){
+  const el = document.getElementById("recordTraguardi");
+  if(!el) return;
+  if(!TRAGUARDI.length){ el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="panel" style="margin-bottom:16px;">
+    <h3 style="margin:0 0 10px; font-size:15px;">🏆 Traguardi</h3>
+    ${TRAGUARDI.map(t => `<div class="traguardo-riga" data-traguardo="${t.id}">
+      <strong>${t.nome}</strong> <span style="color:var(--muted);">— ${dataTraguardo(t)}${t.decisivaDati ? `, ${t.decisivaDati.goals_for}-${t.decisivaDati.goals_against} contro ${t.decisivaDati.opponent_name}` : ""}</span>
+      <div style="font-size:12px; margin-top:4px;">Gli eroi: ${t.eroiDati.map(s => `<span class="player-link" data-player="${s.nome}">${s.nome}</span>`).join(", ")}</div>
+    </div>`).join("")}
+  </div>`;
 })();
 
 // ---- Giocatore del mese: l'annuncio in Home, solo il giorno 1 ----
@@ -4976,7 +5072,7 @@ document.addEventListener("keydown", (e) => {
 // le sezioni di riepilogo generale (overview, forma, andamento); tutte le
 // altre sezioni corrispondono 1:1 a una pagina.
 const PAGE_MAP = {
-  homeTabs: "home", resoconto: "home", overview: "home", novita: "home", meseAnnuncio: "home", forma: "home", andamento: "home", condividi: "home",
+  festa: "home", homeTabs: "home", resoconto: "home", overview: "home", novita: "home", meseAnnuncio: "home", forma: "home", andamento: "home", condividi: "home",
   giocatori: "giocatori", carriera: "carriera", record: "record", mese: "potm",
   forza: "forza", formazione: "formazione",
   riepilogo: "riepilogo", avversari: "avversari", diagnosi: "diagnosi",

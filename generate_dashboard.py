@@ -862,6 +862,24 @@ def serate_da_confermare(matches):
         return []
 
 
+def carica_traguardi(titolo):
+    """I traguardi storici del club (traguardi.json), solo quelli del titolo della pagina.
+
+    Scritti a mano e congelati come il pagellone: gli eroi di una promozione sono quelli di
+    QUELLE partite, e non devono cambiare con le partite che arrivano dopo. Un file assente
+    o illeggibile toglie la festa, non la pagina.
+    """
+    path = QUI / "traguardi.json"
+    if not path.exists():
+        return []
+    try:
+        tutti = json.loads(path.read_text(encoding="utf-8")).get("traguardi") or []
+    except (json.JSONDecodeError, OSError, AttributeError) as exc:
+        print(f"  attenzione: traguardi.json non leggibile, traguardi omessi ({exc})")
+        return []
+    return [t for t in tutti if isinstance(t, dict) and t.get("titolo") == titolo]
+
+
 def carica_pagellone_fc26():
     """Il pagellone di fine stagione FC26: una fotografia scritta a mano il 15/09/2026,
     non una vista sul database.
@@ -940,6 +958,7 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path, data=None, car
     # e mai su un titolo diverso, FC27 compreso.
     if data["titolo"] == "FC 26":
         data["pagelloneFC26"] = carica_pagellone_fc26()
+    data["traguardi"] = carica_traguardi(data["titolo"])
     # Vero per ogni pagina tranne quella del titolo attivo (sempre il primo di `titoli`,
     # per come lo costruisce elenco_titoli()). Serve a "Salute dell'archivio": quel
     # riquadro racconta se l'automazione sta tenendo il passo ADESSO, e su un titolo

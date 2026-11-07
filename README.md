@@ -412,6 +412,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `club.json` | Quale club è attivo. **Unico file da toccare al passaggio a FC 27.** |
 | `roles.json` | Ruoli reali dei giocatori, eccezioni per partita, ex giocatori. Scritto a mano. |
 | `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
+| `traguardi.json` | I traguardi storici del club, scritti a mano e **congelati** come il pagellone: per ognuno le partite che l'hanno portato, la decisiva e gli eroi. La prima voce è la Divisione 1 del 07/11/2026. Vedi «Traguardi storici». |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. Con `--completa` misura tutte le voci, anche i pezzi della tecnica, con la divisione pari/dispari e un intervallo al 90% (ultimi risultati in `APPUNTI.md`, punto 5). |
 | `test_pipeline.py` | 134 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli, i dati dell'avversario scritti per le partite nuove e recuperati dal grezzo per quelle già archiviate, le icone citate da pagine e manifest che esistono davvero. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
@@ -421,6 +422,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_indice.js` | 25 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; i passaggi tentati a partita, in tabella e in ogni scheda; il giocatore di ogni mese (vincitore, punteggio, chi è in testa nel mese in corso e la soglia di presenze), la corsa del mese in corso, le vittorie di ognuno con il numero di titolo su ogni tessera, e l'annuncio in Home con il suo link alla pagina POTM, aprendo la pagina con l'orologio spostato al giorno 1 di due mesi e al giorno 2. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
 | `test_record.js` | 14 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
+| `test_traguardi.js` | 7 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, ogni tessera della festa ha le cifre giuste, e — simulando una retrocessione — la festa lascia la Home e resta nei Record. Nato il 07/11/2026. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1180,6 +1182,28 @@ avrebbe premiato attaccanti e trequartisti senza misurare niente che faccia vinc
 con l'archivio come minimo (`tentativiDiCarriera`, la stessa regola dell'indice). Verificata
 contro i tentati contati davvero nelle partite di FC 27: scarto massimo 0,4 a partita. Per
 chi non è in rosa la scheda usa solo l'archivio, dove i tentati sono contati.
+
+## Traguardi storici: la Divisione 1 (07/11/2026)
+
+La notte del 07/11/2026 il club è arrivato in **Divisione 1, per la prima volta nella sua
+storia**, con quattro vittorie di fila (4-1, 2-0, 4-2, 3-2): secondo i contatori di EA la
+promozione arriva con il 3-2 contro MixFood FC, l'unica partita fra le due letture in cui il
+contatore cresce. Peppe ha chiesto di festeggiarla in Home e di onorare i **6 eroi**, i
+titolari di tutte e quattro: Ironman-6-6 (8 gol), Pesix_97, eredes, ilmillejr,
+VRT_ernestino, Smilzo_87.
+
+In cima alla Home c'è un pannello dorato con i coriandoli (fermi per chi ha chiesto meno
+animazioni al sistema), le quattro partite con la decisiva in evidenza, e una tessera per
+ogni eroe con le sue cifre in quelle partite e una riga che dice per cosa ricordarlo, scelta
+dai dati: gol e assist se sono tanti, un 10 in pagella, il migliore in campo, oppure — per chi
+non ha segnato — l'essere stato in campo dal primo all'ultimo minuto di tutte. Il pannello
+resta in Home **finché il club non retrocede** dopo quelle partite (lo dicono i contatori di
+EA), poi resta per sempre nei Record, sotto «Traguardi».
+
+Il traguardo sta in `traguardi.json`, scritto a mano e congelato come il pagellone di FC 26:
+gli eroi sono quelli di quelle partite e non devono cambiare con le partite che arrivano dopo.
+Nel file non c'è nessun numero: le cifre le calcola la pagina dalle partite. La divisione è
+quella che ha detto Peppe — EA non la dà, vedi «Record e scalata».
 
 ## Carriera nel club (29/10/2026)
 
