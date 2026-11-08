@@ -1778,6 +1778,10 @@ FC 27). Al 05/11: Pesix_97 2 (settembre e ottobre). FC 26 avrebbe dato 2 a FFLI_
 Per la prima volta nella storia del club. Festa in Home con i 6 eroi (titolari di tutte e
 quattro le partite della promozione), che resta finché non si retrocede; poi nei Record.
 `traguardi.json` (congelato) e `test_traguardi.js`. Dettagli nel README, «Traguardi storici».
+
+**08/11/2026: la festa in Home è tolta.** Chiesto da Peppe: il traguardo resta solo nei
+Record, nella riga corta che c'era già (scelta sua fra questa e spostare lì il pannello
+intero).
 Per un traguardo futuro basta aggiungere una voce a `traguardi.json`.
 
 ## La pagina ferma due volte la notte della Divisione 1 (07/11/2026)

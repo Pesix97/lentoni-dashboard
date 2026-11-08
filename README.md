@@ -422,7 +422,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_indice.js` | 25 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; i passaggi tentati a partita, in tabella e in ogni scheda; il giocatore di ogni mese (vincitore, punteggio, chi è in testa nel mese in corso e la soglia di presenze), la corsa del mese in corso, le vittorie di ognuno con il numero di titolo su ogni tessera, e l'annuncio in Home con il suo link alla pagina POTM, aprendo la pagina con l'orologio spostato al giorno 1 di due mesi e al giorno 2. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
 | `test_record.js` | 14 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
-| `test_traguardi.js` | 7 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, ogni tessera della festa ha le cifre giuste, e — simulando una retrocessione — la festa lascia la Home e resta nei Record. Nato il 07/11/2026. |
+| `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1192,13 +1192,11 @@ contatore cresce. Peppe ha chiesto di festeggiarla in Home e di onorare i **6 er
 titolari di tutte e quattro: Ironman-6-6 (8 gol), Pesix_97, eredes, ilmillejr,
 VRT_ernestino, Smilzo_87.
 
-In cima alla Home c'è un pannello dorato con i coriandoli (fermi per chi ha chiesto meno
-animazioni al sistema), le quattro partite con la decisiva in evidenza, e una tessera per
-ogni eroe con le sue cifre in quelle partite e una riga che dice per cosa ricordarlo, scelta
-dai dati: gol e assist se sono tanti, un 10 in pagella, il migliore in campo, oppure — per chi
-non ha segnato — l'essere stato in campo dal primo all'ultimo minuto di tutte. Il pannello
-resta in Home **finché il club non retrocede** dopo quelle partite (lo dicono i contatori di
-EA), poi resta per sempre nei Record, sotto «Traguardi».
+Il traguardo sta nei Record, sotto «Traguardi»: nome, data, il risultato della decisiva e i
+nomi degli eroi, cliccabili. Dal 07 all'08/11/2026 c'è stata anche una festa in cima alla
+Home (pannello dorato, coriandoli, una tessera per eroe), pensata per restare finché non si
+retrocedeva: l'08/11 Peppe ha chiesto di toglierla e di lasciare il traguardo solo nei Record,
+nella forma corta. `test_traguardi.js` controlla che non ricompaia altrove.
 
 Il traguardo sta in `traguardi.json`, scritto a mano e congelato come il pagellone di FC 26:
 gli eroi sono quelli di quelle partite e non devono cambiare con le partite che arrivano dopo.

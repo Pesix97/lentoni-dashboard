@@ -1,13 +1,13 @@
-// I traguardi storici (traguardi.json) e la festa in Home, contro un ricalcolo fatto qui.
+// I traguardi storici (traguardi.json) nei Record, contro un ricalcolo fatto qui.
 //
 // NATO IL 07/11/2026, la notte della prima Divisione 1 del club. Verifica che:
 //   - gli eroi scritti a mano siano ESATTAMENTE chi e' stato in campo in tutte le partite del
 //     traguardo (righe con almeno un secondo), ne' uno di piu' ne' uno di meno;
 //   - la partita "decisiva" sia l'ultima, e quella a cui i contatori di EA attribuiscono la
 //     promozione (le ultime N partite prima della lettura che la mostra, README "Record e scalata");
-//   - ogni tessera della festa riporti cifre giuste (gol, assist, media, migliore in campo);
-//   - la festa stia in Home finche' non c'e' una retrocessione dopo, e poi resti nei Record:
-//     questo si prova su una simulazione, aggiungendo ai dati una retrocessione finta.
+//   - il traguardo stia nei Record con tutti gli eroi e il risultato giusto della decisiva;
+//   - non compaia da nessun'altra parte: la festa in Home e' stata tolta l'08/11/2026, su
+//     richiesta di Peppe, e questo controllo impedisce che torni per sbaglio.
 //
 // Uso:  node test_traguardi.js [percorso/index.html]
 
@@ -61,7 +61,7 @@ const pausa = ms => new Promise(r => setTimeout(r, ms));
   console.log(`\nTraguardi di questo titolo: ${TRAG.length}`);
   if (!TRAG.length) {
     const d = apri(DATA).window.document; await pausa(1500);
-    verifica("nessun traguardo: niente festa in Home", T(d.getElementById("festa")) ? ["c'e' una festa senza traguardi"] : []);
+    verifica("nessun traguardo: niente Traguardi nei Record", T(d.getElementById("recordTraguardi")) ? ["c'e' un riquadro senza traguardi"] : []);
     process.exit(falliti ? 1 : 0);
   }
 
@@ -94,50 +94,26 @@ const pausa = ms => new Promise(r => setTimeout(r, ms));
   verifica("gli eroi sono esattamente chi e' stato in campo in tutte le partite", errD.eroi);
   verifica("la decisiva e' l'ultima, e i contatori di EA le danno la promozione", errD.decisiva);
 
-  // ---- La festa in Home
+  // ---- Nei Record, e solo li'
   const d = apri(DATA).window.document; await pausa(1500);
-  const errF = { festa: [], tessere: [], record: [] };
+  const errR = [], errH = [];
   for (const t of TRAG) {
-    const f = d.querySelector(`#festa [data-traguardo="${t.id}"]`);
-    if (!f) { errF.festa.push(`${t.id}: nessuna festa in Home`); continue; }
-    const chip = [...f.querySelectorAll("[data-partita]")].map(x => x.dataset.partita);
-    if (chip.join() !== t.partite.join()) errF.festa.push(`${t.id}: partite mostrate [${chip}], attese [${t.partite}]`);
-    const dec = f.querySelector(".festa-partita.decisiva");
-    if (!dec || dec.dataset.partita !== t.decisiva) errF.festa.push(`${t.id}: decisiva evidenziata sbagliata`);
-    const P = t.partite.map(id => perId.get(id));
-    const vinte = P.filter(m => m.win).length, gf = P.reduce((x, m) => x + m.goals_for, 0), gs = P.reduce((x, m) => x + m.goals_against, 0);
-    const sotto = T(f.querySelector(".festa-sotto"));
-    if (!sotto.includes(`${vinte} vittori`) || !sotto.includes(`${gf} gol fatti, ${gs} subiti`)) errF.festa.push(`${t.id}: "${sotto}", attese ${vinte} vittorie, ${gf}-${gs}`);
-    const tessere = [...f.querySelectorAll("[data-eroe]")];
-    if (tessere.map(x => x.dataset.eroe).join() !== t.eroi.join()) errF.tessere.push(`${t.id}: tessere [${tessere.map(x => x.dataset.eroe)}], eroi [${t.eroi}]`);
-    for (const x of tessere) {
-      const n = x.dataset.eroe;
-      let g = 0, a = 0, v = 0, mom = 0, k = 0;
-      P.forEach(m => { const p = righe(m.match_id).find(r => r.player_name === n); if (p) { k++; g += p.goals || 0; a += p.assists || 0; v += p.rating || 0; mom += p.mom ? 1 : 0; } });
-      const cifre = [...x.querySelectorAll(".festa-cifre > span")].map(T).join(" ");
-      const att = `${g} gol ${a} assist media ${(v / k).toFixed(2)}${mom ? ` ⭐ ${mom}` : ""}`;
-      if (cifre.replace(/\s+/g, " ") !== att) errF.tessere.push(`${n}: "${cifre}", atteso "${att}"`);
-      if (!x.querySelector(".player-link")) errF.tessere.push(`${n}: nome non cliccabile`);
-    }
-    const rec = d.querySelector(`#recordTraguardi [data-traguardo="${t.id}"]`);
-    if (!rec) errF.record.push(`${t.id}: non c'e' nei Record`);
-    else for (const n of t.eroi) if (!T(rec).includes(n)) errF.record.push(`${t.id}: nei Record manca ${n}`);
+    const rec = d.querySelectorAll(`#recordTraguardi [data-traguardo="${t.id}"]`);
+    if (rec.length !== 1) { errR.push(`${t.id}: ${rec.length} righe nei Record, attesa 1`); continue; }
+    const testo = T(rec[0]);
+    for (const n of t.eroi) if (!testo.includes(n)) errR.push(`${t.id}: nei Record manca ${n}`);
+    const nomi = [...rec[0].querySelectorAll(".player-link")].map(x => x.dataset.player);
+    if (nomi.join() !== t.eroi.join()) errR.push(`${t.id}: nomi cliccabili [${nomi}], eroi [${t.eroi}]`);
+    const m = perId.get(t.decisiva);
+    if (!testo.includes(`${m.goals_for}-${m.goals_against} contro ${m.opponent_name}`))
+      errR.push(`${t.id}: "${testo}", attesa la decisiva ${m.goals_for}-${m.goals_against} contro ${m.opponent_name}`);
+    // Fuori dai Record: nessun elemento del traguardo, e nessuna sezione "festa" nella Home.
+    const fuori = [...d.querySelectorAll(`[data-traguardo="${t.id}"]`)].filter(x => !x.closest("#recordTraguardi"));
+    if (fuori.length) errH.push(`${t.id}: compare anche fuori dai Record (${fuori.map(x => x.className || x.tagName).join(", ")})`);
   }
-  verifica("la festa in Home: partite, decisiva, vittorie e gol", errF.festa);
-  verifica("una tessera per eroe, con gol, assist, media e migliore in campo giusti", errF.tessere);
-  verifica("il traguardo resta nei Record, con tutti gli eroi", errF.record);
-
-  // ---- Simulazione: una retrocessione dopo il traguardo
-  const ultimaPartita = crono[crono.length - 1], ultimaLettura = DATA.history[DATA.history.length - 1];
-  const finta = { ...ultimaPartita, match_id: "simulata-retrocessione", played_at: "2099-01-01T21:00:00+00:00", win: 0, loss: 1, tie: 0 };
-  const sim = { ...DATA, matches: [finta, ...DATA.matches], matchPlayers: { ...DATA.matchPlayers, [finta.match_id]: [] },
-    history: [...DATA.history, { ...ultimaLettura, fetched_at: "2099-01-01T22:00:00+00:00",
-      relegations: ultimaLettura.relegations + 1, games_played: ultimaLettura.games_played + 1 }] };
-  const ds = apri(sim).window.document; await pausa(1500);
-  const errS = [];
-  if (T(ds.getElementById("festa"))) errS.push("dopo una retrocessione la festa e' ancora in Home");
-  for (const t of TRAG) if (!ds.querySelector(`#recordTraguardi [data-traguardo="${t.id}"]`)) errS.push(`${t.id}: sparito anche dai Record`);
-  verifica("simulata una retrocessione: la festa lascia la Home e resta nei Record", errS);
+  if (d.getElementById("festa")) errH.push("in Home c'e' ancora la sezione della festa");
+  verifica("il traguardo e' nei Record, con tutti gli eroi e la decisiva", errR);
+  verifica("e da nessun'altra parte: niente festa in Home", errH);
 
   console.log(falliti === 0 ? "\nI traguardi tornano con il ricalcolo." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);

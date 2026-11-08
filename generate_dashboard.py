@@ -867,7 +867,7 @@ def carica_traguardi(titolo):
 
     Scritti a mano e congelati come il pagellone: gli eroi di una promozione sono quelli di
     QUELLE partite, e non devono cambiare con le partite che arrivano dopo. Un file assente
-    o illeggibile toglie la festa, non la pagina.
+    o illeggibile toglie i traguardi, non la pagina.
     """
     path = QUI / "traguardi.json"
     if not path.exists():
