@@ -220,6 +220,11 @@ button{font-family:inherit;}
   .card .value{font-size:20px; font-weight:600; margin-top:2px; letter-spacing:-.01em; white-space:nowrap;}
   /* La serie e' l'unica scheda con un testo ("7 senza vincere"): a sette colonne veniva tagliata. */
   .card[data-card="serie"] .value{white-space:normal; line-height:1.2;}
+  /* Avversari: i nomi dei club sono lunghi e a sette colonne uscivano dalla scheda.
+     Quattro schede, quattro colonne; il nome va a capo e il bilancio sta sotto, piu' piccolo. */
+  #opponentCards{grid-template-columns:repeat(4,minmax(0,1fr));}
+  #opponentCards .value{white-space:normal; overflow-wrap:anywhere; line-height:1.2; font-size:17px;}
+  #opponentCards .value .bilancio{display:block; font-size:13px; font-weight:500; color:var(--muted); margin-top:3px;}
   .card .value.win{color:var(--win);}
   .card .value.loss{color:var(--loss);}
   section{margin-bottom:32px; scroll-margin-top:56px;}
@@ -606,7 +611,7 @@ button{font-family:inherit;}
 
   /* ---- Responsive: tablet/mobile (≤700px) ---- */
   @media (max-width:700px){
-    .grid-cards{grid-template-columns:repeat(2,1fr); gap:8px;}
+    .grid-cards, #opponentCards{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;}
     .footer-note{padding:0 16px 100px;}
     .power-podium{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
     .wrapped-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}

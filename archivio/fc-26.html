@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-rUFXfwWIPKbGWFhxoH0Z0PNHLCjEO4l9bPqxwlKRcvo='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-xNLG9VdRG7HyLRWfIeuY1I5wJw3wYnvETG9y1/IjTXI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -251,6 +251,11 @@ button{font-family:inherit;}
   .card .value{font-size:20px; font-weight:600; margin-top:2px; letter-spacing:-.01em; white-space:nowrap;}
   /* La serie e' l'unica scheda con un testo ("7 senza vincere"): a sette colonne veniva tagliata. */
   .card[data-card="serie"] .value{white-space:normal; line-height:1.2;}
+  /* Avversari: i nomi dei club sono lunghi e a sette colonne uscivano dalla scheda.
+     Quattro schede, quattro colonne; il nome va a capo e il bilancio sta sotto, piu' piccolo. */
+  #opponentCards{grid-template-columns:repeat(4,minmax(0,1fr));}
+  #opponentCards .value{white-space:normal; overflow-wrap:anywhere; line-height:1.2; font-size:17px;}
+  #opponentCards .value .bilancio{display:block; font-size:13px; font-weight:500; color:var(--muted); margin-top:3px;}
   .card .value.win{color:var(--win);}
   .card .value.loss{color:var(--loss);}
   section{margin-bottom:32px; scroll-margin-top:56px;}
@@ -637,7 +642,7 @@ button{font-family:inherit;}
 
   /* ---- Responsive: tablet/mobile (≤700px) ---- */
   @media (max-width:700px){
-    .grid-cards{grid-template-columns:repeat(2,1fr); gap:8px;}
+    .grid-cards, #opponentCards{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;}
     .footer-note{padding:0 16px 100px;}
     .power-podium{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
     .wrapped-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
@@ -5222,9 +5227,9 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
 
   const cards = [
     ["Avversari diversi affrontati", list.length, ""],
-    ["Più affrontato", mostPlayed ? `${mostPlayed.name} (${mostPlayed.games}x)` : "-", ""],
-    ["Bestia nera", nemesis ? `${nemesis.name} (${nemesis.wins}V ${nemesis.ties}P ${nemesis.losses}S)` : "-", nemesis && nemesis.losses > nemesis.wins ? "loss" : ""],
-    ["Vittima preferita", victim ? `${victim.name} (${victim.wins}V ${victim.ties}P ${victim.losses}S)` : "-", victim && victim.wins > victim.losses ? "win" : ""],
+    ["Più affrontato", mostPlayed ? `${mostPlayed.name}<span class="bilancio">${mostPlayed.games} partite</span>` : "-", ""],
+    ["Bestia nera", nemesis ? `${nemesis.name}<span class="bilancio">${nemesis.wins}V ${nemesis.ties}P ${nemesis.losses}S</span>` : "-", nemesis && nemesis.losses > nemesis.wins ? "loss" : ""],
+    ["Vittima preferita", victim ? `${victim.name}<span class="bilancio">${victim.wins}V ${victim.ties}P ${victim.losses}S</span>` : "-", victim && victim.wins > victim.losses ? "win" : ""],
   ];
   cardsEl.innerHTML = cards.map(([label, value, cls]) =>
     `<div class="card"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`

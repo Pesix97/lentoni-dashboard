@@ -3745,9 +3745,9 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
 
   const cards = [
     ["Avversari diversi affrontati", list.length, ""],
-    ["Più affrontato", mostPlayed ? `${mostPlayed.name} (${mostPlayed.games}x)` : "-", ""],
-    ["Bestia nera", nemesis ? `${nemesis.name} (${nemesis.wins}V ${nemesis.ties}P ${nemesis.losses}S)` : "-", nemesis && nemesis.losses > nemesis.wins ? "loss" : ""],
-    ["Vittima preferita", victim ? `${victim.name} (${victim.wins}V ${victim.ties}P ${victim.losses}S)` : "-", victim && victim.wins > victim.losses ? "win" : ""],
+    ["Più affrontato", mostPlayed ? `${mostPlayed.name}<span class="bilancio">${mostPlayed.games} partite</span>` : "-", ""],
+    ["Bestia nera", nemesis ? `${nemesis.name}<span class="bilancio">${nemesis.wins}V ${nemesis.ties}P ${nemesis.losses}S</span>` : "-", nemesis && nemesis.losses > nemesis.wins ? "loss" : ""],
+    ["Vittima preferita", victim ? `${victim.name}<span class="bilancio">${victim.wins}V ${victim.ties}P ${victim.losses}S</span>` : "-", victim && victim.wins > victim.losses ? "win" : ""],
   ];
   cardsEl.innerHTML = cards.map(([label, value, cls]) =>
     `<div class="card"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`
