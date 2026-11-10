@@ -131,7 +131,11 @@ Perché è urgente e non cosmetico: EA espone solo le ultime 10 partite. Se la f
 giù per una notte di gioco e nessuno se ne accorge, quelle partite escono dalla finestra e
 sono perse per sempre.
 
-**Chi legge il battito, e quando.** Tre task pianificati di Cowork, con tre scopi diversi:
+**Chi legge il battito, e quando.** Due attività programmate **online**, che girano nel cloud e non
+hanno bisogno del PC (dal 14/10/2026 le versioni locali dell'app sono state cancellate; sono
+visibili e modificabili da `list_triggers`). **Notificano con una push sul telefono solo quando
+c'è un guasto o un avviso** (campo `avvisi`, vedi «Chi ha lasciato il club»); se va tutto bene
+rispondono in una riga e non disturbano. Le email sono disattivate. Tre controlli, tre scopi:
 
 | Task | Orario | A cosa serve |
 | --- | --- | --- |
@@ -1739,7 +1743,9 @@ sull'automazione: il runner di GitHub fa un checkout pulito a ogni giro.
   ritiro (`winner_by_dnf` se si è ritirato l'avversario, `loser_by_dnf` se ci siamo ritirati
   noi). Prima restavano solo nel grezzo, che si pota dopo quindici partite: quelle quindici
   sono state recuperate, le precedenti sono perse. Dove EA non manda il dato la colonna resta
-  vuota, mai zero.
+  vuota, mai zero. **La pagina non usa ancora questi campi**: record, serie e indice contano una
+  vittoria per ritiro come una partita normale (il 3-0 del 02/11/2026 è un caso noto); se un
+  giorno la pagina userà il dato, questa riga va aggiornata.
 - `match_player_stats` — statistiche per giocatore per partita.
 - `opponent_clubs` — livello dei club affrontati.
 
