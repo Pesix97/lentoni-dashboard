@@ -128,7 +128,7 @@ def _morti_sul_nascere(avvii, giri):
 
 
 def nuovo_stato(precedente, esito, partite, problema=None, adesso=None,
-                esecuzione=None, evento=None):
+                esecuzione=None, evento=None, avvisi=None):
     """Lo stato aggiornato, a partire da quello di prima.
 
     `precedente` e' il contenuto di stato.json letto dal ramo, o {} al primo giro.
@@ -142,6 +142,14 @@ def nuovo_stato(precedente, esito, partite, problema=None, adesso=None,
         evento = os.environ.get("GITHUB_EVENT_NAME")
     prec = precedente if isinstance(precedente, dict) else {}
     problema = problema or None
+    # Gli AVVISI non sono guasti: la fonte risponde e la pipeline gira, ma c'e' qualcosa da
+    # sapere (oggi: un ex giocatore tornato a giocare). Stanno fuori da `problema` apposta,
+    # perche' quello entra nel registro dei guasti e farebbe suonare gli allarmi di
+    # "automazione rotta" per una cosa che l'automazione non c'entra. Arrivano dall'ambiente
+    # (BATTITO_AVVISI, una frase per riga) e il controllo battito li riferisce a Peppe.
+    if avvisi is None:
+        avvisi = os.environ.get("BATTITO_AVVISI", "").splitlines()
+    avvisi = [a.strip() for a in avvisi if isinstance(a, str) and a.strip()]
 
     if esito == "ok":
         ultimo_successo, falliti = adesso, 0
@@ -189,6 +197,7 @@ def nuovo_stato(precedente, esito, partite, problema=None, adesso=None,
         # Un guasto a valle dello scaricamento: la fonte risponde ma qualcosa nella nostra
         # pipeline non ha funzionato. Anche questo prima finiva solo in un log non letto.
         "problema": problema,
+        "avvisi": avvisi,
         # La memoria dei guasti. `guasti_in_memoria` risponde subito alla domanda che conta
         # senza dover leggere il registro voce per voce.
         "guasti_in_memoria": len(guasti),

@@ -664,6 +664,7 @@ DEFAULT_ROLE_GROUPS = {
     "players": {},
     "eaLabels": {},
     "exPlayers": [],
+    "capitano": None,
     "exceptions": {},
 }
 
@@ -726,6 +727,9 @@ def _load_role_groups(script_dir=None):
     cfg["players"] = cleaned
     cfg["eaLabels"] = etichette
     cfg["exPlayers"] = [n for n in (raw.get("ex_giocatori") or []) if isinstance(n, str)]
+    # Il capitano vale solo se e' in rosa: un nome scritto male non deve comparire da nessuna parte.
+    cap = raw.get("capitano")
+    cfg["capitano"] = cap if isinstance(cap, str) and cap in cleaned else None
 
     # Eccezioni per singola partita. Servono dove l'etichetta EA e' ambigua: EA scrive
     # "midfielder" sia per un COC sia per un CC, quindi per un giocatore schierato COC di
@@ -979,7 +983,6 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path, data=None, car
     # il parametro che passiamo a ogni chiamata.
     platform = etichetta_piattaforma(club.get("piattaforma")
                                      or data["club"].get("platform"))
-    division = data["latest"].get("best_division") or "-"
     updated_at = data["history"][-1]["fetched_at"] if data["history"] else "-"
     min_games = MIN_GAMES_PER_TITOLO.get(data["titolo"], MIN_GAMES)
 
@@ -992,8 +995,7 @@ def genera_pagina(club, titoli, corrente_file, db_path, out_path, data=None, car
     pagina_html = (
         HTML_TEMPLATE
         .replace("__CLUB_NAME__", html.escape(club_name))
-        .replace("__PLATFORM__", str(platform))
-        .replace("__DIVISION__", str(division))
+        .replace("__PLATFORM__", html.escape(str(platform)))
         .replace("__UPDATED_AT__", str(updated_at))
         .replace("__MIN_GAMES__", str(min_games))
         .replace("__SELETTORE_TITOLI__", selettore_titoli_html(titoli, corrente_file))

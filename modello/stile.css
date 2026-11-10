@@ -834,3 +834,10 @@ canvas{max-height:340px;}
 
 /* I traguardi storici nei Record (07/11/2026) */
 .traguardo-riga + .traguardo-riga{margin-top:10px; padding-top:10px; border-top:1px solid var(--border, rgba(255,255,255,.1));}
+
+  /* Segno del capitano: un tondo con la C accanto al nome ovunque compaia (10/11/2026).
+     Disegnato con ::after e non con un elemento, cosi' non entra nel testo del nome. */
+  [data-cap]::after{content:"C"; display:inline-flex; align-items:center; justify-content:center;
+    width:1.3em; height:1.3em; margin-left:.45em; border-radius:50%; background:var(--gold); color:#14110a;
+    font-size:.68em; font-weight:800; line-height:1; letter-spacing:0; vertical-align:.12em;
+    font-style:normal; text-transform:none;}

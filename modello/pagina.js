@@ -113,6 +113,8 @@ const ROLE_CFG = DATA.roleGroups || {};
 const GROUP_ORDER = ROLE_CFG.order || ["DIFENSORI", "CENTROCAMPISTI", "ESTERNI", "ATTACCANTI", "PORTIERI"];
 const GROUP_LABELS = ROLE_CFG.labels || {};
 const GROUP_OF_PLAYER = ROLE_CFG.players || {};
+// Il capitano del club, scritto in roles.json (EA non lo espone): un nome solo.
+const CAPITANO = ROLE_CFG.capitano || null;
 const EA_LABEL_OF_PLAYER = ROLE_CFG.eaLabels || {};
 const MACRO_TO_GROUP = ROLE_CFG.macro || {};
 const ROLE_EXCEPTIONS = ROLE_CFG.exceptions || {};
@@ -2579,9 +2581,8 @@ disegnaQuando("home", function initShare(){
     ctx.fillStyle = colText;
     ctx.font = "bold 76px -apple-system, Segoe UI, Roboto, sans-serif";
     ctx.fillText(clubName, W/2, 120);
-    ctx.fillStyle = colMuted;
-    ctx.font = "30px -apple-system, Segoe UI, Roboto, sans-serif";
-    ctx.fillText(`Divisione ${l.best_division || "-"} · ${(club.platform || "").toUpperCase()}`, W/2, 168);
+    // Sotto il nome non c'e' nient'altro: niente divisione (era il dato dei playoff di EA, non
+    // quella in cui si gioca) e niente piattaforma. Deciso da Peppe il 10/11/2026.
 
     // skill rating in evidenza
     ctx.fillStyle = `rgba(${colAccent2Rgb},.10)`;
@@ -2642,7 +2643,7 @@ disegnaQuando("home", function initShare(){
         ctx.textAlign = "left";
         ctx.fillStyle = colText;
         ctx.font = "bold 34px -apple-system, Segoe UI, Roboto, sans-serif";
-        ctx.fillText(`${medals[i]}  ${p.player_name}`, 150, y);
+        ctx.fillText(`${medals[i]}  ${p.player_name}${p.player_name === CAPITANO ? "  (C)" : ""}`, 150, y);
         ctx.textAlign = "right";
         ctx.fillStyle = colAccent2;
         ctx.fillText(`${p.goals} gol`, W - 150, y);
@@ -5065,6 +5066,38 @@ if(SERATA_IN_CORSO){
   const duo = document.querySelector(".home-duo"), andamento = document.getElementById("andamento");
   if(duo && andamento) andamento.before(duo);
 }
+
+// ---- Il capitano si riconosce in ogni sezione (10/11/2026) ----
+// Il nome del capitano compare in decine di punti (tabelle, schede, formazione, record...),
+// scritti da funzioni diverse. Invece di toccarli uno per uno - e dimenticarne uno ad ogni
+// sezione nuova - si passa sul documento dopo ogni disegno e si appende il segno "C" a ogni
+// elemento che e' ESATTAMENTE quel nome. Conta solo il testo proprio dell'elemento: un
+// contenitore che lo contiene (la riga di tabella, il campo in formazione) non e' un nome.
+// Il segno e' un attributo (data-cap) disegnato dal CSS con ::after, NON un elemento: cosi' il
+// testo del nome resta "Pesix_97" e non "Pesix_97C" per chi lo legge, lo copia o lo cerca.
+const SELETTORE_NOMI = ".player-link, .pname, .pm-name, strong, td[data-label='Giocatore'], td[data-label='Chi'], .res-item > span:first-child";
+function segnaCapitano(radice){
+  if(!CAPITANO) return;
+  (radice || document).querySelectorAll(SELETTORE_NOMI).forEach(el => {
+    let proprio = "";
+    for(const n of el.childNodes){ if(n.nodeType === 3 && n.nodeValue.trim()){ proprio = n.nodeValue.trim(); break; } }
+    // Nelle partite il nome puo' essere seguito dalla stella del migliore in campo.
+    if(proprio.replace(/\s*\u2B50$/, "") !== CAPITANO) return;
+    if(el.hasAttribute("data-cap")) return;
+    el.setAttribute("data-cap", "");
+    if(!el.hasAttribute("title")) el.setAttribute("title", "Capitano");
+  });
+}
+(function(){
+  if(!CAPITANO || typeof MutationObserver === "undefined") return;
+  let atteso = false;
+  new MutationObserver(() => {
+    if(atteso) return;
+    atteso = true;
+    (window.requestAnimationFrame || setTimeout)(() => { atteso = false; segnaCapitano(); });
+  }).observe(document.body, { childList: true, subtree: true });
+  segnaCapitano();
+})();
 
 function showPage(pageKey){
   if(PAGINE_TRASLOCATE[pageKey]) pageKey = PAGINE_TRASLOCATE[pageKey];

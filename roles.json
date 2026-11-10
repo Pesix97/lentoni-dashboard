@@ -103,6 +103,12 @@
       "etichetta_ea": "defender"
     }
   },
+  "_capitano": [
+    "Il capitano del club. EA non lo espone, quindi si scrive qui, un nome solo. La pagina mette",
+    "un segno 'C' accanto al suo nome in ogni sezione. Deve essere un giocatore in 'giocatori':",
+    "un nome scritto male non compare da nessuna parte. Pesix_97 dal 10/11/2026, su indicazione di Peppe."
+  ],
+  "capitano": "Pesix_97",
   "_ex_giocatori": [
     "Chi ha lasciato il club. Viene escluso da TUTTA la dashboard prima ancora che i dati",
     "entrino nella pagina: rosa, classifiche, premi, indice di forza, formazione tipo, e",

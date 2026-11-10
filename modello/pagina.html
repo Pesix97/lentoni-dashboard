@@ -15,12 +15,13 @@
 <script id="lib-chartjs">__CHARTJS__</script>
 <style>__STILE__</style>
 </head>
-<body data-home-tab="andamento">
+<!-- La piattaforma del club attivo non si vede in pagina (10/11/2026: l'intestazione e' solo il nome), ma resta dichiarata qui, presa da club.json. -->
+<body data-home-tab="andamento" data-piattaforma="__PLATFORM__">
 
 <aside id="sideDrawer" aria-label="Menu">
   <div class="side-brand">
     <div class="crest" id="crestBadge"><img src="__RADICE__icone/logo.png" alt="Lentoni" width="31" height="38"></div>
-    <div class="side-brand-txt" title="__PLATFORM__ · Divisione __DIVISION__">
+    <div class="side-brand-txt">
       <h1>__CLUB_NAME__</h1>
     </div>
     <button id="drawerClose" aria-label="Chiudi menu">&#10005;</button>

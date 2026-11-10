@@ -882,7 +882,7 @@ class TestModello(unittest.TestCase):
         html = (QUI / "index.html").read_text(encoding="utf-8")
         rimasti = [s for s in ("__STILE__", "__SCRIPT__", "__DATA_JSON__", "__CLUB_NAME__",
                                "__MIN_GAMES__", "__MIN_REPARTO__", "__PLATFORM__",
-                               "__DIVISION__", "__UPDATED_AT__") if s in html]
+                               "__UPDATED_AT__") if s in html]
         self.assertEqual(rimasti, [], f"segnaposto non sostituiti: {rimasti}")
 
     def test_il_javascript_e_sintatticamente_valido(self):
@@ -2627,6 +2627,111 @@ class TestIconeEsistono(unittest.TestCase):
         self.assertGreaterEqual(len(citate), 8, "troppo poche icone trovate: il controllo non prova niente")
         mancanti = [f"{da}: {p}" for da, p in citate if not p.is_file()]
         self.assertEqual(mancanti, [])
+
+
+class TestExGiocatoriTornati(unittest.TestCase):
+    """Un ex giocatore che torna a giocare non deve sparire in silenzio (10/11/2026)."""
+
+    def _db(self, nomi_ex=("Vecchio",)):
+        sys.path.insert(0, str(QUI))
+        import ingest
+        import ruoli
+        self.ruoli = ruoli
+        con = sqlite3.connect(":memory:")
+        con.executescript(ingest.SCHEMA)
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        p = Path(tmp) / "roles.json"
+        p.write_text(json.dumps({"giocatori": {"Attuale": {"gruppo": "ATTACCANTI", "etichetta_ea": "forward"}},
+                                 "ex_giocatori": list(nomi_ex)}), encoding="utf-8")
+        return con, ruoli.carica(p)
+
+    def _gioca(self, con, club, match, nome, quando="2026-11-01T22:00:00+00:00"):
+        con.execute("INSERT OR IGNORE INTO matches (match_id, club_id, match_type, ts, played_at, opponent_name, "
+                    "goals_for, goals_against) VALUES (?,?,?,?,?,?,?,?)",
+                    (match, club, "leagueMatch", 1, quando, "x", 1, 0))
+        con.execute("INSERT INTO match_player_stats (match_id, club_id, ea_player_id, player_name, pos, goals) "
+                    "VALUES (?,?,?,?,?,?)", (match, club, nome + match, nome, "forward", 0))
+
+    def test_un_ex_che_gioca_nel_titolo_attivo_e_segnalato(self):
+        con, cfg = self._db()
+        self._gioca(con, 5, "m1", "Vecchio")
+        self._gioca(con, 5, "m2", "Vecchio", "2026-11-03T22:00:00+00:00")
+        self._gioca(con, 5, "m1", "Attuale")
+        avvisi = self.ruoli.avvisi_ex_tornati(con, 5, cfg)
+        self.assertEqual(len(avvisi), 1)
+        self.assertIn("Vecchio", avvisi[0])
+        self.assertIn("2 partite", avvisi[0])
+        self.assertIn("2026-11-03", avvisi[0])
+
+    def test_nessun_avviso_se_nessuno_e_tornato(self):
+        con, cfg = self._db()
+        self._gioca(con, 5, "m1", "Attuale")
+        self.assertEqual(self.ruoli.avvisi_ex_tornati(con, 5, cfg), [])
+
+    def test_le_partite_di_un_altro_titolo_non_contano(self):
+        """L'ex ha giocato in FC 26: e' normale, e' per questo che e' 'ex'."""
+        con, cfg = self._db()
+        self._gioca(con, 9, "m1", "Vecchio")
+        self.assertEqual(self.ruoli.avvisi_ex_tornati(con, 5, cfg), [])
+
+    def test_l_avviso_non_e_un_guasto_nel_battito(self):
+        """Altrimenti farebbe suonare 'automazione rotta' per una cosa che non lo e'."""
+        sys.path.insert(0, str(QUI))
+        import battito
+        s = battito.nuovo_stato({}, "ok", 10, None, avvisi=["Vecchio e' tornato"])
+        self.assertEqual(s["avvisi"], ["Vecchio e' tornato"])
+        self.assertIsNone(s["problema"])
+        self.assertFalse(s["guasto_in_corso"])
+        self.assertEqual(s["guasti_in_memoria"], 0)
+        self.assertEqual(battito.nuovo_stato({}, "ok", 10, None, avvisi=[])["avvisi"], [])
+
+    def test_gli_avvisi_arrivano_dall_ambiente_una_frase_per_riga(self):
+        sys.path.insert(0, str(QUI))
+        import os
+        import battito
+        vecchio = os.environ.get("BATTITO_AVVISI")
+        os.environ["BATTITO_AVVISI"] = "uno\n\n due \n"
+        try:
+            self.assertEqual(battito.nuovo_stato({}, "ok", 1)["avvisi"], ["uno", "due"])
+            os.environ.pop("BATTITO_AVVISI")
+            self.assertEqual(battito.nuovo_stato({}, "ok", 1)["avvisi"], [])
+        finally:
+            if vecchio is not None:
+                os.environ["BATTITO_AVVISI"] = vecchio
+
+    def test_oggi_nessun_ex_e_tornato(self):
+        """Sull'archivio vero: se questo diventa rosso, e' proprio la situazione da segnalare."""
+        import ruoli
+        db = sqlite3.connect(f"file:{QUI / 'lentoni.db'}?mode=ro", uri=True)
+        club = json.loads((QUI / "club.json").read_text(encoding="utf-8"))["attivo"]["club_id"]
+        self.assertEqual(ruoli.avvisi_ex_tornati(db, club, ruoli.carica()), [])
+
+
+class TestCapitano(unittest.TestCase):
+    def test_il_capitano_dichiarato_e_in_rosa(self):
+        cfg = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        self.assertIn("capitano", cfg)
+        self.assertIn(cfg["capitano"], cfg["giocatori"])
+
+    def test_un_capitano_che_non_e_in_rosa_non_compare(self):
+        sys.path.insert(0, str(QUI))
+        import generate_dashboard as gd
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        base = json.loads((QUI / "roles.json").read_text(encoding="utf-8"))
+        for nome, atteso in (("Pesix_97", "Pesix_97"), ("Pesix97", None)):
+            base["capitano"] = nome
+            (Path(tmp) / "roles.json").write_text(json.dumps(base), encoding="utf-8")
+            self.assertEqual(gd._load_role_groups(tmp)["capitano"], atteso)
+
+    def test_l_intestazione_non_ha_piu_la_divisione(self):
+        html = (QUI / "index.html").read_text(encoding="utf-8") if (QUI / "index.html").exists() else None
+        if html is None:
+            self.skipTest("index.html non presente")
+        brand = html[html.index('class="side-brand-txt"'):][:200]
+        self.assertNotIn("Divisione", brand)
+        self.assertNotIn("title=", brand.split(">")[0])
 
 
 if __name__ == "__main__":

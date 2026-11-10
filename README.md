@@ -414,7 +414,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
 | `traguardi.json` | I traguardi storici del club, scritti a mano e **congelati** come il pagellone: per ognuno le partite che l'hanno portato, la decisiva e gli eroi. La prima voce è la Divisione 1 del 07/11/2026. Vedi «Traguardi storici». |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. Con `--completa` misura tutte le voci, anche i pezzi della tecnica, con la divisione pari/dispari e un intervallo al 90% (ultimi risultati in `APPUNTI.md`, punto 5). |
-| `test_pipeline.py` | 135 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli, i dati dell'avversario scritti per le partite nuove e recuperati dal grezzo per quelle già archiviate, le icone citate da pagine e manifest che esistono davvero. |
+| `test_pipeline.py` | 144 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli, i dati dell'avversario scritti per le partite nuove e recuperati dal grezzo per quelle già archiviate, le icone citate da pagine e manifest che esistono davvero. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 120 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
@@ -671,6 +671,40 @@ segnato come ex giocatore il 21/08/2026, durante FC 26; in FC 27 è tornato a gi
 nell'Indice di Forza una volta rimesso in rosa. Se n'è accorto Peppe guardando la sezione
 Giocatori il 28/10/2026. Gli altri quattro ex giocatori della lista sono davvero usciti:
 nessuna partita in FC 27, non più fra i membri.
+
+**Dal 10/11/2026 la lista si controlla da sola, ma non si corregge da sola.** A ogni giro
+`ruoli.py --avvisi` cerca nelle partite del titolo attivo i nomi di `ex_giocatori` e, se ne
+trova, scrive una frase per riga nel campo `avvisi` del battito (nome, quante partite, data
+dell'ultima). Non è un guasto e sta fuori da `problema` apposta: quello entra nel registro dei
+guasti e farebbe suonare gli allarmi di «automazione rotta». Le partite del titolo vecchio non
+contano (l'ex ha giocato in FC 26, è il motivo per cui è «ex»). Chi legge `avvisi` è il controllo
+del battito (9:45 e 23:45), che manda la notifica push; l'avviso si ripete a ogni controllo finché
+il nome non viene tolto da `ex_giocatori`. Se il controllo non riesce a girare, nessun avviso e
+nessun blocco: non deve mai fermare l'archiviazione. Provato su dati finti in `TestExGiocatoriTornati`
+(compreso: partite di un altro titolo, avviso non scambiato per guasto) e sull'archivio vero,
+dove oggi nessuno è tornato.
+
+### Il capitano
+
+Pesix_97 è il capitano, dal 10/11/2026 (chiesto da Peppe: «far vedere nelle varie sezioni»).
+EA non lo espone, quindi sta in `roles.json` (`capitano`, un nome solo, che deve essere in
+`giocatori`: un nome scritto male non compare da nessuna parte). Nella pagina è un tondo dorato
+con la «C» accanto al nome, ovunque il nome compaia: tabelle, schede, formazione, Record, POTM,
+ricerca esclusa. **Non è messo a mano nei singoli punti**: `segnaCapitano()` in `pagina.js`
+passa sul documento dopo ogni disegno (un `MutationObserver`) e segna ogni elemento il cui
+testo è esattamente quel nome, quindi una sezione nuova lo prende da sola. Il segno è un
+attributo `data-cap` disegnato dal CSS (`::after`), **non un elemento**: provato prima come
+`<span>`, faceva leggere «Pesix_97C» ai test che confrontano i nomi (e a chiunque lo copiasse). Nell'immagine da
+condividere compare come «(C)». `test_apertura.js` verifica che ogni comparsa abbia il segno,
+e che nessun altro lo abbia.
+
+### L'intestazione
+
+È solo «Lentoni» (10/11/2026, scelta di Peppe). Il «Divisione 3» che compariva nel suggerimento
+sopra il nome e nell'immagine da condividere era il `best_division` di EA, un dato dei playoff e
+non la divisione in cui si gioca: tolto da entrambi, insieme alla piattaforma. La piattaforma del
+club attivo resta dichiarata nell'attributo `data-piattaforma` del `<body>`, presa da `club.json`,
+perché un test controlla che la pagina non usi quella di un titolo vecchio.
 
 ---
 
@@ -1273,8 +1307,8 @@ EA sembrava darla: con 6 promozioni, 1 retrocessione e un massimo in Divisione 3
 percorso coerente portava alla Divisione 3. Verificato sullo storico prima di usarlo: il
 campo compare solo dal 15/10/2026, insieme alle partite dei playoff, e va e viene fra 0 e 3.
 È un dato delle coppe. Si dice quindi quanto si è saliti rispetto alla partenza (oggi 5
-divisioni sopra), che è vero. Lo stesso campo finisce nell'intestazione della pagina come
-«Divisione 3»: vedi APPUNTI.
+divisioni sopra), che è vero. Il campo non compare più
+nell'intestazione (tolto il 10/11/2026, vedi «L'intestazione»).
 
 ### Il resoconto della serata
 

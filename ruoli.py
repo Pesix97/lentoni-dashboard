@@ -188,3 +188,54 @@ SIGLE = {
     "TREQUARTISTA": "TRQ",
     "PORTIERI": "POR",
 }
+
+
+def ex_tornati(db, club_id, cfg):
+    """Gli 'ex_giocatori' che compaiono nelle partite del titolo attivo.
+
+    Un nome in `ex_giocatori` viene escluso da TUTTA la dashboard, quindi se quella persona
+    torna a giocare nessuno se ne accorge: le sue partite spariscono dalle classifiche senza
+    un errore. E' successo il 28/10/2026 con VRT_ernestino, fuori dal 21/08 e di nuovo in
+    squadra dal 02/10, notato solo perche' Peppe non lo trovava.
+
+    Restituisce, per ognuno, nome, quante partite ha nel titolo attivo e quando l'ultima.
+    Lista vuota = nessuno e' tornato.
+    """
+    righe = db.execute(
+        "SELECT p.player_name AS nome, COUNT(*) AS n, MAX(m.played_at) AS ultima "
+        "FROM match_player_stats p JOIN matches m "
+        "  ON m.match_id = p.match_id AND m.club_id = p.club_id "
+        "WHERE p.club_id = ? GROUP BY p.player_name", (club_id,)).fetchall()
+    return [{"nome": r[0], "partite": r[1], "ultima": r[2]}
+            for r in righe if r[0] in cfg["ex"]]
+
+
+def avvisi_ex_tornati(db, club_id, cfg):
+    """Gli stessi, come frasi per il battito."""
+    return [f"{e['nome']} e' in 'ex_giocatori' ma ha {e['partite']} "
+            f"{'partita' if e['partite'] == 1 else 'partite'} nel titolo attivo "
+            f"(l'ultima il {e['ultima'][:10]}): le sue prestazioni non contano da nessuna parte. "
+            f"Se e' tornato in squadra va tolto da 'ex_giocatori' e assegnato in 'giocatori'."
+            for e in ex_tornati(db, club_id, cfg)]
+
+
+def main(argv=None):
+    """`python3 ruoli.py --avvisi --db lentoni.db`: una frase per riga, niente se va tutto bene."""
+    import argparse
+    import sqlite3
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--avvisi", action="store_true")
+    ap.add_argument("--db", default=str(QUI / "lentoni.db"))
+    a = ap.parse_args(argv)
+    if not a.avvisi:
+        ap.error("niente da fare senza --avvisi")
+    club_id = json.loads((QUI / "club.json").read_text(encoding="utf-8"))["attivo"]["club_id"]
+    db = sqlite3.connect(f"file:{a.db}?mode=ro", uri=True)
+    for frase in avvisi_ex_tornati(db, club_id, carica()):
+        print(frase)
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())

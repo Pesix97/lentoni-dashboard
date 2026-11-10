@@ -131,6 +131,12 @@ print(f"  skillRating {(j.get('overallStats') or {}).get('skillRating', '?')} | 
 PY
 
 python3 ingest.py --raw-dir raw --db lentoni.db || { echo "  ingest fallito, salto"; scrivi_battito ok "ingest fallito"; exit 0; }
+# Un ex giocatore e' tornato a giocare? (10/11/2026) Non e' un guasto e non ferma niente: la
+# frase finisce nel battito (campo `avvisi`) e il controllo del battito la porta a Peppe.
+# Se il controllo non riesce a girare, nessun avviso: non deve mai fermare l'archiviazione.
+BATTITO_AVVISI=$(python3 ruoli.py --avvisi --db lentoni.db 2>/dev/null || true)
+export BATTITO_AVVISI
+[ -n "$BATTITO_AVVISI" ] && echo "  AVVISO: $BATTITO_AVVISI"
 # Sotto `timeout` perche' e' l'unico passo che puo' dilatarsi senza limite: dieci
 # richieste a club esterni, ognuna con la sua attesa. E' un arricchimento, non il
 # lavoro: se non sta nel tetto, si rinuncia e si riprova al giro dopo.

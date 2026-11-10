@@ -226,6 +226,45 @@ setTimeout(() => {
   }).filter(Boolean);
   verifica("le tre schede della Home si attivano una alla volta", esiti.length === 0, esiti.join("; "));
 
+  // 8. Intestazione: "Lentoni" e basta, senza divisione ne' piattaforma (10/11/2026). Il numero
+  //    che c'era era il best_division di EA, un dato dei playoff, non la divisione in cui si gioca.
+  const marca = d.querySelector("#sideDrawer .side-brand-txt");
+  verifica("l'intestazione e' solo il nome del club, senza divisione",
+    marca && !marca.hasAttribute("title") && !/divisione/i.test(marca.textContent),
+    marca ? `testo "${marca.textContent.trim()}", title "${marca.getAttribute("title")}"` : "intestazione mancante");
+
+  // Il segno si mette un fotogramma dopo l'ultimo disegno (MutationObserver + requestAnimationFrame):
+  // i controlli qui sopra hanno appena riordinato tabelle, quindi si aspetta che si assesti.
+  // Senza l'attesa il test controllerebbe in mezzo a un ridisegno e fallirebbe a caso.
+  setTimeout(() => {
+  // 9. Il capitano si riconosce ovunque compaia il suo nome, e solo lui (10/11/2026).
+  //    Si parte dal nome scritto nel file dei ruoli, non da uno scritto qui: se cambia
+  //    capitano il test lo segue; se manca, il test lo dice invece di passare a vuoto.
+  const capitano = dom.window.eval("CAPITANO");
+  verifica("il capitano e' dichiarato nei ruoli", typeof capitano === "string" && capitano.length > 0,
+    `CAPITANO = ${JSON.stringify(capitano)}`);
+  if(capitano){
+    const nomi = [...d.querySelectorAll(".player-link, .pname, .pm-name")];
+    const delCapitano = nomi.filter(e => {
+      const t = [...e.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim());
+      return t && t.nodeValue.trim() === capitano;
+    });
+    verifica("il nome del capitano compare in almeno un punto della pagina", delCapitano.length > 0, "nessun nome trovato");
+    const senza = delCapitano.filter(e => !e.hasAttribute("data-cap"));
+    verifica("ogni comparsa del capitano ha il segno", senza.length === 0,
+      `${senza.length} su ${delCapitano.length} senza segno`);
+    const altrui = [...d.querySelectorAll("[data-cap]")].filter(e => {
+      const t = [...e.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim());
+      return !t || t.nodeValue.trim().replace(/\s*\u2B50$/, "") !== capitano;
+    });
+    verifica("nessun altro giocatore ha il segno", altrui.length === 0,
+      altrui.slice(0, 3).map(e => e.textContent.trim()).join("; "));
+    const stile = dom.window.document.querySelector("style").textContent;
+    verifica("il segno e' disegnato dal CSS e non entra nel testo del nome", /\[data-cap\]::after/.test(stile),
+      "regola [data-cap]::after mancante");
+  }
+
   console.log(falliti ? `\n${falliti} controlli falliti.\n` : "\nLa pagina si apre e si riempie.\n");
   process.exit(falliti ? 1 : 0);
+  }, 300);
 }, 1200);

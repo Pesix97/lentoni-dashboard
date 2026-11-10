@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 27/10/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato il 10/11/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -1612,8 +1612,9 @@ lista e assegnato ai **Centrocampisti** (scelta di Peppe; EA lo segna «midfield
 partite su 48). Entra sesto nell'Indice di Forza. In rosa risultano 46 partite e non 48: le
 due disconnessioni (0 secondi, voto 3,0) si tolgono anche dalla carriera, come per tutti.
 
-**Da valutare**: un avviso automatico quando un nome di `ex_giocatori` torna a comparire
-nelle partite del titolo attivo. Oggi nessuno se ne accorge finché non lo nota qualcuno.
+**Fatto il 10/11/2026** (Peppe: «l'avviso mi piace»): un avviso automatico quando un nome di
+`ex_giocatori` torna a comparire nelle partite del titolo attivo. Campo `avvisi` del battito,
+letto dal controllo delle 9:45 e delle 23:45 (README, «Chi ha lasciato il club»).
 
 ## Record, scalata e resoconto della serata (28/10/2026)
 
@@ -1623,9 +1624,10 @@ rumore), poi fatte le tre scelte da lui: sezione **Record** (squadra e personali
 con promozioni e retrocessioni, **resoconto della serata in home** — niente bot Telegram.
 Dettagli e regole nel README, «Record e scalata». Nuovo `test_record.js`, in CI.
 
-**Da decidere**: l'intestazione della pagina scrive «Divisione 3», ma quel numero è il
+**Deciso il 10/11/2026**: l'intestazione scriveva «Divisione 3», ma quel numero è il
 `best_division` di EA, un dato dei playoff (verificato il 28/10/2026), non la divisione in cui
-si gioca. Toglierlo o sostituirlo con «5 divisioni sopra la partenza»: chiedere a Peppe.
+si gioca. Peppe: l'intestazione è «Lentoni» e basta. Tolto dal suggerimento sopra il nome e
+dall'immagine da condividere (README, «L'intestazione»).
 
 ## Carriera nel club, e la rosa di FC 26 ritrovata (29/10/2026)
 
@@ -1796,3 +1798,17 @@ che simula quella lettura vecchia (visto fallire con il controllo di prima); sui
 di quella notte il controllo corretto dà «i numeri tornano». Nessun dato perso: le partite
 erano entrate, era ferma solo la pagina, per un giro.
 
+## Capitano, intestazione, avviso sugli ex giocatori (10/11/2026)
+
+Chieste da Peppe in un messaggio solo. Il capitano (Pesix_97) si vede in ogni sezione con una
+«C» dorata, messa da una funzione sola e non punto per punto; l'intestazione è «Lentoni» e
+basta; gli ex giocatori tornati a giocare vengono segnalati nel battito. Il perché e i limiti
+sono nel README («Il capitano», «L'intestazione», «Chi ha lasciato il club»). Da ricordare:
+
+- il capitano è scritto in `roles.json`: se cambia, si cambia lì e la pagina lo segue;
+- **il segno si vede solo dove il nome compare come testo del suo elemento**: una frase che lo
+  contiene in mezzo ad altre parole («a Pesix_97», «POTM di Pesix_97») non lo riceve, apposta;
+- l'avviso sugli ex si ripete a ogni controllo del battito finché il nome non è tolto da
+  `ex_giocatori`: è voluto, non si perde per strada;
+- il campo `data-piattaforma` sul `<body>` esiste solo perché un test controlla che la pagina
+  dichiari la piattaforma del titolo attivo e non quella di uno vecchio.
