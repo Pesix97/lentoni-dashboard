@@ -2150,6 +2150,36 @@
       "quando": "24/10 00:34 Fc Bukkinari",
       "giocatore": "ilmille",
       "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "169938538150152",
+      "quando": "06/11 00:00 munnezzari fc",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "170048379150486",
+      "quando": "06/11 00:20 FIM FAM",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "169894782700352",
+      "quando": "06/11 00:47 Enel Duc3 e Gas",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "170040632310328",
+      "quando": "06/11 01:08 nzny bal3gl",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "170272131840304",
+      "quando": "06/11 01:29 Amici coleoni",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -2566,6 +2596,10 @@
     {
       "serata": "2026-11-06T21:59Z",
       "partite": 13
+    },
+    {
+      "serata": "2026-11-05T22:30Z",
+      "partite": 7
     }
   ],
   "_serate_chiuse": [
