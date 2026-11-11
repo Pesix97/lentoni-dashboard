@@ -1825,3 +1825,21 @@ lettura; stessa correzione nelle curiosità dei giocatori. Nuovo `test_avversari
 
 Lasciato fuori da Peppe («troppo poco per quello che porta»): salvare lo skill rating
 dell'avversario dentro ogni partita, colonna «Livello» e l'elenco per club.
+
+## Allineamenti: barra della Home, celle su telefono, schede dei numeri (11/11/2026)
+
+Segnalato da Peppe: in alcuni riquadri il testo non sembrava centrato. Giro di tutte le
+pagine a 375px e 1280px; tre difetti, tutti nel CSS (`modello/stile.css`, il perché accanto a
+ogni regola):
+
+| Dove | Causa | Ora |
+| --- | --- | --- |
+| barra Andamento/Serata/Forma (telefono) | pulsanti flex: `text-align:center` non ha effetto, il testo stava a sinistra | `justify-content:center` |
+| tutte le tabelle su telefono | cella flex con `space-between`: con più di un pezzo (pallino + testo, «51.0» + «(30 pt)», data + «eguagliato da») quello di mezzo finiva al centro | cella a blocco, etichetta che flotta a sinistra, valore che scorre a destra; nascoste le celle vuote |
+| schede dei numeri in Home (schermo largo) | un'etichetta a capo spingeva giù il suo numero; il Bilancio tagliato | numero in fondo alla scheda; sempre due file (4 + 3), scelta di Peppe |
+
+Da ricordare: in fila da sette le schede **non stanno a nessuna larghezza**, perché la pagina
+si ferma a 1320px (al massimo 137px di testo per scheda contro i 148 di «111V 40P 107S»).
+La giustificazione in senso stretto (`text-align:justify`) non è stata usata apposta: nei
+riquadri stretti apre buchi fra le parole. Nessun test in jsdom vede il CSS: verificato nel
+browser, misurando gli spazi e guardando le pagine.

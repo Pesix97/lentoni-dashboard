@@ -212,12 +212,14 @@ button{font-family:inherit;}
     gap:10px; margin-bottom:24px;
     grid-template-columns:repeat(7,minmax(0,1fr));
   }
+  /* Il valore sta in fondo alla scheda: se un'etichetta va a capo ("Promozioni /
+     retrocessioni") i numeri della stessa fila restano comunque sulla stessa linea. */
   .card{
     background:var(--panel); border:1px solid var(--border); border-radius:12px;
-    padding:14px 16px;
+    padding:14px 16px; display:flex; flex-direction:column;
   }
   .card .label{font-size:13px; color:var(--muted);}
-  .card .value{font-size:20px; font-weight:600; margin-top:2px; letter-spacing:-.01em; white-space:nowrap;}
+  .card .value{font-size:20px; font-weight:600; margin-top:auto; padding-top:2px; letter-spacing:-.01em; white-space:nowrap;}
   /* La serie e' l'unica scheda con un testo ("7 senza vincere"): a sette colonne veniva tagliata. */
   .card[data-card="serie"] .value{white-space:normal; line-height:1.2;}
   /* Avversari: i nomi dei club sono lunghi e a sette colonne uscivano dalla scheda.
@@ -650,8 +652,9 @@ button{font-family:inherit;}
       display:none; border:none; background:none; margin:0; padding:0;
     }
     .table-wrap table.responsive-table tr.match-detail.open{display:block;}
-    /* La regola generica qui sopra rende ogni <td> un contenitore flex, pensato per le
-       celle semplici (etichetta a sinistra, valore a destra sulla stessa riga). Il <td
+    /* Storia: fino all'11/11/2026 la regola generica qui sotto rendeva ogni <td> un
+       contenitore flex, pensato per le celle semplici (etichetta a sinistra, valore a destra
+       sulla stessa riga); ora e' a blocco, e questa regola resta come garanzia. Il <td
        colspan> di una riga di dettaglio non ha quella forma: contiene un blocco unico
        (".inner"), che come UNICO figlio di un flex-container in riga non si allarga da
        solo alla larghezza disponibile - il suo dimensionamento segue il contenuto, non il
@@ -660,13 +663,22 @@ button{font-family:inherit;}
        a blocco, dove ".inner" si allarga come farebbe qualunque div. */
     .table-wrap table.responsive-table tr.match-detail > td{display:block; width:100%;}
     .table-wrap table.responsive-table td{
-      display:flex; justify-content:space-between; align-items:center; gap:10px; white-space:normal;
+      display:block; white-space:normal; text-align:right;
       border-bottom:1px solid var(--soft); padding:9px 14px; font-size:14px;
     }
     .table-wrap table.responsive-table td:last-child{border-bottom:none;}
+    /* Una cella vuota (senza etichetta, es. l'ultima colonna dei Record) su telefono diventava
+       una riga vuota in fondo alla scheda. */
+    .table-wrap table.responsive-table td:empty{display:none;}
+    .table-wrap table.responsive-table td:has(+ td:empty:last-child){border-bottom:none;}
+    /* L'etichetta flotta a sinistra e il valore scorre come testo normale, allineato a
+       destra: i pezzi restano uniti ("51.0 (30 pt)", pallino + fascia) e una nota in un
+       blocco a parte ("eguagliato da...") va sotto, come su schermo largo. Fino
+       all'11/11/2026 la cella era flex con space-between: con piu' di un pezzo li spargeva
+       lungo la riga, e quello di mezzo finiva al centro, staccato da tutto. */
     .table-wrap table.responsive-table td[data-label]::before{
       content:attr(data-label); color:var(--muted); font-weight:500; font-size:13px;
-      flex-shrink:0;
+      float:left; padding-right:10px; text-align:left;
     }
     .table-wrap table.responsive-table td:not([data-label])::before{content:none;}
 
@@ -781,7 +793,9 @@ canvas{max-height:340px;}
 @media (max-width:900px){
   .home-tabs-sez{display:block;}
   .home-tabs-sez .seg{display:flex; width:100%;}
-  .home-tabs-sez .seg .filter-btn{flex:1; padding:0 8px; text-align:center;}
+  /* justify-content e non text-align: il pulsante e' flex, e in un flex il testo segue il
+     contenitore (text-align non ha effetto). Senza, le voci stavano a sinistra. */
+  .home-tabs-sez .seg .filter-btn{flex:1; padding:0 8px; justify-content:center;}
   body[data-home-tab="andamento"] .home-duo, body[data-home-tab="andamento"] #forma, body[data-home-tab="andamento"] #condividi,
   body[data-home-tab="serata"] #andamento, body[data-home-tab="serata"] #overview, body[data-home-tab="serata"] #forma,
   body[data-home-tab="forma"] #andamento, body[data-home-tab="forma"] #overview, body[data-home-tab="forma"] .home-duo, body[data-home-tab="forma"] #condividi{display:none;}
@@ -797,7 +811,11 @@ canvas{max-height:340px;}
   html{scroll-behavior:auto;}
   #sideDrawer, #drawerOverlay{transition:none;}
 }
-@media (max-width:1180px) and (min-width:901px){
+/* Le schede della Home vanno su due file (4 + 3) su ogni schermo largo. In fila da sette
+   non stanno a nessuna larghezza: la pagina si ferma a 1320px, quindi ogni scheda ha al
+   massimo 137px di testo, e "111V 40P 107S" del Bilancio ne occupa 148 (misurato
+   l'11/11/2026). Prima le due file c'erano solo fra 901 e 1180px. */
+@media (min-width:901px){
   #cards.grid-cards{grid-template-columns:repeat(4,minmax(0,1fr));}
 }
 @media (max-width:700px){
