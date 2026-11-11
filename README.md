@@ -427,6 +427,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_record.js` | 14 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
+| `test_avversari.js` | 3 controlli sul **livello degli avversari**: le fasce del riquadro e i conteggi «più forti / più deboli» di ogni giocatore rifatti dai dati grezzi, con le due squadre confrontate nello stesso istante; e la prova che sugli stessi dati la regola vecchia (il nostro skill rating di oggi) darebbe fasce diverse. Nato l'11/11/2026, vedi «Il livello degli avversari». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -817,6 +818,41 @@ gli avversari:
   livello che aveva quando è stato interrogato, non quello di stasera;
 - **16 partite su 154 non hanno l'id dell'avversario** nei dati EA, quindi restano fuori da
   ogni confronto per forza dell'avversario. Compaiono in tutto il resto.
+
+### Il livello degli avversari: le due squadre nello stesso momento
+
+Il riquadro in cima ad Avversari e la voce «Contro avversari più forti» nelle curiosità dei
+giocatori confrontano lo skill rating dell'avversario con **il nostro dello stesso istante**
+in cui è stato letto il suo (`nostroLivelloAl`, `scartoLivello` in `modello/pagina.js`), non
+con quello di oggi.
+
+Fino all'11/11/2026 il confronto era con il nostro attuale, ed era sbagliato in modo
+plausibile: la lettura di un avversario ha fino a sei settimane, e in FC 27 siamo passati da
+1407 a 1742. Misurato su 252 partite:
+
+| Confronto | Più deboli | Alla pari | Più forti |
+| --- | --- | --- | --- |
+| loro letti dopo, noi oggi (prima) | 180 · 1,78 punti a partita | 44 · 0,50 | 28 · 0,71 |
+| entrambi nello stesso istante (ora) | 120 · 2,06 | 63 · 1,11 | 69 · 0,67 |
+
+La firma dell'errore era che contro chi risultava «alla pari» si facevano meno punti che
+contro i più forti. Nello stesso istante l'ordine torna.
+
+Cosa resta approssimato: la lettura dell'avversario è di qualche giorno dopo la partita (in
+mediana 14), quindi per le partite vecchie lo scarto è quello di allora fra le due squadre,
+non quello del giorno della partita. **Il valore del giorno della partita non è
+recuperabile**: la fonte non conserva lo storico dei club. Si è provato a ricavarlo dal
+nostro guadagno in ogni partita (lo skill rating si comporta come un Elo): il legame c'è, ma
+fra un avversario alla pari e uno più forte di 100 punti il nostro guadagno cambia di circa
+4 punti, meno del rumore delle nostre letture. Salvare la lettura dell'avversario dentro
+ogni partita, al momento in cui entra, è stato proposto e lasciato fuori l'11/11/2026 (Peppe:
+troppo poco per quello che porta).
+
+Nell'archivio di un titolo chiuso gli avversari sono stati riletti durante il titolo dopo:
+una lettura che cade più di un giorno fuori dal nostro storico non ha un nostro valore dello
+stesso momento, quindi la partita resta fuori e il riquadro lo dice. `test_avversari.js` rifà
+le fasce e i conteggi per giocatore dai dati grezzi e controlla che la regola vecchia, sugli
+stessi dati, darebbe un risultato diverso.
 
 ## I pesi dell'Indice di Forza stanno in un posto solo
 

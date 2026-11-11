@@ -100,6 +100,7 @@ node test_indice.js index.html       # indice e testa a testa rifatti da zero, d
 node test_record.js index.html       # record, scalata e resoconto della serata rifatti da zero
 node test_carriera.js index.html     # la carriera di ognuno, titolo per titolo e in totale
 node test_traguardi.js index.html    # i traguardi storici: eroi, partita decisiva, solo nei Record
+node test_avversari.js index.html    # livello degli avversari: noi e loro letti nello stesso momento
 ```
 
 **`test_indice.js` è l'unico controllo che non parte dalla pagina.** Gli altri verificano

@@ -1,6 +1,6 @@
 # Appunti — questioni aperte
 
-Aggiornato il 10/11/2026. Il README spiega **come funziona** il progetto; qui c'è solo
+Aggiornato l'11/11/2026. Il README spiega **come funziona** il progetto; qui c'è solo
 quello che è **rimasto in sospeso**, così una conversazione nuova parte informata.
 
 **Regola di questo file: se una riga qui dentro non è più vera, va corretta subito.** Il
@@ -1812,3 +1812,16 @@ sono nel README («Il capitano», «L'intestazione», «Chi ha lasciato il club�
   `ex_giocatori`: è voluto, non si perde per strada;
 - il campo `data-piattaforma` sul `<body>` esiste solo perché un test controlla che la pagina
   dichiari la piattaforma del titolo attivo e non quella di uno vecchio.
+
+## Livello degli avversari: confronto nello stesso momento (11/11/2026)
+
+Chiesto da Peppe: vedere lo skill rating di ogni avversario al momento dell'incontro. Quel
+valore non esiste per le partite vecchie (la fonte non ha storico, e ricavarlo dal nostro
+guadagno non regge: README, «Il livello degli avversari»). Misurandolo è venuto fuori che il
+riquadro in Avversari confrontava l'avversario con il nostro skill rating di oggi: 180
+partite su 252 «contro più deboli», e meno punti contro chi era alla pari che contro i più
+forti. Corretto, su scelta di Peppe, con il nostro valore dello stesso istante della loro
+lettura; stessa correzione nelle curiosità dei giocatori. Nuovo `test_avversari.js`, in CI.
+
+Lasciato fuori da Peppe («troppo poco per quello che porta»): salvare lo skill rating
+dell'avversario dentro ogni partita, colonna «Livello» e l'elenco per club.

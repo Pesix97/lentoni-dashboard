@@ -514,6 +514,8 @@ console.log("\nScheda osservatore");
       ritaglia("const DATA = {", "// ---- Ruolo effettivo") + "\n" +
       ritaglia("const ROLE_COUNTS_BY_NAME", "function fmtDate") + "\n" +
       "function fmtDate(x){ return String(x); }\n" +
+      // scartoLivello e nostroLivelloAl: le curiosita' le usano per "Contro avversari piu' forti"
+      ritaglia("// ---- Livello degli avversari ----", "(function renderLivelloAvversari(){") + "\n" +
       ritaglia("// ---- Vittorie e sconfitte", "// ---- Serate ----")
     )();
 

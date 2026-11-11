@@ -69,6 +69,9 @@ jobs:
       - name: I traguardi e i loro eroi tornano con i dati
         run: node test_traguardi.js /tmp/prova.html
 
+      - name: Il livello degli avversari torna con il ricalcolo
+        run: node test_avversari.js /tmp/prova.html
+
       - name: Sintassi degli script
         run: |
           bash -n giro.sh

@@ -3040,22 +3040,57 @@ disegnaQuando("home", function initShare(){
 // Il dato della partita dice contro chi si e' giocato ma non quanto valesse: senza
 // questo, "perso 1-3" non distingue una sconfitta contro una corazzata da una contro
 // una squadra alla nostra portata. Lo skill rating dei club affrontati viene raccolto
-// a parte da avversari.py e confrontato col nostro attuale.
+// a parte da avversari.py.
+//
+// Il confronto si fa con il NOSTRO skill rating dello stesso istante in cui e' stato
+// letto il loro, non con quello di oggi. La lettura di un avversario puo' avere fino a
+// sei settimane, e in quel tempo noi ci siamo mossi di centinaia di punti (da 1407 a
+// 1742 in FC 27): col nostro attuale quasi tutti sembravano piu' deboli, e contro chi
+// era "alla pari" facevamo meno punti che contro i piu' forti. Vedi README.
 const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario alla pari
+
+// Il nostro skill rating all'istante t: l'ultima lettura non successiva. null se t cade
+// fuori dal nostro storico di piu' di un giorno: succede nell'archivio di un titolo
+// chiuso, dove gli avversari sono stati riletti durante il titolo dopo e un confronto
+// "nello stesso momento" non esiste.
+const MARGINE_STORICO = 24 * 3600 * 1000;
+function nostroLivelloAl(t){
+  const storia = (DATA.history || []).filter(h => h.skill_rating);
+  if(!storia.length) return null;
+  const quando = Date.parse(t);
+  if(isNaN(quando)) return null;
+  if(quando < Date.parse(storia[0].fetched_at) - MARGINE_STORICO) return null;
+  if(quando > Date.parse(storia[storia.length - 1].fetched_at) + MARGINE_STORICO) return null;
+  let scelto = storia[0];
+  for(const h of storia){
+    if(Date.parse(h.fetched_at) <= quando) scelto = h; else break;
+  }
+  return Number(scelto.skill_rating);
+}
+
+// Quanto l'avversario di una partita era sopra (positivo) o sotto di noi, con i due
+// valori letti nello stesso istante. null se di quel club non abbiamo la lettura.
+function scartoLivello(m){
+  const a = m && m.opponent_club_id ? (DATA.avversari || {})[String(m.opponent_club_id)] : null;
+  if(!a || !a.skill_rating) return null;
+  const nostro = nostroLivelloAl(a.fetched_at);
+  return nostro ? Number(a.skill_rating) - nostro : null;
+}
 
 (function renderLivelloAvversari(){
   const el = document.getElementById("livelloAvversari");
   if(!el) return;
-  const avversari = DATA.avversari || {};
   const nostro = Number((DATA.latest || {}).skill_rating) || null;
-  const conDati = (DATA.matches || []).filter(m =>
-    m.opponent_club_id && avversari[String(m.opponent_club_id)] &&
-    avversari[String(m.opponent_club_id)].skill_rating);
+  const conDati = (DATA.matches || []).filter(m => scartoLivello(m) !== null);
 
+  const letti = (DATA.matches || []).some(m =>
+    m.opponent_club_id && ((DATA.avversari || {})[String(m.opponent_club_id)] || {}).skill_rating);
   if(!nostro || conDati.length === 0){
-    el.innerHTML = `<div style="font-size:13px; color:var(--muted);">
-      Il livello degli avversari non è ancora disponibile: viene raccolto un club alla volta
-      dagli aggiornamenti automatici e comparirà qui man mano.</div>`;
+    el.innerHTML = `<div style="font-size:13px; color:var(--muted);">${letti
+      ? `Il livello degli avversari non si può confrontare con il nostro: i loro dati sono stati
+         raccolti dopo la fine di questo titolo, quando il nostro skill rating non era più quello.`
+      : `Il livello degli avversari non è ancora disponibile: viene raccolto un club alla volta
+         dagli aggiornamenti automatici e comparirà qui man mano.`}</div>`;
     return;
   }
 
@@ -3067,7 +3102,7 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
   const agg = {};
   fasce.forEach(f => agg[f.chiave] = { n:0, v:0, p:0, s:0, gf:0, ga:0, pt:0 });
   conDati.forEach(m => {
-    const d = Number(avversari[String(m.opponent_club_id)].skill_rating) - nostro;
+    const d = scartoLivello(m);
     const f = fasce.find(x => x.test(d));
     if(!f) return;
     const a = agg[f.chiave];
@@ -3091,10 +3126,12 @@ const SOGLIA_LIVELLO = 50;  // sotto questa differenza consideriamo l'avversario
   const senzaDati = (DATA.matches || []).length - conDati.length;
   el.innerHTML = `
     <div style="font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:10px;">
-      Ogni partita è classificata confrontando lo skill rating dell'avversario col nostro attuale
-      (<strong style="color:var(--text);">${nostro}</strong>). Scarti entro ${SOGLIA_LIVELLO} punti contano come
-      "al nostro livello". Il rating degli avversari è quello di oggi, non quello del giorno della
-      partita: per gli incontri più vecchi è un'approssimazione.
+      Ogni partita è classificata confrontando lo skill rating dell'avversario con il nostro
+      dello stesso momento: le due squadre lette insieme, nel giorno in cui è stato raccolto il
+      dato dell'avversario. Scarti entro ${SOGLIA_LIVELLO} punti contano come "al nostro livello".
+      Il dato dell'avversario viene riletto ogni due settimane, quindi per gli incontri più vecchi
+      lo scarto è quello di qualche giorno dopo, non del giorno della partita. Il nostro skill
+      rating più recente è <strong style="color:var(--text);">${nostro}</strong>.
     </div>
     <div class="table-wrap">
       <table class="responsive-table">
@@ -4157,8 +4194,6 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
   // ciascuna, e i numeri piccoli restano visibili ma dichiarati.
   const partitaDi = {};
   (DATA.matches || []).forEach(m => partitaDi[m.match_id] = m);
-  const forzaAvversario = id => (DATA.avversari || {})[String(id)]?.skill_rating || 0;
-  const nostroLivello = (DATA.latest || {}).skill_rating || 1800;
 
   function media(v){ return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }
 
@@ -4230,9 +4265,10 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
         `${seg(inV.length)} vinte, ${seg(inS.length)} perse`);
     }
 
-    // Contro chi rende. La soglia e' il livello del club, non un numero fisso.
-    const forti = righe.filter(r => forzaAvversario(partitaDi[r.match_id]?.opponent_club_id) >= nostroLivello).map(r => r.rating);
-    const deboli = righe.filter(r => { const f = forzaAvversario(partitaDi[r.match_id]?.opponent_club_id); return f > 0 && f < nostroLivello; }).map(r => r.rating);
+    // Contro chi rende. Piu' forte o piu' debole del club nello stesso momento (scartoLivello),
+    // non rispetto al nostro livello di oggi.
+    const forti = righe.filter(r => { const d = scartoLivello(partitaDi[r.match_id]); return d !== null && d >= 0; }).map(r => r.rating);
+    const deboli = righe.filter(r => { const d = scartoLivello(partitaDi[r.match_id]); return d !== null && d < 0; }).map(r => r.rating);
     if(forti.length >= 5 && deboli.length >= 5){
       const d = media(forti) - media(deboli);
       scheda("Contro avversari più forti",
@@ -4244,7 +4280,7 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
                <strong>${media(deboli).toFixed(2)}</strong> contro i più deboli.`
             : `Rende meno quando l'avversario è forte: <strong>${media(forti).toFixed(2)}</strong> contro
                <strong>${media(deboli).toFixed(2)}</strong>, ${Math.abs(d).toFixed(2)} in meno.`,
-        `${seg(forti.length)} contro squadre sopra ${nostroLivello} di skill rating, ${seg(deboli.length)} sotto`);
+        `${seg(forti.length)} contro squadre più forti del club, ${seg(deboli.length)} contro più deboli, confrontate nello stesso momento`);
     }
 
     // QUI C'ERA "Come regge la serata": prime due partite contro dalla quinta in poi.
