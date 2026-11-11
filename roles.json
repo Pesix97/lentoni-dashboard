@@ -2186,6 +2186,66 @@
       "quando": "06/11 01:29 Amici coleoni",
       "giocatore": "Jysmu",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "182064876320174",
+      "quando": "10/11 23:42 Statte Andreas",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "182570001620182",
+      "quando": "11/11 00:01 IZANAMI FC",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "182594101550132",
+      "quando": "11/11 00:21 Fass FC",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "182558216260003",
+      "quando": "11/11 00:40 scaaa",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "182570337590114",
+      "quando": "11/11 01:04 PROCLABBINO FC",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "182064876320174",
+      "quando": "10/11 23:42 Statte Andreas",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "182570001620182",
+      "quando": "11/11 00:01 IZANAMI FC",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "182594101550132",
+      "quando": "11/11 00:21 Fass FC",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "182558216260003",
+      "quando": "11/11 00:40 scaaa",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "182570337590114",
+      "quando": "11/11 01:04 PROCLABBINO FC",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
     }
   ],
   "_esclusioni_partita": [
@@ -2606,6 +2666,10 @@
     {
       "serata": "2026-11-05T22:30Z",
       "partite": 7
+    },
+    {
+      "serata": "2026-11-10T22:42Z",
+      "partite": 5
     }
   ],
   "_serate_chiuse": [
