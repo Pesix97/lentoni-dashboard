@@ -2246,6 +2246,66 @@
       "quando": "11/11 01:04 PROCLABBINO FC",
       "giocatore": "ilmille",
       "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "184662740280005",
+      "quando": "11/11 23:12 BOILER",
+      "giocatore": "ktm-008",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "184662740280005",
+      "quando": "11/11 23:12 BOILER",
+      "giocatore": "Smilzo_87",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "184638881030239",
+      "quando": "11/11 23:36 Fc Reménytelen",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "184638881030239",
+      "quando": "11/11 23:36 Fc Reménytelen",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "185192012600035",
+      "quando": "12/11 00:04 Thremoni",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "185192012600035",
+      "quando": "12/11 00:04 Thremoni",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "184848839030470",
+      "quando": "12/11 00:13 Spicy Twinks",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "184848839030470",
+      "quando": "12/11 00:13 Spicy Twinks",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "184812913020007",
+      "quando": "12/11 00:29 Centro Storico",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "184812913020007",
+      "quando": "12/11 00:29 Centro Storico",
+      "giocatore": "ktm-008",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -2670,6 +2730,10 @@
     {
       "serata": "2026-11-10T22:42Z",
       "partite": 5
+    },
+    {
+      "serata": "2026-11-11T22:12Z",
+      "partite": 6
     }
   ],
   "_serate_chiuse": [
