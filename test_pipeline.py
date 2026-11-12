@@ -8,6 +8,8 @@ Si eseguono con:  python3 -m unittest test_pipeline -v
 Nessuna dipendenza esterna: girano sui runner GitHub cosi' come sono.
 """
 
+import contextlib
+import io
 import json
 import shutil
 import sqlite3
@@ -585,10 +587,19 @@ class TestIdentita(BaseConArchivio):
             "UPDATE match_player_stats SET player_name=? WHERE match_id=? AND ea_player_id=?",
             (riga["player_name"] + "_nuovo", riga["match_id"], riga["ea_player_id"]))
         con.commit()
-        doppi = gd.controlla_identita(con.cursor(), CLUB)
+        # Il cambio di nome qui e' finto: l'avviso che controlla_identita stampa va
+        # catturato, non lasciato arrivare a schermo. Il 12/11/2026 e' stato riferito a
+        # Peppe come un cambio di nome vero di domenico, che nel database non esiste.
+        # Catturarlo permette anche di controllare che l'avviso venga davvero stampato:
+        # nella generazione vera e' l'unico modo in cui la guardia si fa sentire.
+        uscita = io.StringIO()
+        with contextlib.redirect_stdout(uscita):
+            doppi = gd.controlla_identita(con.cursor(), CLUB)
         con.close()
         self.assertTrue(doppi, "il cambio di nome non e' stato rilevato")
         self.assertIn(riga["ea_player_id"], [d["ea_player_id"] for d in doppi])
+        self.assertIn(f"l'id EA {riga['ea_player_id']} compare con piu' nomi",
+                      uscita.getvalue(), "il cambio di nome e' rilevato ma non segnalato")
 
     def test_gli_id_ricostruiti_non_fanno_rumore(self):
         """Gli id 'recovered_*' sono sintetici: segnalerebbero ogni giocatore per sempre."""

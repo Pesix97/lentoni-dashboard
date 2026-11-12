@@ -108,8 +108,10 @@ la prima riga del database, su una copia, e le appiccica `_nuovo`. Quella prima 
 domenico, e da lì il nome che sembra vero.
 
 Quindi: nessun alias da aggiungere, niente da correggere. Chi legge quell'avviso senza sapere
-da dove viene lo scambia per un problema — è già successo. **Prima di trattarlo come reale,
-interrogare il database.**
+da dove viene lo scambia per un problema — è successo il 31/08 e di nuovo il 12/11/2026,
+quando è stato riferito a Peppe come un cambio di nome vero. **Dal 12/11/2026 il test cattura
+l'avviso** invece di lasciarlo arrivare a schermo (e controlla che venga davvero stampato):
+se compare, viene dalla generazione vera e va preso sul serio, interrogando il database.
 
 Resta valida la regola per quando capiterà sul serio: se qualcuno ricompare con un gamertag
 nuovo e lo stesso id EA, è la stessa persona e si aggiunge la coppia in `NAME_ALIASES` dentro

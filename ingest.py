@@ -180,11 +180,12 @@ NAME_ALIASES = {
 # "nome nuovo (minuscolo)" -> "nome canonico". Vale in particolare per domenico: comunque
 # si chiami, e' sempre domenico.
 #
-# ATTENZIONE quando `generate_dashboard.py` segnala "l'id EA ... compare con piu' nomi"
-# durante `test_pipeline.py`: quel messaggio arriva da un test che FABBRICA un cambio di
-# nome finto (aggiunge "_nuovo" alla prima riga del database, su una copia) proprio per
-# verificare che la guardia lo veda. Non e' un cambio di nome vero. Prima di aggiungere un
-# alias, controllare che il nome esista davvero nel database.
+# Il test che FABBRICA un cambio di nome finto (aggiunge "_nuovo" alla prima riga del
+# database, su una copia) dal 12/11/2026 cattura l'avviso "l'id EA ... compare con piu'
+# nomi", che durante `test_pipeline.py` non arriva piu' a schermo: prima sembrava un cambio
+# di nome vero ed e' stato riferito come tale due volte. Se l'avviso compare, viene dalla
+# generazione vera. Prima di aggiungere un alias, controllare comunque che il nome esista
+# davvero nel database.
 
 
 def canonical_name(raw_name):
