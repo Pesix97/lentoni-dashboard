@@ -1432,12 +1432,13 @@ const SALDO_DIVISIONI = EVENTI_DIVISIONE.reduce((t, e) => t + (e.tipo === "promo
 // ---- Giocatore del mese (05/11/2026) ----
 // Istituito da Peppe il 05/11/2026, rivedendo la decisione del 23/08 che aveva tolto i premi.
 // Vince il primo dell'Indice di Forza calcolato sulle SOLE partite del mese (stessi pesi e
-// scale di sempre, indiceSuPartite), fra chi ha giocato almeno un terzo delle partite del
-// mese. Una formula diversa (indice + gol/assist + media) e' stata scartata: dentro l'indice
+// scale di sempre, indiceSuPartite), fra chi ha giocato almeno MIN_PRESENZE_MESE partite nel
+// mese. Era un terzo delle partite del mese fino al 16/11/2026: Peppe ha preferito un numero
+// fisso, che si sa in anticipo e non si sposta mentre il mese va avanti. Una formula diversa (indice + gol/assist + media) e' stata scartata: dentro l'indice
 // media e gol/assist ci sono gia', e contati due volte arrivavano oltre l'80% del peso.
 // Il mese di una partita e' quello della sua serata: l'una di notte del 1° appartiene al mese
 // prima, come in Serate.
-const QUOTA_PRESENZE_MESE = 1 / 3;
+const MIN_PRESENZE_MESE = 15;
 const NOMI_MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
   "agosto", "settembre", "ottobre", "novembre", "dicembre"];
 function meseDellaPartita(m){
@@ -1454,7 +1455,7 @@ function meseDellaPartita(m){
   return `${p.find(x => x.type === "year").value}-${p.find(x => x.type === "month").value}`;
 }
 function giocatoreDelMese(partite){
-  const soglia = Math.ceil(partite.length * QUOTA_PRESENZE_MESE);
+  const soglia = MIN_PRESENZE_MESE;
   const { formMap } = indiceSuPartite(partite);
   const classifica = [...formMap.values()].filter(x => x.games >= soglia)
     .sort((a, b) => b.score - a.score || b.games - a.games);
@@ -2532,7 +2533,7 @@ function valoreRecord(r, v){
             <span class="mese-punti">${x.score.toFixed(1)}</span><span class="corsa-pg">${x.games} partite</span>
           </div>`).join("")}</div>`
         : `<div class="muted">${corrente ? "Nessuno ha ancora le presenze che servono." : "Nessuna partita ancora questo mese."}</div>`}
-      <div class="mese-nota">${corrente ? `${corrente.partite} partite nel mese · in corsa chi ne ha giocate almeno ${corrente.soglia}` : "In corsa chi gioca almeno un terzo delle partite del mese"}</div>
+      <div class="mese-nota">${corrente ? `${corrente.partite} partite nel mese · in corsa chi ne ha giocate almeno ${corrente.soglia}` : `In corsa chi gioca almeno ${MIN_PRESENZE_MESE} partite nel mese`}</div>
     </div>`;
 
   el.innerHTML = albo + (chiuso ? "" : corsa);

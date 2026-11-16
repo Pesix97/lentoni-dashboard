@@ -468,10 +468,11 @@ function puntiDaTesto(t, sinistra) {
   verifica(`casella nella scheda di ogni giocatore (${schede} schede aperte)`, schede > 0 ? errP.scheda : ["nessuna scheda aperta"]);
 
   // ---- Giocatore del mese (05/11/2026): il primo dell'indice sulle partite del mese, fra chi
-  // ne ha giocate almeno un terzo. Il mese e' quello della serata (l'una di notte del 1°
+  // ne ha giocate almeno 15 (un terzo del mese fino al 16/11/2026: scelta di Peppe). Il mese e' quello della serata (l'una di notte del 1°
   // appartiene al mese prima), ricavato qui dalla data d'inizio della serata.
   console.log("\nGiocatore del mese: ogni mese rifatto dalle partite");
   const errM = [];
+  const MIN_MESE = 15;   // scritto qui a mano, non letto dalla pagina: e' il riferimento
   const serataDi = new Map(); (DATA.serate || []).forEach(s => s.matchIds.forEach(id => serataDi.set(id, s)));
   const meseDi = m => {
     const s = serataDi.get(m.match_id);
@@ -483,7 +484,7 @@ function puntiDaTesto(t, sinistra) {
   const adesso = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" }).slice(0, 7);
   let mesiVisti = 0;
   for (const [mese, lista] of perMese) {
-    const soglia = Math.ceil(lista.length / 3);
+    const soglia = MIN_MESE;
     const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
     const blocco = d.querySelector(`#meseBody [data-mese="${mese}"]`);
     if (!blocco) { errM.push(`${mese}: non c'e' in pagina`); continue; }
@@ -513,14 +514,14 @@ function puntiDaTesto(t, sinistra) {
   const errV = [], attese = new Map();
   for (const [mese, lista] of perMese) {
     if (mese === adesso) continue;
-    const soglia = Math.ceil(lista.length / 3);
+    const soglia = MIN_MESE;
     const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
     if (cl.length) attese.set(cl[0][0], (attese.get(cl[0][0]) || 0) + 1);
   }
   // Il «N° titolo» di ogni tessera: le vittorie di quel giocatore fino a quel mese compreso.
   const finora = new Map();
   for (const mese of [...perMese.keys()].filter(k => k !== adesso).sort()) {
-    const lista = perMese.get(mese), soglia = Math.ceil(lista.length / 3);
+    const lista = perMese.get(mese), soglia = MIN_MESE;
     const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
     if (!cl.length) continue;
     finora.set(cl[0][0], (finora.get(cl[0][0]) || 0) + 1);
@@ -540,7 +541,7 @@ function puntiDaTesto(t, sinistra) {
   const errA = [];
   const vincitoreDi = mese => {
     const lista = perMese.get(mese) || [];
-    const soglia = Math.ceil(lista.length / 3);
+    const soglia = MIN_MESE;
     const cl = [...formaSu(lista)].filter(([, x]) => x.games >= soglia).sort((a, b) => b[1].score - a[1].score || b[1].games - a[1].games);
     return cl.length ? cl[0][0] : null;
   };

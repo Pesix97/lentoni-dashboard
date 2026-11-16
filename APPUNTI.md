@@ -1845,3 +1845,49 @@ si ferma a 1320px (al massimo 137px di testo per scheda contro i 148 di «111V 4
 La giustificazione in senso stretto (`text-align:justify`) non è stata usata apposta: nei
 riquadri stretti apre buchi fra le parole. Nessun test in jsdom vede il CSS: verificato nel
 browser, misurando gli spazi e guardando le pagine.
+
+## POTM: in corsa da 15 partite, non da un terzo del mese (16/11/2026)
+
+Chiesto da Peppe: il concetto resta, ma la soglia diventa un numero preciso. Misurato prima di
+pubblicare, con la pagina rigenerata:
+
+| Mese | Prima (un terzo) | Ora (15) | Vincitore |
+| --- | --- | --- | --- |
+| settembre FC 27 (48 partite) | 16 | 15 | Pesix_97, invariato |
+| ottobre (137) | 46 | 15 | Pesix_97, invariato |
+| novembre in corso (108 al 16/11) | 36 → 10 in corsa | 15 → 14 in corsa | Pesix_97 in testa |
+
+Entrano in corsa a novembre ilmillejr (27 partite, terzo con 48,6), Ocirne_1197,
+domenicocasaburi e YnotPa84. Nell'archivio di FC 26 cambia solo la soglia, non i vincitori.
+
+Il dubbio, detto a Peppe prima di pubblicare: la quota era stata scelta apposta perché i mesi
+hanno volumi molto diversi (README, «Giocatore del mese»), e su 15 partite pescate a caso
+l'indice di un titolare oscilla di circa ±6 punti (±4 su 30, ±2-3 su 45), più del distacco
+abituale fra primo e secondo. Misurato quindi sui mesi chiusi, ricampionando le serate di
+ogni mese 300-400 volte e contando quante volte vince lo stesso:
+
+| Regola | ago FC 26 | set FC 26 | set FC 27 | ott | nov (in corso) |
+| --- | --- | --- | --- | --- | --- |
+| un terzo | 64% | 92% | 91% | 99% | 94% |
+| 15 | 76% | 96% | 93% | 67% | 83% |
+| 20 | 74% | 92% | 90% | 72% | 86% |
+| 15 + correzione n/(n+15) verso la media del mese | 61% | 96% | 96% | 97% | 98% |
+| 15 + almeno 5 serate | 71% | 94% | 94% | 69% | 87% |
+
+Nessuna regola cambia un vincitore. Il solo caso fragile è ottobre: con 15 entra eredes (25
+partite in **7 serate**, 51,3 contro il 52,8 di Pesix_97 su 128). Non è un episodio fortunato
+ma un rendimento su un campione medio, e il terzo era «stabile» solo perché lo escludeva.
+
+Scartate, con il motivo:
+
+- **la correzione verso la media** (K=10 o 15): toglie il caso di ottobre, ma premia la
+  presenza — in agosto il margine di FFLI_Adriano (55 partite) su Pesix_97 (101) scendeva da
+  4,3 a 2,3 punti — e il punteggio del POTM smette di essere l'indice del mese. Peppe: non si
+  vuole premiare né chi gioca molto più degli altri né chi fa poche partite bene;
+- **un minimo di serate**: eredes le supera tutte, non cambia niente;
+- **20 invece di 15**: cambia poco (ottobre 72% invece di 67%) e apre la corsa una serata dopo.
+
+Il prezzo accettato: la corsa è vuota per le prime 2-3 serate del mese, e un mese con meno di
+15 partite non assegna il premio. Gli script dell'analisi non sono nel repository: erano
+esplorativi, e il calcolo è quello di `indiceSuPartite` letto dalla pagina.
+`test_indice.js` ha la soglia scritta a mano (`MIN_MESE`): se cambia, va cambiata anche lì.

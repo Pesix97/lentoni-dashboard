@@ -1385,11 +1385,14 @@ il resoconto sopra il grafico, con l'etichetta «In corso». Non un orario fisso
 prima delle 22, e una pagina aperta la mattina dopo non deve dirlo.
 
 **Giocatore del mese.** Il primo dell'Indice di Forza calcolato sulle sole partite del mese,
-fra chi ne ha giocate almeno un terzo (`QUOTA_PRESENZE_MESE`); a parità di punteggio, chi ha
+fra chi ne ha giocate almeno 15 (`MIN_PRESENZE_MESE`); a parità di punteggio, chi ha
 giocato di più. Il mese è quello della serata, come in Serate. L'indice è lo stesso della
 forma (`indiceSuPartite`), con gli stessi pesi e scale: nessun conto a parte che possa
-divergere. La soglia è una quota e non un numero fisso perché i mesi sono diversissimi (48
-partite a settembre, 137 a ottobre). Una formula con gol+assist e media aggiunti all'indice è
+divergere. Fino al 16/11/2026 la soglia era un terzo delle partite del mese, pensata per mesi
+diversissimi (48 partite a settembre, 137 a ottobre); Peppe ha preferito un numero fisso, che
+si conosce in anticipo e non cresce mentre il mese va avanti. Il prezzo: in un mese da 137
+partite basta giocarne poco più di una su dieci, e in un mese con meno di 15 partite il premio
+non si assegna. Una formula con gol+assist e media aggiunti all'indice è
 stata scartata: dentro l'indice ci sono già, e contati due volte pesavano l'82,5%.
 La sezione ha una pagina sua, **POTM** («Player of the Month», come in FIFA), nel menu sotto
 Giocatori: stava nei Record, Peppe l'ha voluta a parte il 05/11/2026. È stata rifatta due volte
