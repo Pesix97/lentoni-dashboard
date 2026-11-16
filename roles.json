@@ -2306,6 +2306,36 @@
       "quando": "12/11 00:29 Centro Storico",
       "giocatore": "ktm-008",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "187198665940247",
+      "quando": "12/11 23:52 The ThisAbili",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "187116867980275",
+      "quando": "13/11 00:10 CiucciaTeam",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "192464969750112",
+      "quando": "15/11 02:03 El Zereba",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "192552831890282",
+      "quando": "15/11 02:21 Ya Mnyks",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "192524867710004",
+      "quando": "15/11 02:39 FC Nocta 05",
+      "giocatore": "Pesix_97",
+      "gruppo": "CENTROCAMPISTI"
     }
   ],
   "_esclusioni_partita": [
@@ -2734,6 +2764,22 @@
     {
       "serata": "2026-11-11T22:12Z",
       "partite": 6
+    },
+    {
+      "serata": "2026-11-12T22:52Z",
+      "partite": 6
+    },
+    {
+      "serata": "2026-11-13T22:20Z",
+      "partite": 8
+    },
+    {
+      "serata": "2026-11-14T23:15Z",
+      "partite": 9
+    },
+    {
+      "serata": "2026-11-15T21:57Z",
+      "partite": 7
     }
   ],
   "_serate_chiuse": [
