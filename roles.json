@@ -2336,6 +2336,72 @@
       "quando": "15/11 02:39 FC Nocta 05",
       "giocatore": "Pesix_97",
       "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "197344000160367",
+      "quando": "16/11 22:35 Bacchera",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "197188760860244",
+      "quando": "16/11 23:00 Fc Reménytelen",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "197402149040057",
+      "quando": "16/11 23:19 iPigri",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "197538067620468",
+      "quando": "16/11 23:39 GMD Team",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "197538067620468",
+      "quando": "16/11 23:39 GMD Team",
+      "giocatore": "Jysmu",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "197346502650222",
+      "quando": "16/11 23:59 etruria imperia",
+      "giocatore": "Maverik_44_",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "197346502650222",
+      "quando": "16/11 23:59 etruria imperia",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "197526272130057",
+      "quando": "17/11 00:19 Pie2 FC",
+      "giocatore": "Maverik_44_",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "197526272130057",
+      "quando": "17/11 00:19 Pie2 FC",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "197502418960044",
+      "quando": "17/11 00:39 VIVA EL FUTBOLE",
+      "giocatore": "Maverik_44_",
+      "gruppo": "CENTROCAMPISTI"
+    },
+    {
+      "match_id": "197502418960044",
+      "quando": "17/11 00:39 VIVA EL FUTBOLE",
+      "giocatore": "ilmille",
+      "gruppo": "TREQUARTISTA"
     }
   ],
   "_esclusioni_partita": [
@@ -2779,6 +2845,10 @@
     },
     {
       "serata": "2026-11-15T21:57Z",
+      "partite": 7
+    },
+    {
+      "serata": "2026-11-16T21:35Z",
       "partite": 7
     }
   ],
