@@ -1891,3 +1891,18 @@ Il prezzo accettato: la corsa è vuota per le prime 2-3 serate del mese, e un me
 15 partite non assegna il premio. Gli script dell'analisi non sono nel repository: erano
 esplorativi, e il calcolo è quello di `indiceSuPartite` letto dalla pagina.
 `test_indice.js` ha la soglia scritta a mano (`MIN_MESE`): se cambia, va cambiata anche lì.
+
+## Il task della conferma serate non pubblicava (17/11/2026)
+
+La conferma della serata del 16/11 (`163fb79`) è rimasta solo in locale: il task pianificato
+`lentoni-conferma-serata` (istruzioni in `C:\Users\gseid\Claude\Scheduled\lentoni-conferma-serata\SKILL.md`,
+fuori dal repository) aveva le istruzioni ferme al 23/08/2026 — «per pubblicare serve il token,
+chiediglielo» e «NON fare push» — scritte prima che il token andasse nel file delle credenziali
+(02/09). Ha fatto esattamente quello che diceva: pull alle 10:04 UTC, commit alle 10:09, nessun
+push. Pubblicato a mano lo stesso giorno.
+
+Riscritte con Peppe: cartella `C:\dev`, `python` invece di `python3`, `PYTHONIOENCODING=utf-8`,
+tutti i test prima di pubblicare, push con la riga che esclude Git Credential Manager, e alla
+fine il controllo che `git status -sb` non dica «ahead». Da ricordare: **quelle istruzioni non
+le vede `TestDocumentazioneAllineata`**, perché non stanno nel repository. Quando cambia il modo
+di pubblicare o la cartella, vanno aggiornate a mano anche lì.
