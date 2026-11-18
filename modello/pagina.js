@@ -2451,11 +2451,13 @@ function valoreRecord(r, v){
     const righe = RECORD.filter(r => r.tipo === tipo);
     return `<div class="panel" style="margin-bottom:16px;">
       <h3 style="margin:0 0 10px; font-size:15px;">${titolo}</h3>
-      <div class="table-wrap"><table class="responsive-table">
+      <div class="table-wrap"><table class="responsive-table record-tabella">
         <thead><tr><th>Record</th><th>Valore</th>${tipo === "personale" ? "<th>Chi</th>" : ""}<th>Quando</th><th></th></tr></thead>
         <tbody>${righe.map(r => {
           if(r.vuoto) return `<tr data-record="${r.chiave}"><td data-label="Record">${r.eti}</td>
-            <td data-label="Valore" colspan="${tipo === "personale" ? 4 : 3}" style="color:var(--muted);">ancora nessuno</td></tr>`;
+            <td data-label="Valore" colspan="${tipo === "personale" ? 4 : 3}" style="color:var(--muted);">ancora nessuno</td>
+            <td class="tel-record"><span class="tel-chi"><span class="tel-eti">${r.eti}</span>`
+            + `<span class="tel-sotto">ancora nessuno</span></span><span class="tel-valore"><b>—</b></span></td></tr>`;
           const n = ESITO_RECORD.get(r.chiave);
           const segno = !n ? ""
             : n.esito === "battuto" ? `<span class="record-nuovo">battuto nell'ultima serata</span>`
@@ -2479,6 +2481,11 @@ function valoreRecord(r, v){
             ${tipo === "personale" ? `<td data-label="Chi"><span class="player-link" data-player="${r.primo.nome}">${r.primo.nome}</span>${pari}</td>` : ""}
             <td data-label="Quando">${r.primo.quando}${r.primo.dettaglio ? `<div style="font-size:11px; color:var(--muted);">${r.primo.dettaglio}</div>` : ""}${tipo === "squadra" ? pari : ""}</td>
             <td data-label="">${segno}</td>
+            <td class="tel-record"><span class="tel-chi"><span class="tel-eti">${r.eti}</span>`
+            + `<span class="tel-sotto">${tipo === "personale" ? `<span class="player-link pname" data-player="${r.primo.nome}">${r.primo.nome}</span> · ` : ""}`
+            + `${r.primo.quando}${r.primo.dettaglio ? ` · ${r.primo.dettaglio}` : ""}</span>`
+            + `${pari}${aperta}${segno ? `<span class="tel-segno">${segno}</span>` : ""}</span>`
+            + `<span class="tel-valore"><b>${valoreRecord(r, r.valore)}</b>${r.unita.trim() ? `<span>${r.unita.trim()}</span>` : ""}</span></td>
           </tr>`;
         }).join("")}</tbody>
       </table></div>

@@ -1945,5 +1945,15 @@ controlla. Controlli aggiunti a `test_telefono.js` (tutte le 52 serate), visti f
 rotture: saldo del riquadro, soglia del «mostra tutte», media voto, tasto che non mostra, «N».
 
 Con questo le quattro pagine d'uso quotidiano (Home era già stata rifatta il 04/11) sono
-tutte pensate per il telefono. Le altre sezioni del menu «Altro» non sono state guardate.
+tutte pensate per il telefono. Delle sezioni del menu «Altro», fatta Record (sotto).
+
+## Record sul telefono (18/11/2026)
+
+Bozza approvata da Peppe: un record per riga, valore in grande a destra, chi/quando/eguagliato
+sotto il nome. Traguardi e Scalata invariati. Dettagli nel README, «Record sul telefono».
+Controllo aggiunto a `test_record.js` (non a `test_telefono.js`: lì c'è già il ricalcolo da
+zero), visto fallire su quattro rotture; quella dell'etichetta «battuto» solo nella simulazione.
+
+Restano da guardare sul telefono le altre voci di «Altro»: Indice di Forza, POTM, Formazione,
+Scheda osservatore, Avversari e il resto (Carriera è già fatta).
 

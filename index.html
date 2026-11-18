@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-aBQthiWCRt6O78gtIEtxIxU6GfsPI4nNlNeR55WlB3Q='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-niBQJChXNGuRmrvkUs+7fpuzBx0uueFKxlv+bDUlg3g='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -1040,6 +1040,30 @@ body.sheet-aperto{overflow:hidden;}
   .calDay{aspect-ratio:auto; height:34px; border-radius:8px;}
   .calDay .badge{display:none;}
   .calDay.haPartite::after{content:""; position:absolute; bottom:4px; width:4px; height:4px; border-radius:50%; background:currentColor; opacity:.8;}
+}
+
+/* ---- Telefono: Record (18/11/2026) ----
+   Un record per riga, valore in grande a destra; chi, quando ed eguagliato sotto il nome.
+   Stesso schema delle altre pagine: la cella .tel-record si vede solo sotto i 700px.
+   Vedi README, «Record sul telefono». */
+.tel-record{display:none;}
+
+@media (max-width:700px){
+  .table-wrap table.responsive-table.record-tabella tbody tr{
+    display:block; padding:0; margin:0; background:none; border:0; border-radius:0; border-bottom:1px solid var(--border);
+  }
+  .table-wrap table.responsive-table.record-tabella tbody tr:last-child{border-bottom:0;}
+  .table-wrap table.responsive-table.record-tabella tbody td{display:none;}
+  .table-wrap table.responsive-table.record-tabella tbody td.tel-record{
+    display:flex; align-items:center; gap:10px; padding:10px 2px; border:0; text-align:left;
+  }
+  .table-wrap table.responsive-table.record-tabella td.tel-record::before{content:none;}
+  .tel-record .tel-eti{font-size:14.5px; font-weight:600; line-height:1.3;}
+  .tel-record .tel-sotto{display:block; line-height:1.4;}
+  .tel-record .tel-sotto .pname{font-size:12.5px; font-weight:600; color:var(--text);}
+  .tel-record .tel-chi > div{font-size:11.5px !important;}
+  .tel-segno{display:block; margin-top:4px;}
+  .tel-record .tel-valore b{font-size:20px;}
 }
 </style>
 </head>
@@ -4108,11 +4132,13 @@ function valoreRecord(r, v){
     const righe = RECORD.filter(r => r.tipo === tipo);
     return `<div class="panel" style="margin-bottom:16px;">
       <h3 style="margin:0 0 10px; font-size:15px;">${titolo}</h3>
-      <div class="table-wrap"><table class="responsive-table">
+      <div class="table-wrap"><table class="responsive-table record-tabella">
         <thead><tr><th>Record</th><th>Valore</th>${tipo === "personale" ? "<th>Chi</th>" : ""}<th>Quando</th><th></th></tr></thead>
         <tbody>${righe.map(r => {
           if(r.vuoto) return `<tr data-record="${r.chiave}"><td data-label="Record">${r.eti}</td>
-            <td data-label="Valore" colspan="${tipo === "personale" ? 4 : 3}" style="color:var(--muted);">ancora nessuno</td></tr>`;
+            <td data-label="Valore" colspan="${tipo === "personale" ? 4 : 3}" style="color:var(--muted);">ancora nessuno</td>
+            <td class="tel-record"><span class="tel-chi"><span class="tel-eti">${r.eti}</span>`
+            + `<span class="tel-sotto">ancora nessuno</span></span><span class="tel-valore"><b>—</b></span></td></tr>`;
           const n = ESITO_RECORD.get(r.chiave);
           const segno = !n ? ""
             : n.esito === "battuto" ? `<span class="record-nuovo">battuto nell'ultima serata</span>`
@@ -4136,6 +4162,11 @@ function valoreRecord(r, v){
             ${tipo === "personale" ? `<td data-label="Chi"><span class="player-link" data-player="${r.primo.nome}">${r.primo.nome}</span>${pari}</td>` : ""}
             <td data-label="Quando">${r.primo.quando}${r.primo.dettaglio ? `<div style="font-size:11px; color:var(--muted);">${r.primo.dettaglio}</div>` : ""}${tipo === "squadra" ? pari : ""}</td>
             <td data-label="">${segno}</td>
+            <td class="tel-record"><span class="tel-chi"><span class="tel-eti">${r.eti}</span>`
+            + `<span class="tel-sotto">${tipo === "personale" ? `<span class="player-link pname" data-player="${r.primo.nome}">${r.primo.nome}</span> · ` : ""}`
+            + `${r.primo.quando}${r.primo.dettaglio ? ` · ${r.primo.dettaglio}` : ""}</span>`
+            + `${pari}${aperta}${segno ? `<span class="tel-segno">${segno}</span>` : ""}</span>`
+            + `<span class="tel-valore"><b>${valoreRecord(r, r.valore)}</b>${r.unita.trim() ? `<span>${r.unita.trim()}</span>` : ""}</span></td>
           </tr>`;
         }).join("")}</tbody>
       </table></div>

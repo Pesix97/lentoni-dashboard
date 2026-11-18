@@ -166,7 +166,7 @@ const num = s => { const m = String(s).match(/-?\d+(?:\.\d+)?/); return m ? pars
   const d = dom.window.document;
 
   console.log("\nRecord: ogni riga ricalcolata da zero");
-  const err = { righe: [], valori: [], chi: [], quando: [], pari: [], segni: [] };
+  const err = { righe: [], valori: [], chi: [], quando: [], pari: [], segni: [], telefono: [] };
   const righePagina = [...d.querySelectorAll("#record tr[data-record]")];
   const chiaviPagina = righePagina.map(tr => tr.dataset.record);
   for (const k of Object.keys(ORA)) if (!chiaviPagina.includes(k)) err.righe.push(`manca la riga ${k}`);
@@ -190,7 +190,20 @@ const num = s => { const m = String(s).match(/-?\d+(?:\.\d+)?/); return m ? pars
     } else if (r.pari.length && !/eguagliato/.test(testoPari)) err.pari.push(`${k}: eguagliato ${r.pari.length} volte, non scritto`);
     const segno = /battuto nell'ultima serata/.test(T(tr)) ? "battuto" : /eguagliato nell'ultima serata/.test(T(tr)) ? "eguagliato" : undefined;
     if (segno !== ATTESE_NOVITA[k]) err.segni.push(`${k}: segno "${segno || "nessuno"}", atteso "${ATTESE_NOVITA[k] || "nessuno"}"`);
+    // La riga del telefono (18/11/2026): stesso ricalcolo, letto dalla cella .tel-record, che e'
+    // scritta da un pezzo di codice diverso dalle colonne.
+    const tel = tr.querySelector(".tel-record");
+    if (!tel) { err.telefono.push(`${k}: manca la riga del telefono`); continue; }
+    if (num(T(tel.querySelector(".tel-valore b"))) !== r.v) err.telefono.push(`${k}: valore ${T(tel.querySelector(".tel-valore b"))}, atteso ${r.v}`);
+    const sotto = T(tel.querySelector(".tel-sotto"));
+    const atteso = (r.primo.chi !== null ? `${r.primo.chi} · ` : "") + (r.primo.giorno || "");
+    if (!sotto.startsWith(atteso)) err.telefono.push(`${k}: "${sotto}", atteso che cominci con "${atteso}"`);
+    if (r.primo.chi !== null && T(tel.querySelector(".player-link")) !== r.primo.chi) err.telefono.push(`${k}: il nome non apre la scheda di ${r.primo.chi}`);
+    const segnoTel = /battuto nell'ultima serata/.test(T(tel.querySelector(".tel-segno"))) ? "battuto"
+      : /eguagliato nell'ultima serata/.test(T(tel.querySelector(".tel-segno"))) ? "eguagliato" : undefined;
+    if (segnoTel !== ATTESE_NOVITA[k]) err.telefono.push(`${k}: segno "${segnoTel || "nessuno"}", atteso "${ATTESE_NOVITA[k] || "nessuno"}"`);
   }
+  verifica("la riga da telefono di ogni record (valore, chi, quando, segno)", err.telefono);
   verifica(`tutte le righe ci sono (${righePagina.length})`, err.righe);
   verifica("i valori", err.valori);
   verifica("chi detiene i record personali (il primo ad arrivarci)", err.chi);

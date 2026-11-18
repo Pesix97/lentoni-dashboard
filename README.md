@@ -424,7 +424,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
 | `test_indice.js` | 25 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; i passaggi tentati a partita, in tabella e in ogni scheda; il giocatore di ogni mese (vincitore, punteggio, chi è in testa nel mese in corso e la soglia di presenze), la corsa del mese in corso, le vittorie di ognuno con il numero di titolo su ogni tessera, e l'annuncio in Home con il suo link alla pagina POTM, aprendo la pagina con l'orologio spostato al giorno 1 di due mesi e al giorno 2. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
-| `test_record.js` | 14 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
+| `test_record.js` | 15 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), e la stessa riga com'è scritta per il telefono, ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
 | `test_avversari.js` | 3 controlli sul **livello degli avversari**: le fasce del riquadro e i conteggi «più forti / più deboli» di ogni giocatore rifatti dai dati grezzi, con le due squadre confrontate nello stesso istante; e la prova che sugli stessi dati la regola vecchia (il nostro skill rating di oggi) darebbe fasce diverse. Nato l'11/11/2026, vedi «Il livello degli avversari». |
@@ -1727,6 +1727,23 @@ vorrebbe dire tenere lo stesso dettaglio in due posti.
 
 **Pareggio = P ovunque.** Nella prima versione di Partite sul telefono il pareggio era «N»,
 mentre Home e Serate scrivono «111V 40P 107S»: corretto lo stesso giorno.
+
+## Record sul telefono (18/11/2026)
+
+Sotto i 700px le due tabelle dei record (della squadra, dei giocatori) diventano righe: il nome
+del record in grassetto e il valore in grande a destra, con l'unità sotto («gol di scarto»);
+sotto il nome, chi lo detiene (per i giocatori, e il nome apre la scheda), quando e contro chi,
+poi chi lo eguaglia o la serie ancora in corso, e l'etichetta «battuto» o «eguagliato
+nell'ultima serata». Traguardi e Scalata restano come sono: sono testo e si leggono già bene.
+Sul computer non cambia niente.
+
+**Perché.** Misurato a 375px: la sezione era alta 3.777px, quasi cinque schermate, e due terzi
+erano le due tabelle (ogni record una scheda di tre-quattro righe con etichetta). Ora è 2.060px.
+
+Il controllo sta in `test_record.js`, accanto al ricalcolo da zero dei record: la riga del
+telefono si confronta con lo stesso riferimento delle colonne. L'etichetta «battuto» si prova
+solo nella **simulazione** della serata in cui è caduto l'ultimo record: provato, la sua
+rottura passava nel giro sui dati di oggi (nessun record caduto ieri sera) e cadeva in quello.
 
 ## L'identità dei giocatori è il nome, non l'id
 
