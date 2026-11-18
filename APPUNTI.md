@@ -1923,4 +1923,15 @@ lo stesso giorno** (`MIN_GAMES_PER_TITOLO`): escono dalla rosa Bagherese_95 (3) 
 la rosa passa da 17 a 15. Restano in Carriera, che elenca chi è nel club su tutti i titoli:
 se debbano uscire anche da lì non è stato chiesto.
 
-Ancora da fare sul telefono: Partite e Serate, una alla volta.
+Ancora da fare sul telefono: Serate (Partite fatta lo stesso giorno, sotto).
+
+## Partite sul telefono: elenco per serata (18/11/2026)
+
+Bozza approvata da Peppe: partite raggruppate per serata con il saldo, una riga per partita,
+filtro Campionato/Playoff, pagelle compatte nella partita aperta. Il tipo in italiano anche sul
+computer (unica modifica visibile lì). Dettagli nel README, «Partite sul telefono». Controlli
+aggiunti a `test_telefono.js`, visti fallire su cinque rotture (serata per data di calendario,
+saldo con i pareggi contati come vittorie, saldo sul tipo sbagliato, voto sbagliato, tipo non
+tradotto sul computer). La rottura del saldo sul tipo sbagliato **passava** coi dati veri:
+nessuna serata di FC 27 mescola campionato e playoff. Il test ora ne crea una quando manca.
+

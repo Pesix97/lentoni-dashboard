@@ -28,9 +28,26 @@ function verifica(descrizione, errori) {
   falliti++;
 }
 
-const html = fs.readFileSync(file, "utf-8");
+let html = fs.readFileSync(file, "utf-8");
 const ini = html.indexOf("const DATA = ") + "const DATA = ".length;
-const DATA = JSON.parse(html.slice(ini, ini + html.slice(ini).search(/;\r?\n/)));
+const fineDati = ini + html.slice(ini).search(/;\r?\n/);
+const DATA = JSON.parse(html.slice(ini, fineDati));
+
+// Una serata con partite di due tipi, se i dati non ne hanno: senza, un saldo di serata
+// contato su tutte le partite invece che su quelle del filtro darebbe lo stesso numero e
+// nessun controllo potrebbe accorgersene (nei dati di FC 27 al 18/11/2026 non ce n'e' una).
+// Si cambia il tipo di una partita sia nei dati della pagina sia nel riferimento qui sotto.
+{
+  const perIdM = new Map((DATA.matches || []).map(m => [String(m.match_id), m]));
+  const mista = (DATA.serate || []).some(s => new Set(s.matchIds.map(id => (perIdM.get(String(id)) || {}).match_type)).size > 1);
+  const s = !mista && (DATA.serate || []).find(x => x.matchIds.length >= 2 && x.matchIds.every(id => perIdM.has(String(id))));
+  if (s) {
+    const m = perIdM.get(String(s.matchIds[0]));
+    m.match_type = m.match_type === "playoffMatch" ? "leagueMatch" : "playoffMatch";
+    // "<" scritto come <: un nome con "</script>" non deve chiudere il blocco dei dati.
+    html = html.slice(0, ini) + JSON.stringify(DATA).replace(/</g, "\\u003c") + html.slice(fineDati);
+  }
+}
 
 // Il riferimento, scritto qui e non preso dalla pagina.
 const ATTESO = {
@@ -188,6 +205,94 @@ const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
     if (valori.some((x, i) => i > 0 && x > valori[i - 1])) errCarriera.push(`${k}: non decrescente`);
   }
   verifica("Carriera: il numero grande sul totale di tutti i titoli", errCarriera);
+
+  // ---- Partite (18/11/2026) ----
+  // Riferimento: DATA.matches e DATA.serate. Le serate sono "chi gioca la stessa sera", con le
+  // loro matchIds: ogni intestazione deve avere sotto esattamente le partite della sua serata.
+  const partite = DATA.matches || [];
+  const perId = new Map(partite.map(m => [String(m.match_id), m]));
+  const serataDi = new Map();
+  (DATA.serate || []).forEach(s => (s.matchIds || []).forEach(id => serataDi.set(String(id), s.chiave)));
+  const TIPO = { leagueMatch: "Campionato", playoffMatch: "Playoff", friendlyMatch: "Amichevole" };
+  const lettera = m => (m.win ? "V" : (m.tie ? "N" : "S"));
+  const blocchi = () => {   // [{ testa, ids: [...] }] nell'ordine della pagina
+    const out = [];
+    d.querySelectorAll("#matchesTable > tbody > tr").forEach(tr => {
+      if (tr.classList.contains("tel-serata")) out.push({ testa: tr, ids: [] });
+      else if (tr.classList.contains("match-row") && out.length) out[out.length - 1].ids.push(tr.dataset.match);
+    });
+    return out;
+  };
+  const controllaElenco = (attese, nome) => {
+    const err = [];
+    const righeP = [...d.querySelectorAll("#matchesTable tr.match-row")];
+    if (righeP.length !== attese.length) err.push(`${nome}: ${righeP.length} righe, attese ${attese.length}`);
+    righeP.forEach(tr => {
+      const m = perId.get(tr.dataset.match);
+      if (!m) { err.push(`partita ${tr.dataset.match} non nei dati`); return; }
+      const es = T(tr.querySelector(".tel-esito")), avv = T(tr.querySelector(".tel-avv")), ris = T(tr.querySelector(".tel-ris"));
+      const tipo = T(tr.querySelector(".tel-sotto")).split("· ")[1];
+      if (es !== lettera(m)) err.push(`${m.match_id}: esito ${es}, atteso ${lettera(m)}`);
+      const avvAtteso = String(m.opponent_name || "-").replace(/\s+/g, " ").trim();   // come T()
+      if (!avv.startsWith(avvAtteso)) err.push(`${m.match_id}: avversario "${avv}", atteso "${avvAtteso}"`);
+      if (ris !== `${m.goals_for} – ${m.goals_against}`) err.push(`${m.match_id}: risultato "${ris}", atteso ${m.goals_for} – ${m.goals_against}`);
+      if (tipo !== (TIPO[m.match_type] || m.match_type)) err.push(`${m.match_id}: tipo "${tipo}", atteso ${TIPO[m.match_type]}`);
+      if (T(tr.querySelector('td[data-label="Tipo"]')) !== (TIPO[m.match_type] || m.match_type)) err.push(`${m.match_id}: tipo nella tabella "${T(tr.querySelector('td[data-label="Tipo"]'))}"`);
+    });
+    // Le serate: le partite sotto un'intestazione sono una serata sola, ogni serata compare una
+    // volta, e il saldo e' contato sui risultati grezzi delle partite mostrate.
+    const viste = new Set();
+    for (const b of blocchi()) {
+      const chiavi = new Set(b.ids.map(id => serataDi.get(id) || id));
+      if (chiavi.size !== 1) { err.push(`${nome}: un'intestazione copre ${chiavi.size} serate`); continue; }
+      const k = [...chiavi][0];
+      if (viste.has(k)) err.push(`${nome}: la serata ${k} compare due volte`);
+      viste.add(k);
+      const attesiIds = attese.filter(m => (serataDi.get(String(m.match_id)) || String(m.match_id)) === k).map(m => String(m.match_id));
+      if (attesiIds.join() !== b.ids.join()) err.push(`${nome} ${k}: partite [${b.ids.length}], attese [${attesiIds.length}]`);
+      const c = { V: 0, N: 0, S: 0 }; b.ids.forEach(id => c[lettera(perId.get(id))]++);
+      const saldo = T(b.testa.querySelector(".tel-saldo"));
+      if (saldo !== `${c.V}V ${c.N}N ${c.S}S`) err.push(`${nome} ${k}: saldo "${saldo}", atteso ${c.V}V ${c.N}N ${c.S}S`);
+    }
+    return err;
+  };
+  verifica(`Partite: ogni riga e ogni serata contro i dati grezzi (${partite.length} partite)`, controllaElenco(partite, "tutte"));
+  const errFiltro = [];
+  for (const tipo of ["playoffMatch", "leagueMatch", "tutte"]) {
+    if (!clic(d.querySelector(`#partiteFiltro [data-tipo="${tipo}"]`))) { errFiltro.push(`manca il filtro ${tipo}`); continue; }
+    errFiltro.push(...controllaElenco(tipo === "tutte" ? partite : partite.filter(m => m.match_type === tipo), tipo));
+  }
+  verifica("Partite: il filtro per tipo, con righe e saldi rifatti sul solo tipo scelto", errFiltro);
+
+  // La partita aperta: un giocatore per riga, voto e numeri contro DATA.matchPlayers.
+  const errPagelle = [];
+  let aperte = 0;
+  for (const tr of [...d.querySelectorAll("#matchesTable tr.match-row")].slice(0, 15)) {
+    const m = perId.get(tr.dataset.match), giocatori = (DATA.matchPlayers || {})[m.match_id] || [];
+    clic(tr.querySelector(".tel-partita"));
+    const det = d.getElementById(`detail-${tr.dataset.idx}`);
+    if (!det.classList.contains("open")) { errPagelle.push(`${m.match_id}: toccata, non si apre`); continue; }
+    aperte++;
+    const pag = [...det.querySelectorAll(".pagelle tbody tr")];
+    if (pag.length !== giocatori.length) errPagelle.push(`${m.match_id}: ${pag.length} giocatori, attesi ${giocatori.length}`);
+    pag.forEach(r => {
+      const p = giocatori.find(x => x.player_name === T(r.querySelector(".tel-pagella .pname")));
+      if (!p) { errPagelle.push(`${m.match_id}: "${T(r.querySelector(".pname"))}" non era in campo`); return; }
+      if (num(T(r.querySelector(".tel-voto"))) !== Number(p.rating)) errPagelle.push(`${m.match_id} ${p.player_name}: voto ${T(r.querySelector(".tel-voto"))}, atteso ${p.rating}`);
+      const sint = T(r.querySelector(".tel-pagella .tel-sotto"));
+      const gol = (sint.match(/(\d+) gol/) || [0, 0])[1], ass = (sint.match(/(\d+) assist/) || [0, 0])[1];
+      if (Number(gol) !== (p.goals || 0) || Number(ass) !== (p.assists || 0)) errPagelle.push(`${m.match_id} ${p.player_name}: "${sint}", attesi ${p.goals} gol e ${p.assists} assist`);
+      if (!!r.querySelector(".tel-motm") !== !!p.mom) errPagelle.push(`${m.match_id} ${p.player_name}: stella del migliore in campo sbagliata`);
+    });
+    if (pag[0]) {
+      clic(pag[0].querySelector(".tel-pagella"));
+      if (!pag[0].classList.contains("aperta")) errPagelle.push(`${m.match_id}: tocco sul giocatore, non si apre`);
+      if (!det.classList.contains("open")) errPagelle.push(`${m.match_id}: il tocco sul giocatore ha chiuso la partita`);
+    }
+    clic(tr.querySelector(".tel-partita"));
+    if (det.classList.contains("open")) errPagelle.push(`${m.match_id}: toccata di nuovo, non si chiude`);
+  }
+  verifica(`Partite: pagelle della partita aperta contro i dati grezzi (${aperte} partite aperte)`, aperte ? errPagelle : ["nessuna partita aperta"]);
 
   console.log(falliti === 0 ? "\nLa vista da telefono torna con i dati." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);

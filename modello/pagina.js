@@ -4865,6 +4865,40 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
   disegna();
 })();
 
+// ---- Partite ----
+// Sul computer una tabella; sotto i 700px (18/11/2026) un elenco raggruppato per serata, con il
+// saldo della serata nell'intestazione e una riga per partita (esito, avversario, ora e tipo,
+// risultato). Come in Giocatori le celle della tabella restano nel DOM e il telefono ne aggiunge
+// una sua (.tel-partita); le intestazioni di serata sono righe in piu' che il computer non
+// mostra. La serata e' quella di DATA.serate, la stessa della sezione Serate: una partita
+// all'una di notte appartiene alla sera prima. Vedi README, «Partite sul telefono».
+const TIPO_PARTITA = { leagueMatch: "Campionato", playoffMatch: "Playoff", friendlyMatch: "Amichevole" };
+function tipoPartita(t){ return TIPO_PARTITA[t] || t || "-"; }
+const ESITO_LETTERA = { W: "V", T: "N", L: "S" };
+function oraLocale(iso){
+  const d = new Date(iso);
+  return isNaN(d) ? "" : d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+}
+function titoloSerata(s, m){
+  // La chiave della serata e' l'istante d'inizio: il giorno della settimana viene da li'.
+  const d = new Date(s ? s.chiave : m.played_at);
+  if(isNaN(d)) return s ? s.giorno : "";
+  const t = d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "long" });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+// La riga compatta di un giocatore nella partita aperta: solo i numeri che dicono qualcosa.
+function sintesiGiocatore(p){
+  const pezzi = [ROLE_LABELS[p.pos] || p.pos || "-"];
+  if(p.goals) pezzi.push(`${p.goals} gol`);
+  if(p.assists) pezzi.push(`${p.assists} assist`);
+  if(p.saves) pezzi.push(`${p.saves} parate`);
+  if(p.pass_attempts) pezzi.push(`pass ${p.passes_made}/${p.pass_attempts}`);
+  if(p.tackle_attempts) pezzi.push(`contr ${p.tackles_made}/${p.tackle_attempts}`);
+  if(p.seconds_played) pezzi.push(`${Math.round(p.seconds_played / 60)}'`);
+  return pezzi.join(" · ");
+}
+let filtroPartite = "tutte";
+
 (function renderMatches(){
   const tbody = document.querySelector("#matchesTable tbody");
   const matches = DATA.matches || [];
@@ -4872,64 +4906,112 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
     tbody.innerHTML = `<tr><td colspan="5" class="empty">Nessuna partita nel database</td></tr>`;
     return;
   }
-  const rowsHtml = [];
-  matches.forEach((m, i) => {
-    const outcome = m.win ? "W" : (m.tie ? "T" : "L");
-    const outcomeLabel = m.win ? "Vittoria" : (m.tie ? "Pareggio" : "Sconfitta");
-    rowsHtml.push(`
-      <tr class="match-row" data-idx="${i}">
-        <td data-label="Data">${fmtDate(m.played_at)}</td>
-        <td data-label="Tipo" class="pos-badge">${m.match_type}</td>
-        <td data-label="Avversario">${m.opponent_name || "-"}${String(m.match_id).startsWith("manuale-") ? ' <span class="pos-badge" title="Inserita a mano: EA la conta ma non l\'ha pubblicata">a mano</span>' : ""}</td>
-        <td data-label="Risultato">${m.goals_for} - ${m.goals_against}</td>
-        <td data-label="Esito"><span class="badge ${outcome}">${outcomeLabel}</span></td>
-      </tr>
-      <tr class="match-detail" id="detail-${i}">
-        <td colspan="5"><div class="inner"></div></td>
-      </tr>
-    `);
-  });
-  tbody.innerHTML = rowsHtml.join("");
 
-  document.querySelectorAll(".match-row").forEach(row => {
-    row.addEventListener("click", () => {
-      const idx = row.dataset.idx;
-      const detailRow = document.getElementById(`detail-${idx}`);
-      const isOpen = detailRow.classList.contains("open");
-      document.querySelectorAll(".match-detail").forEach(d => d.classList.remove("open"));
-      if(!isOpen){
-        const match = matches[idx];
-        const players = DATA.matchPlayers[match.match_id] || [];
-        const inner = detailRow.querySelector(".inner");
-        if(players.length === 0){
-          inner.innerHTML = '<span class="empty">Nessun dettaglio giocatori disponibile</span>';
-        } else {
-          inner.innerHTML = `
-            <table class="responsive-table">
-              <thead><tr><th>Giocatore</th><th>Ruolo</th><th>Gol</th><th>Assist</th><th>Rating</th><th>Tiri</th><th>Passaggi</th><th>Contrasti</th><th>Parate</th><th>Minuti</th></tr></thead>
-              <tbody>
-                ${players.map(p => `
-                  <tr>
-                    <td data-label="Giocatore">${p.player_name}${p.mom ? " ⭐" : ""}</td>
-                    <td data-label="Ruolo" class="pos-badge">${p.pos}</td>
-                    <td data-label="Gol">${p.goals}</td>
-                    <td data-label="Assist">${p.assists}</td>
-                    <td data-label="Rating">${p.rating}</td>
-                    <td data-label="Tiri">${p.shots}</td>
-                    <td data-label="Passaggi">${p.passes_made}/${p.pass_attempts}</td>
-                    <td data-label="Contrasti">${p.tackles_made}/${p.tackle_attempts}</td>
-                    <td data-label="Parate">${p.saves || 0}</td>
-                    <td data-label="Minuti">${p.seconds_played ? Math.round(p.seconds_played/60) + "'" : "-"}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          `;
-        }
-        detailRow.classList.add("open");
-      }
+  function disegna(){
+    const visibili = matches.map((m, i) => ({ m, i }))
+      .filter(({ m }) => filtroPartite === "tutte" || m.match_type === filtroPartite);
+    // Il saldo di ogni serata, sulle sole partite mostrate dal filtro.
+    const saldo = new Map();
+    visibili.forEach(({ m }) => {
+      const s = SERATA_DI_PARTITA.get(m.match_id), k = s ? s.chiave : m.match_id;
+      const x = saldo.get(k) || { V: 0, N: 0, S: 0 };
+      x[m.win ? "V" : (m.tie ? "N" : "S")]++;
+      saldo.set(k, x);
     });
+    const rowsHtml = [];
+    let ultimaSerata = null;
+    visibili.forEach(({ m, i }) => {
+      const s = SERATA_DI_PARTITA.get(m.match_id), k = s ? s.chiave : m.match_id;
+      if(k !== ultimaSerata){
+        ultimaSerata = k;
+        const x = saldo.get(k);
+        rowsHtml.push(`<tr class="tel-serata" data-serata="${k}"><td colspan="5"><span>${titoloSerata(s, m)}</span>`
+          + `<span class="tel-saldo">${x.V}V ${x.N}N ${x.S}S</span></td></tr>`);
+      }
+      const outcome = m.win ? "W" : (m.tie ? "T" : "L");
+      const outcomeLabel = m.win ? "Vittoria" : (m.tie ? "Pareggio" : "Sconfitta");
+      const aMano = String(m.match_id).startsWith("manuale-") ? ' <span class="pos-badge" title="Inserita a mano: EA la conta ma non l\'ha pubblicata">a mano</span>' : "";
+      rowsHtml.push(`
+        <tr class="match-row" data-idx="${i}" data-match="${m.match_id}">
+          <td data-label="Data">${fmtDate(m.played_at)}</td>
+          <td data-label="Tipo" class="pos-badge">${tipoPartita(m.match_type)}</td>
+          <td data-label="Avversario">${m.opponent_name || "-"}${aMano}</td>
+          <td data-label="Risultato">${m.goals_for} - ${m.goals_against}</td>
+          <td data-label="Esito"><span class="badge ${outcome}">${outcomeLabel}</span></td>
+          <td class="tel-partita"><span class="tel-esito badge ${outcome}">${ESITO_LETTERA[outcome]}</span>`
+          + `<span class="tel-chi"><span class="tel-avv">${m.opponent_name || "-"}${aMano}</span>`
+          + `<span class="tel-sotto">${oraLocale(m.played_at)} · ${tipoPartita(m.match_type)}</span></span>`
+          + `<span class="tel-ris">${m.goals_for} – ${m.goals_against}</span></td>
+        </tr>
+        <tr class="match-detail" id="detail-${i}">
+          <td colspan="5"><div class="inner"></div></td>
+        </tr>
+      `);
+    });
+    tbody.innerHTML = rowsHtml.length ? rowsHtml.join("")
+      : `<tr><td colspan="5" class="empty">Nessuna partita di questo tipo</td></tr>`;
+    document.querySelectorAll("#partiteFiltro .filter-btn").forEach(b => b.classList.toggle("active", b.dataset.tipo === filtroPartite));
+  }
+
+  function apri(row){
+    const idx = row.dataset.idx;
+    const detailRow = document.getElementById(`detail-${idx}`);
+    const isOpen = detailRow.classList.contains("open");
+    tbody.querySelectorAll(".match-detail").forEach(d => d.classList.remove("open"));
+    tbody.querySelectorAll(".match-row.aperta").forEach(r => r.classList.remove("aperta"));
+    if(isOpen) return;
+    const match = matches[idx];
+    const players = DATA.matchPlayers[match.match_id] || [];
+    const inner = detailRow.querySelector(".inner");
+    if(players.length === 0){
+      inner.innerHTML = '<span class="empty">Nessun dettaglio giocatori disponibile</span>';
+    } else {
+      inner.innerHTML = `
+        <table class="responsive-table pagelle">
+          <thead><tr><th>Giocatore</th><th>Ruolo</th><th>Gol</th><th>Assist</th><th>Rating</th><th>Tiri</th><th>Passaggi</th><th>Contrasti</th><th>Parate</th><th>Minuti</th></tr></thead>
+          <tbody>
+            ${players.map(p => `
+              <tr data-giocatore="${p.player_name}">
+                <td data-label="Giocatore">${p.player_name}${p.mom ? " ⭐" : ""}</td>
+                <td data-label="Ruolo" class="pos-badge">${p.pos}</td>
+                <td data-label="Gol">${p.goals}</td>
+                <td data-label="Assist">${p.assists}</td>
+                <td data-label="Rating">${p.rating}</td>
+                <td data-label="Tiri">${p.shots}</td>
+                <td data-label="Passaggi">${p.passes_made}/${p.pass_attempts}</td>
+                <td data-label="Contrasti">${p.tackles_made}/${p.tackle_attempts}</td>
+                <td data-label="Parate">${p.saves || 0}</td>
+                <td data-label="Minuti">${p.seconds_played ? Math.round(p.seconds_played/60) + "'" : "-"}</td>
+                <td class="tel-pagella"><span class="tel-chi"><span><span class="pname">${p.player_name}</span>${p.mom ? '<span class="tel-motm" title="Migliore in campo">⭐</span>' : ""}</span>`
+                + `<span class="tel-sotto">${sintesiGiocatore(p)}</span></span>`
+                + `<span class="tel-voto">${p.rating}</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+    detailRow.classList.add("open");
+    row.classList.add("aperta");
+  }
+
+  // Un ascoltatore solo sul corpo della tabella, che non viene mai sostituito: le righe si
+  // ridisegnano a ogni cambio di filtro. Sul telefono il tocco su un giocatore della partita
+  // aperta mostra tutti i suoi numeri.
+  tbody.addEventListener("click", e => {
+    const row = e.target.closest("tr.match-row");
+    if(row){ apri(row); return; }
+    const pag = e.target.closest(".pagelle tbody tr");
+    if(pag && sulTelefono()) pag.classList.toggle("aperta");
   });
+  const filtro = document.getElementById("partiteFiltro");
+  if(filtro) filtro.addEventListener("click", e => {
+    const b = e.target.closest(".filter-btn");
+    if(!b) return;
+    filtroPartite = b.dataset.tipo;
+    disegna();
+  });
+  disegna();
 })();
 
 // ---- Traguardi/achievement: soglie assolute sulle statistiche di un giocatore ----

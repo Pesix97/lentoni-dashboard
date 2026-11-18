@@ -428,7 +428,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
 | `test_avversari.js` | 3 controlli sul **livello degli avversari**: le fasce del riquadro e i conteggi «più forti / più deboli» di ogni giocatore rifatti dai dati grezzi, con le due squadre confrontate nello stesso istante; e la prova che sugli stessi dati la regola vecchia (il nostro skill rating di oggi) darebbe fasce diverse. Nato l'11/11/2026, vedi «Il livello degli avversari». |
-| `test_telefono.js` | 10 controlli sulla **vista da telefono** di Giocatori e Carriera: per ognuna delle 16 statistiche del pannello, il numero grande di ogni giocatore contro `DATA.roster` (e il totale di carriera contro `DATA.carriera`), l'ordine, il pulsante che dice la scelta, l'inversione al secondo tocco, le nove tessere della riga aperta, il tocco che apre e chiude e «Apri scheda completa» che apre la scheda giusta. Il CSS non lo vede: va guardato a 375px in un Chromium vero. Nato il 18/11/2026, vedi «Giocatori sul telefono». |
+| `test_telefono.js` | 13 controlli sulla **vista da telefono** di Giocatori, Carriera e Partite: per ognuna delle 16 statistiche del pannello, il numero grande di ogni giocatore contro `DATA.roster` (e il totale di carriera contro `DATA.carriera`), l'ordine, il pulsante che dice la scelta, l'inversione al secondo tocco, le nove tessere della riga aperta, il tocco che apre e chiude e «Apri scheda completa» che apre la scheda giusta; in Partite ogni riga (esito, avversario, risultato, tipo) e ogni intestazione di serata (le partite sotto e il saldo) contro `DATA.matches` e `DATA.serate`, anche con il filtro per tipo, e le pagelle della partita aperta contro `DATA.matchPlayers`. Se i dati non hanno una serata con due tipi di partita il test ne crea una, perché un saldo contato sul tipo sbagliato non resti senza prova. Il CSS non lo vede: va guardato a 375px in un Chromium vero. Nato il 18/11/2026, vedi «Giocatori sul telefono» e «Partite sul telefono». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1689,6 +1689,25 @@ scelta è che le due strade si separino (il numero grande che dice una cosa e la
 un'altra): `test_telefono.js` confronta ogni numero da telefono con i dati grezzi della pagina,
 non con la tabella. Il nome da pro accanto al nome non compare nella riga da telefono: c'è nella
 scheda.
+
+## Partite sul telefono (18/11/2026)
+
+Sotto i 700px Partite è un **elenco raggruppato per serata**: un'intestazione per ogni sera, con
+il giorno e il saldo («2V 4N 5S»), e sotto una riga per partita con l'esito in una lettera
+colorata, l'avversario, l'ora, il tipo e il risultato. In alto un filtro (Tutte, Campionato,
+Playoff), solo sul telefono: con il filtro attivo il saldo di ogni serata conta le sole partite
+mostrate. Toccando una partita si apre una riga per giocatore: ruolo, i numeri che non sono zero
+(gol, assist, parate, passaggi, contrasti, minuti) e il voto in grande; toccando un giocatore
+tornano tutti i suoi numeri con le etichette. Sul computer non cambia niente, tranne il tipo
+scritto in italiano («Campionato», «Playoff») invece di «leagueMatch».
+
+**Perché.** Stessa segnalazione di Giocatori. Misurato a 375px: ogni partita era una scheda di
+cinque righe con etichetta, due per schermata, su 311 partite in un elenco unico; una partita
+aperta faceva di ogni giocatore una scheda di dieci righe, quattro-cinque schermate da scorrere.
+Ora sono una decina per schermata, e la serata dà all'elenco una struttura.
+
+**La serata è quella di Serate**, presa da `DATA.serate`: una partita all'una di notte appartiene
+alla sera prima. Raggruppare per data di calendario avrebbe spezzato ogni serata in due.
 
 ## L'identità dei giocatori è il nome, non l'id
 

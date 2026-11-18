@@ -930,3 +930,49 @@ body.sheet-aperto{overflow:hidden;}
     background:none; color:var(--text); font-size:14px; font-weight:500; font-family:inherit; cursor:pointer;}
 }
 @media (prefers-reduced-motion: reduce){ .tel-freccia{transition:none;} }
+
+/* ---- Telefono: Partite come elenco per serata (18/11/2026) ----
+   Stessa idea di Giocatori: .tel-partita e .tel-pagella sono celle in piu' visibili solo sotto
+   i 700px, .tel-serata sono righe di intestazione che il computer non mostra; il filtro per
+   tipo c'e' solo sul telefono. Il perche' e' nel README, «Partite sul telefono». */
+.tel-partita, .tel-pagella, tr.tel-serata, #partiteFiltro{display:none;}
+
+@media (max-width:700px){
+  #partiteFiltro{display:flex;}
+  #matchesTable > tbody > tr.match-row, #matchesTable > tbody > tr.tel-serata{
+    display:block; padding:0; margin:0; background:none; border:0; border-radius:0;
+  }
+  #matchesTable > tbody > tr.match-row{border-bottom:1px solid var(--border);}
+  #matchesTable > tbody > tr.match-row > td{display:none;}
+  #matchesTable > tbody > tr.match-row > td.tel-partita{
+    display:flex; align-items:center; gap:10px; padding:10px 2px; border:0; text-align:left; cursor:pointer;
+  }
+  #matchesTable td.tel-partita::before, #matchesTable tr.tel-serata td::before{content:none;}
+  #matchesTable > tbody > tr.tel-serata > td{
+    display:flex; justify-content:space-between; align-items:baseline; padding:16px 2px 6px; border:0;
+    border-bottom:1px solid var(--border); text-align:left; font-size:13px; font-weight:600; color:var(--text);
+  }
+  #matchesTable > tbody > tr.tel-serata:first-child > td{padding-top:4px;}
+  .tel-saldo{font-size:12.5px; font-weight:500; color:var(--muted);}
+  .tel-esito.badge{width:26px; height:26px; padding:0; display:inline-flex; align-items:center; justify-content:center; flex:none; font-size:12.5px;}
+  .tel-avv{font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .tel-ris{flex:none; font-size:17px; font-weight:600; white-space:nowrap;}
+  #matchesTable > tbody > tr.match-row.aperta{border-bottom:0;}
+
+  /* La partita aperta: una riga per giocatore; al tocco tornano tutti i numeri, con le
+     etichette, come prima. */
+  #matchesTable > tbody > tr.match-detail.open{border-bottom:1px solid var(--border); padding-bottom:10px;}
+  #matchesTable > tbody > tr.match-detail > td{padding:0 0 0 36px; border:0;}
+  #matchesTable table.pagelle tbody tr{display:flex; flex-direction:column; padding:0; margin:0; background:none; border:0; border-radius:0;
+    border-top:1px solid var(--soft);}
+  #matchesTable table.pagelle tbody td.tel-pagella{order:-1;}
+  #matchesTable table.pagelle tbody td{display:none;}
+  #matchesTable table.pagelle tbody td.tel-pagella{display:flex; align-items:center; gap:10px; padding:8px 2px; border:0; text-align:left; cursor:pointer;}
+  #matchesTable table.pagelle td.tel-pagella::before{content:none;}
+  #matchesTable table.pagelle tbody tr.aperta td[data-label]{display:block; padding:5px 2px 5px 0; font-size:13.5px; border:0;}
+  #matchesTable table.pagelle tbody tr.aperta td[data-label="Giocatore"]{display:none;}
+  #matchesTable table.pagelle tbody tr.aperta td.tel-pagella{padding-bottom:4px;}
+  .tel-pagella .pname{font-size:14.5px; font-weight:600;}
+  .tel-motm{margin-left:6px; font-size:12px;}
+  .tel-voto{flex:none; font-size:17px; font-weight:600;}
+}
