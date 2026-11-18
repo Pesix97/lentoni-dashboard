@@ -374,6 +374,104 @@ const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
   verifica(`Serate: riquadri, partite e giocatori di ogni serata contro i dati grezzi (${viste.size} serate)`, errSerate);
   verifica("Serate: oltre la quinta partita il tasto \"mostra tutte\", e toccato le mostra", errTutte);
 
+  // ---- Avversari (18/11/2026) ----
+  // Riferimento: DATA.matches raggruppate per nome dell'avversario, rifatte qui. jsdom non applica
+  // il CSS, quindi "nascosta" si legge dalla classe tel-oltre, che e' cio' che il CSS nasconde.
+  const NORM = s => String(s || "Sconosciuto").replace(/\s+/g, " ").trim();
+  const avv = new Map();
+  partite.forEach(m => {
+    const k = NORM(m.opponent_name);
+    if (!avv.has(k)) avv.set(k, { n: 0, v: 0, p: 0, s: 0, gf: 0, gs: 0, ultima: null });
+    const a = avv.get(k);
+    a.n++; a.gf += m.goals_for; a.gs += m.goals_against;
+    if (m.win) a.v++; else if (m.tie) a.p++; else a.s++;
+    if (!a.ultima || (m.ts || 0) > (a.ultima.ts || 0)) a.ultima = m;
+  });
+  const PER_VOLTA = 20;   // quante righe alla volta: deciso con Peppe il 18/11/2026
+  const righeAvv = () => [...d.querySelectorAll("#opponentsTable tbody tr")].filter(tr => tr.querySelector(".tel-avversario"));
+  const visibiliAvv = () => righeAvv().filter(tr => !tr.classList.contains("tel-oltre"));
+  const nomeAvv = tr => T(tr.querySelector(".tel-avv"));
+  const altriAvv = d.getElementById("opponentAltri");
+  const ordina = d.getElementById("opponentOrdina");
+  const filtroAvv = d.getElementById("opponentFilter");
+  const scegli = v => { ordina.value = v; ordina.dispatchEvent(new w.Event("change")); };
+  const cerca = v => { filtroAvv.value = v; filtroAvv.dispatchEvent(new w.Event("input")); };
+
+  // 1. All'apertura: i piu' recenti, venti, e il tasto con il conto giusto.
+  const errAperto = [];
+  const perRecenza = [...avv.entries()].sort((x, y) => (y[1].ultima.ts || 0) - (x[1].ultima.ts || 0)).map(([k]) => k);
+  const vis0 = visibiliAvv().map(nomeAvv);
+  if (vis0.length !== Math.min(PER_VOLTA, avv.size)) errAperto.push(`${vis0.length} righe visibili, attese ${Math.min(PER_VOLTA, avv.size)}`);
+  vis0.forEach((n, i) => { if (n !== perRecenza[i]) errAperto.push(`posizione ${i + 1}: ${n}, atteso ${perRecenza[i]}`); });
+  const resto = avv.size - PER_VOLTA;
+  if (resto > 0 && (altriAvv.hidden || !T(altriAvv).includes(`ne restano ${resto}`))) errAperto.push(`tasto: "${T(altriAvv)}" hidden=${altriAvv.hidden}, attesi ${resto} rimasti`);
+  verifica(`Avversari: all'apertura i ${PER_VOLTA} piu' recenti e il tasto per gli altri`, errAperto);
+
+  // 2. Tocco dopo tocco fino all'ultimo: ogni riga contro i dati.
+  const errAvv = [];
+  let giri = 0;
+  while (!altriAvv.hidden && giri++ < 100) clic(altriAvv);
+  if (!altriAvv.hidden) errAvv.push("il tasto non sparisce mai");
+  if (visibiliAvv().length !== avv.size) errAvv.push(`${visibiliAvv().length} avversari visibili alla fine, nei dati ${avv.size}`);
+  const vistiAvv = new Set();
+  righeAvv().forEach(tr => {
+    const n = nomeAvv(tr), a = avv.get(n);
+    if (!a) { errAvv.push(`"${n}" non nei dati`); return; }
+    vistiAvv.add(n);
+    const es = T(tr.querySelector(".tel-esito"));
+    if (es !== lettera(a.ultima)) errAvv.push(`${n}: lettera ${es}, ultima partita ${lettera(a.ultima)}`);
+    const sotto = T(tr.querySelector(".tel-sotto"));
+    if (a.n > 1) {
+      if (!sotto.startsWith(`${a.n} partite`)) errAvv.push(`${n}: "${sotto}", attese ${a.n} partite`);
+      const val = `${T(tr.querySelector(".tel-valore b"))} ${T(tr.querySelector(".tel-valore span"))}`;
+      if (val !== `${a.v}V ${a.p}P ${a.s}S gol ${a.gf}–${a.gs}`) errAvv.push(`${n}: "${val}", atteso ${a.v}V ${a.p}P ${a.s}S gol ${a.gf}–${a.gs}`);
+    } else {
+      if (/partite/.test(sotto)) errAvv.push(`${n}: una partita sola ma scritto "${sotto}"`);
+      const ris = T(tr.querySelector(".tel-ris"));
+      if (ris !== `${a.gf} – ${a.gs}`) errAvv.push(`${n}: risultato "${ris}", atteso ${a.gf} – ${a.gs}`);
+    }
+  });
+  if (vistiAvv.size !== avv.size) errAvv.push(`avversari in pagina ${vistiAvv.size}, nei dati ${avv.size}`);
+  verifica(`Avversari: ogni riga da telefono contro i dati grezzi (${avv.size} avversari)`, errAvv);
+
+  // 3. Ordine e ricerca. Cambiare ordine riparte da venti; cercare trova anche chi e' nascosto.
+  const errOrdineAvv = [];
+  scegli("games");
+  const maxN = Math.max(...[...avv.values()].map(a => a.n));
+  const vg = visibiliAvv();
+  if (vg.length !== Math.min(PER_VOLTA, avv.size)) errOrdineAvv.push(`dopo il cambio d'ordine ${vg.length} righe, attese ${PER_VOLTA}`);
+  if (vg.length && avv.get(nomeAvv(vg[0])).n !== maxN) errOrdineAvv.push(`"Piu' affrontati": primo ${nomeAvv(vg[0])} con ${avv.get(nomeAvv(vg[0])).n}, il massimo e' ${maxN}`);
+  scegli("lastTs");
+  const nascosto = perRecenza[perRecenza.length - 1];
+  cerca(nascosto);
+  const trovati = visibiliAvv().map(nomeAvv);
+  if (!trovati.includes(nascosto)) errOrdineAvv.push(`cercando "${nascosto}" (il meno recente) non compare: ${trovati.join(", ")}`);
+  if (!altriAvv.hidden) errOrdineAvv.push("durante la ricerca il tasto \"mostra altri\" resta");
+  // Una ricerca che trova piu' di venti avversari: il limite non vale, si vedono tutti.
+  // (Con un nome solo il risultato sta comunque nelle prime venti righe e non prova niente.)
+  const largo = ["fc", "a", "e"].find(x => [...avv.keys()].filter(k => k.toLowerCase().includes(x)).length > PER_VOLTA);
+  if (largo) {
+    const attesi = [...avv.keys()].filter(k => k.toLowerCase().includes(largo)).length;
+    cerca(largo);
+    if (visibiliAvv().length !== attesi) errOrdineAvv.push(`cercando "${largo}": ${visibiliAvv().length} visibili, attesi ${attesi}`);
+  }
+  cerca("");
+  verifica("Avversari: ordine \"piu' affrontati\" e ricerca anche fra i nascosti", errOrdineAvv);
+
+  // 4. Fasce di livello: la riga da telefono dice gli stessi numeri delle celle della tabella
+  //    (quelle le rifa' da zero test_avversari.js).
+  const errFasce = [];
+  const fasceAvv = [...d.querySelectorAll("#livelloAvversari tbody tr")];
+  // Senza fasce la pagina deve dire perche' (FC 26: i livelli raccolti dopo la fine del titolo).
+  if (fasceAvv.length === 0 && !/Il livello degli avversari/.test(T(d.getElementById("livelloAvversari")))) errFasce.push("nessuna fascia e nessuna spiegazione");
+  fasceAvv.forEach(tr => {
+    const c = l => T(tr.querySelector(`td[data-label="${l}"]`));
+    const atteso = `${c("Partite")} partite · ${c("Bilancio")} · ${c("Gol").replace("-", "–")}`;
+    if (T(tr.querySelector(".tel-fascia .tel-sotto")) !== atteso) errFasce.push(`${c("Fascia")}: "${T(tr.querySelector(".tel-fascia .tel-sotto"))}", atteso "${atteso}"`);
+    if (T(tr.querySelector(".tel-fascia .tel-valore b")) !== c("Punti a partita")) errFasce.push(`${c("Fascia")}: punti ${T(tr.querySelector(".tel-fascia .tel-valore b"))}, tabella ${c("Punti a partita")}`);
+  });
+  verifica("Avversari: le fasce di livello da telefono dicono i numeri della tabella", errFasce);
+
   console.log(falliti === 0 ? "\nLa vista da telefono torna con i dati." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);
 })();

@@ -3251,6 +3251,10 @@ function scartoLivello(m){
       <td data-label="Bilancio">${a.v}V ${a.p}P ${a.s}S</td>
       <td data-label="Gol">${a.gf}-${a.ga}</td>
       <td data-label="Punti a partita"><strong>${(a.pt / a.n).toFixed(2)}</strong></td>
+      <td class="tel-fascia"><span class="tel-punto" style="background:${f.colore};"></span>`
+      + `<span class="tel-chi"><span class="tel-avv">${f.etichetta}</span>`
+      + `<span class="tel-sotto">${a.n} partite · ${a.v}V ${a.p}P ${a.s}S · <span style="white-space:nowrap;">${a.gf}–${a.ga}</span></span></span>`
+      + `<span class="tel-valore"><b>${(a.pt / a.n).toFixed(2)}</b><span>punti/partita</span></span></td>
     </tr>`;
   }).join("");
 
@@ -3265,7 +3269,7 @@ function scartoLivello(m){
       rating più recente è <strong style="color:var(--text);">${nostro}</strong>.
     </div>
     <div class="table-wrap">
-      <table class="responsive-table">
+      <table class="responsive-table livello-tabella">
         <thead><tr><th>Fascia</th><th>Partite</th><th>Bilancio</th><th>Gol</th><th>Punti a partita</th></tr></thead>
         <tbody>${righe}</tbody>
       </table>
@@ -3873,6 +3877,15 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
 });
 
 // ---- Avversari: bilancio contro ogni club affrontato ----
+// Pareggio = P, come in Home e in Serate ("111V 40P 107S"). Sta qui e non con Partite
+// perche' Avversari, piu' in alto nel file, la usa gia': una const letta prima della sua
+// riga e' un ReferenceError che spegne la pagina.
+const ESITO_LETTERA = { W: "V", T: "P", L: "S" };
+// Avversari sul telefono: quante righe alla volta (18/11/2026).
+const TEL_AVVERSARI = 20;
+function giornoBreve(iso){
+  return iso ? new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : "-";
+}
 (function renderOpponents(){
   const matches = DATA.matches || [];
   const cardsEl = document.getElementById("opponentCards");
@@ -3898,9 +3911,10 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
     else g.losses++;
     g.goalsFor += m.goals_for;
     g.goalsAgainst += m.goals_against;
-    if((m.ts || 0) > g.lastTs){
+    if((m.ts || 0) >= g.lastTs){
       g.lastTs = m.ts || 0;
       g.lastPlayedAt = m.played_at;
+      g.lastEsito = m.win ? "W" : m.tie ? "T" : "L";
     }
   });
 
@@ -3921,7 +3935,13 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
     `<div class="card"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`
   ).join("");
 
-  let sort = { key: "games", dir: -1 };
+  // Sul telefono si parte dai piu' recenti e si mostrano 20 righe alla volta: 283 avversari
+  // su 297 sono stati incontrati una volta sola, e l'ordine per partite li lascerebbe a caso.
+  let sort = sulTelefono() ? { key: "lastTs", dir: -1 } : { key: "games", dir: -1 };
+  let mostrati = TEL_AVVERSARI;
+  const ordina = document.getElementById("opponentOrdina");
+  const altri = document.getElementById("opponentAltri");
+  if(ordina) ordina.value = sort.key;
   function draw(){
     const q = (filterInput.value || "").toLowerCase();
     let rows = list.filter(g => g.name.toLowerCase().includes(q));
@@ -3945,9 +3965,29 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
         <td data-label="GS">${g.goalsAgainst}</td>
         <td data-label="DR">${g.goalDiff > 0 ? "+" : ""}${g.goalDiff}</td>
         <td data-label="Ultima">${fmtDate(g.lastPlayedAt)}</td>
+        <td class="tel-avversario"><span class="tel-esito badge ${g.lastEsito}">${ESITO_LETTERA[g.lastEsito]}</span>`
+        + `<span class="tel-chi"><span class="tel-avv">${g.name}</span>`
+        + `<span class="tel-sotto">${g.games > 1 ? `${g.games} partite · ultima ` : ""}${giornoBreve(g.lastPlayedAt)}</span></span>`
+        + (g.games > 1
+          ? `<span class="tel-valore"><b>${g.wins}V ${g.ties}P ${g.losses}S</b><span>gol ${g.goalsFor}–${g.goalsAgainst}</span></span>`
+          : `<span class="tel-ris">${g.goalsFor} – ${g.goalsAgainst}</span>`)
+        + `</td>
       </tr>
     `).join("");
+    // Il limite vale solo senza ricerca: chi cerca un nome deve trovarlo anche se e' il 290esimo.
+    const nascosti = q ? 0 : Math.max(0, rows.length - mostrati);
+    if(!q) [...tbody.rows].slice(mostrati).forEach(tr => tr.classList.add("tel-oltre"));
+    if(altri){
+      altri.hidden = nascosti === 0;
+      altri.textContent = `Mostra altri ${Math.min(TEL_AVVERSARI, nascosti)} (ne restano ${nascosti})`;
+    }
   }
+  if(ordina) ordina.addEventListener("change", () => {
+    sort = { key: ordina.value, dir: ordina.value === "name" ? 1 : -1 };
+    mostrati = TEL_AVVERSARI;
+    draw();
+  });
+  if(altri) altri.addEventListener("click", () => { mostrati += TEL_AVVERSARI; draw(); });
   document.querySelectorAll("#opponentsTable th").forEach(th => {
     th.addEventListener("click", () => {
       const key = th.dataset.key;
@@ -4909,8 +4949,6 @@ const TEL_PARTITE_SERATA = 5;
 // all'una di notte appartiene alla sera prima. Vedi README, «Partite sul telefono».
 const TIPO_PARTITA = { leagueMatch: "Campionato", playoffMatch: "Playoff", friendlyMatch: "Amichevole" };
 function tipoPartita(t){ return TIPO_PARTITA[t] || t || "-"; }
-// Pareggio = P, come in Home e in Serate ("111V 40P 107S").
-const ESITO_LETTERA = { W: "V", T: "P", L: "S" };
 function oraLocale(iso){
   const d = new Date(iso);
   return isNaN(d) ? "" : d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });

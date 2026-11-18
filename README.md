@@ -428,7 +428,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
 | `test_avversari.js` | 3 controlli sul **livello degli avversari**: le fasce del riquadro e i conteggi «più forti / più deboli» di ogni giocatore rifatti dai dati grezzi, con le due squadre confrontate nello stesso istante; e la prova che sugli stessi dati la regola vecchia (il nostro skill rating di oggi) darebbe fasce diverse. Nato l'11/11/2026, vedi «Il livello degli avversari». |
-| `test_telefono.js` | 15 controlli sulla **vista da telefono** di Giocatori, Carriera, Partite e Serate: per ognuna delle 16 statistiche del pannello, il numero grande di ogni giocatore contro `DATA.roster` (e il totale di carriera contro `DATA.carriera`), l'ordine, il pulsante che dice la scelta, l'inversione al secondo tocco, le nove tessere della riga aperta, il tocco che apre e chiude e «Apri scheda completa» che apre la scheda giusta; in Partite ogni riga (esito, avversario, risultato, tipo) e ogni intestazione di serata (le partite sotto e il saldo) contro `DATA.matches` e `DATA.serate`, anche con il filtro per tipo, e le pagelle della partita aperta contro `DATA.matchPlayers`; in Serate, per ogni serata di ogni mese del calendario, i riquadri (partite, saldo, gol), le righe delle partite, il tasto «mostra tutte» oltre la quinta e i giocatori (presenze, media, gol, assist, stelle) rifatti dalle pagelle. Se i dati non hanno una serata con due tipi di partita il test ne crea una, perché un saldo contato sul tipo sbagliato non resti senza prova. Il CSS non lo vede: va guardato a 375px in un Chromium vero. Nato il 18/11/2026, vedi «Giocatori sul telefono», «Partite sul telefono» e «Serate sul telefono». |
+| `test_telefono.js` | 19 controlli sulla **vista da telefono** di Giocatori, Carriera, Partite, Serate e Avversari: per ognuna delle 16 statistiche del pannello, il numero grande di ogni giocatore contro `DATA.roster` (e il totale di carriera contro `DATA.carriera`), l'ordine, il pulsante che dice la scelta, l'inversione al secondo tocco, le nove tessere della riga aperta, il tocco che apre e chiude e «Apri scheda completa» che apre la scheda giusta; in Partite ogni riga (esito, avversario, risultato, tipo) e ogni intestazione di serata (le partite sotto e il saldo) contro `DATA.matches` e `DATA.serate`, anche con il filtro per tipo, e le pagelle della partita aperta contro `DATA.matchPlayers`; in Serate, per ogni serata di ogni mese del calendario, i riquadri (partite, saldo, gol), le righe delle partite, il tasto «mostra tutte» oltre la quinta e i giocatori (presenze, media, gol, assist, stelle) rifatti dalle pagelle. Se i dati non hanno una serata con due tipi di partita il test ne crea una, perché un saldo contato sul tipo sbagliato non resti senza prova. Il CSS non lo vede: va guardato a 375px in un Chromium vero. In Avversari, contro `DATA.matches` raggruppate da capo: le prime 20 per recenza, ogni riga dei 297 avversari, l'ordine, la ricerca anche fra le righe nascoste e le fasce di livello. Nato il 18/11/2026, vedi «Giocatori sul telefono», «Partite sul telefono», «Serate sul telefono» e «Avversari sul telefono». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1744,6 +1744,34 @@ Il controllo sta in `test_record.js`, accanto al ricalcolo da zero dei record: l
 telefono si confronta con lo stesso riferimento delle colonne. L'etichetta «battuto» si prova
 solo nella **simulazione** della serata in cui è caduto l'ultimo record: provato, la sua
 rottura passava nel giro sui dati di oggi (nessun record caduto ieri sera) e cadeva in quello.
+
+## Avversari sul telefono (18/11/2026)
+
+Sotto i 700px le tre fasce di livello diventano tre righe (punti a partita in grande, sotto
+partite, saldo e gol) e l'elenco degli avversari una riga per club: la lettera dell'**ultima**
+partita contro di loro, il nome, la data; a destra il risultato se c'è stata una partita sola,
+il saldo e i gol se più d'una. L'elenco parte dai **più recenti** e mostra **20 righe alla
+volta** (`TEL_AVVERSARI`), con un tasto per le successive; un menu cambia l'ordine (più
+recenti, più affrontati, differenza reti, nome). La ricerca guarda sempre tutti gli avversari:
+con un filtro scritto il limite non vale. Sul computer non cambia niente: tabella intera,
+ordinata per partite.
+
+**Perché.** Misurato a 375px: la sezione era alta 115.370px, circa 140 schermate, perché ogni
+avversario era una scheda di nove righe. Ora è 2.492px. E dei 297 avversari, 283 erano stati
+incontrati **una volta sola** (14 due volte): l'ordine per numero di partite lasciava quasi
+tutto l'elenco a pari merito, cioè in un ordine casuale. Sul telefono la sezione serve a
+rispondere «li abbiamo già incontrati?», e a quello servono la ricerca e la data.
+
+`ESITO_LETTERA` (V/P/S) è definita prima di Avversari e non accanto a Partite: Avversari sta
+più in alto nel file, e una `const` letta prima della sua riga è un `ReferenceError` che spegne
+la pagina — il guasto del 29/08/2026.
+
+In `test_telefono.js`, contro `DATA.matches` raggruppate da capo: le prime 20 per recenza, il
+conto sul tasto, ogni riga dei 297 (lettera, partite, saldo o risultato) dopo aver toccato il
+tasto fino in fondo, l'ordine «più affrontati», la ricerca del meno recente e una ricerca larga
+(«fc», 92 avversari) che deve mostrarli tutti. Quest'ultima c'è perché una ricerca di un nome
+solo passava anche col limite applicato alla ricerca: un risultato solo sta sempre nelle prime
+venti righe.
 
 ## L'identità dei giocatori è il nome, non l'id
 

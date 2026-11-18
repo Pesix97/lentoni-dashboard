@@ -496,7 +496,15 @@
   <div class="panel" id="livelloAvversari" style="margin-bottom:16px;"></div>
   <div class="grid-cards" id="opponentCards" style="margin-bottom:16px;"></div>
   <div class="panel">
-    <input type="text" class="filter" id="opponentFilter" placeholder="Filtra avversario...">
+    <div class="cerca-riga">
+      <input type="text" class="filter" id="opponentFilter" placeholder="Filtra avversario...">
+      <select id="opponentOrdina" class="tel-ordina" aria-label="Ordina gli avversari">
+        <option value="lastTs">Più recenti</option>
+        <option value="games">Più affrontati</option>
+        <option value="goalDiff">Differenza reti</option>
+        <option value="name">Nome</option>
+      </select>
+    </div>
     <div class="table-wrap">
       <table id="opponentsTable" class="responsive-table">
         <thead><tr>
@@ -513,6 +521,7 @@
         <tbody></tbody>
       </table>
     </div>
+    <button type="button" id="opponentAltri" class="tel-tutte" hidden></button>
   </div>
 </section>
 

@@ -1957,3 +1957,17 @@ zero), visto fallire su quattro rotture; quella dell'etichetta «battuto» solo 
 Restano da guardare sul telefono le altre voci di «Altro»: Indice di Forza, POTM, Formazione,
 Scheda osservatore, Avversari e il resto (Carriera è già fatta).
 
+## Le voci di «Altro» guardate sul telefono, e Avversari rifatta (18/11/2026)
+
+Misurate a 375px una per una. POTM e Pagellone vanno bene così (già elenco e testo). Da
+rifare, in quest'ordine: Avversari (115.370px), Indice di Forza (33.190px, sette tabelle a
+schede da 11 righe), Vittorie e sconfitte e Scheda osservatore (indicatori a schede da 4-5
+righe), Riepilogo (il grafico «margine di gol» ha le etichette sovrapposte e non si legge) e
+Formazione (sotto il campo, dieci schede che ripetono il campo).
+
+Avversari fatta: bozza approvata da Peppe, dettagli nel README, «Avversari sul telefono».
+Controlli in `test_telefono.js`, visti fallire su sei rotture; quella della ricerca solo dopo
+aver aggiunto una ricerca larga (vedi README). Aperta, non toccata: «Bestia nera» e «Vittima
+preferita» poggiano su avversari con 2 partite (14 su 297), quindi oggi dicono poco — se
+tenerle è una decisione di Peppe.
+
