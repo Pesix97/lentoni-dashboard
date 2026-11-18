@@ -4606,6 +4606,8 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
 // ---- Serate ----
 // Le serate arrivano gia' raggruppate da Python (stessa regola di serata.py); qui si
 // ricostruisce il resto dai dati che la pagina ha comunque, senza duplicare niente.
+// Sul telefono una serata mostra le prime cinque partite e un tasto per le altre (18/11/2026).
+const TEL_PARTITE_SERATA = 5;
 (function renderSerate(){
   const filtriEl = document.getElementById("serateFiltri");
   const detEl = document.getElementById("serataDettaglio");
@@ -4618,6 +4620,12 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
   }
 
   const matchById = new Map((DATA.matches || []).map(m => [m.match_id, m]));
+  detEl.addEventListener("click", e => {
+    const b = e.target.closest(".tel-tutte");
+    if(!b) return;
+    b.previousElementSibling.classList.add("tutte");
+    b.remove();
+  });
   const storico = (DATA.history || [])
     .map(h => ({ t: new Date(h.fetched_at).getTime(), v: h.skill_rating }))
     .filter(h => !isNaN(h.t) && h.v != null)
@@ -4709,28 +4717,45 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
           È la prima serata dell'archivio, e quasi certamente non è intera: le partite giocate prima
           non sono mai state catturate, perché EA ne espone solo dieci alla volta e la raccolta è
           cominciata dopo.</div>` : ""}
-        <div style="display:flex; flex-wrap:wrap; gap:18px; font-size:13px; margin-bottom:14px;">
+        <div class="tel-riquadri">
+          <div class="tel-riquadro"><span>Partite</span><b data-v="partite">${partite.length}</b></div>
+          <div class="tel-riquadro"><span>Saldo</span><b data-v="saldo">${v}V ${n}P ${p}S</b></div>
+          <div class="tel-riquadro"><span>Gol fatti – subiti</span><b data-v="gol">${gf} – ${gs}</b></div>
+          <div class="tel-riquadro"><span>Skill rating</span><b data-v="skill">${sr
+            ? `<span style="color:${sr.delta > 0 ? "var(--ok,#4ade80)" : sr.delta < 0 ? "var(--loss)" : "var(--muted)"};">${sr.a} (${sr.delta > 0 ? "+" : sr.delta < 0 ? "−" : ""}${Math.abs(sr.delta)})</span>`
+            : `<span style="color:var(--muted); font-size:12.5px; font-weight:400;">non rilevato</span>`}</b></div>
+        </div>
+        <div class="serata-riga-numeri" style="display:flex; flex-wrap:wrap; gap:18px; font-size:13px; margin-bottom:14px;">
           <span><strong>${partite.length}</strong> partite</span>
           <span><strong>${v}</strong>V <strong>${n}</strong>P <strong>${p}</strong>S</span>
           <span>${gf} gol fatti, ${gs} subiti</span>
           <span>Skill rating: ${srHtml}</span>
         </div>
+        <div class="tel-titoletto">Partite</div>
         <div class="table-wrap" style="margin-bottom:14px;">
-          <table class="responsive-table">
+          <table class="responsive-table serata-partite">
             <thead><tr><th>Ora</th><th>Avversario</th><th>Risultato</th><th>Esito</th></tr></thead>
-            <tbody>${partite.map(m => {
+            <tbody>${partite.map((m, i) => {
               const [e, c] = esito(m);
-              return `<tr>
+              const cls = m.goals_for > m.goals_against ? "W" : m.goals_for === m.goals_against ? "T" : "L";
+              return `<tr data-match="${m.match_id}"${i >= TEL_PARTITE_SERATA ? ' class="tel-oltre"' : ""}>
                 <td data-label="Ora">${soloOra(m.played_at)}</td>
                 <td data-label="Avversario">${m.opponent_name || "—"}${String(m.match_id).startsWith("manuale-") ? ' <span class="pos-badge" title="Inserita a mano: EA la conta ma non l\'ha pubblicata">a mano</span>' : ""}</td>
                 <td data-label="Risultato" class="lb-value">${m.goals_for}-${m.goals_against}</td>
                 <td data-label="Esito"><span style="color:${c}; font-weight:600;">${e}</span></td>
+                <td class="tel-partita"><span class="tel-esito badge ${cls}">${e}</span>`
+                + `<span class="tel-chi"><span class="tel-avv">${m.opponent_name || "—"}</span>`
+                + `<span class="tel-sotto">${soloOra(m.played_at)}</span></span>`
+                + `<span class="tel-ris">${m.goals_for} – ${m.goals_against}</span></td>
               </tr>`;
             }).join("")}</tbody>
           </table>
+          ${partite.length > TEL_PARTITE_SERATA
+            ? `<button type="button" class="tel-tutte">Mostra tutte le ${partite.length} partite</button>` : ""}
         </div>
+        <div class="tel-titoletto">Giocatori</div>
         <div class="table-wrap">
-          <table class="responsive-table">
+          <table class="responsive-table serata-giocatori">
             <thead><tr>
               <th>Giocatore</th><th>Reparto</th><th>Presenze</th><th>Media voto</th>
               <th>Gol</th><th>Assist</th><th>MOTM</th>
@@ -4747,6 +4772,9 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
                 <td data-label="Gol">${a.gol}</td>
                 <td data-label="Assist">${a.ass}</td>
                 <td data-label="MOTM">${a.mom || "—"}</td>
+                <td class="tel-giocatore"><span class="tel-chi"><span><span class="player-link pname" data-player="${a.nome}">${a.nome}</span>${a.mom ? `<span class="tel-motm" title="Migliore in campo ${a.mom} ${a.mom === 1 ? "volta" : "volte"}">⭐${a.mom > 1 ? a.mom : ""}</span>` : ""}</span>`
+                + `<span class="tel-sotto">${[rep || "—", `${a.n} pres`, a.gol ? `${a.gol} gol` : "", a.ass ? `${a.ass} assist` : ""].filter(Boolean).join(" · ")}</span></span>`
+                + `<span class="tel-voto">${a.media.toFixed(2)}</span></td>
               </tr>`;
             }).join("")}</tbody>
           </table>
@@ -4874,7 +4902,8 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
 // all'una di notte appartiene alla sera prima. Vedi README, «Partite sul telefono».
 const TIPO_PARTITA = { leagueMatch: "Campionato", playoffMatch: "Playoff", friendlyMatch: "Amichevole" };
 function tipoPartita(t){ return TIPO_PARTITA[t] || t || "-"; }
-const ESITO_LETTERA = { W: "V", T: "N", L: "S" };
+// Pareggio = P, come in Home e in Serate ("111V 40P 107S").
+const ESITO_LETTERA = { W: "V", T: "P", L: "S" };
 function oraLocale(iso){
   const d = new Date(iso);
   return isNaN(d) ? "" : d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
@@ -4914,8 +4943,8 @@ let filtroPartite = "tutte";
     const saldo = new Map();
     visibili.forEach(({ m }) => {
       const s = SERATA_DI_PARTITA.get(m.match_id), k = s ? s.chiave : m.match_id;
-      const x = saldo.get(k) || { V: 0, N: 0, S: 0 };
-      x[m.win ? "V" : (m.tie ? "N" : "S")]++;
+      const x = saldo.get(k) || { V: 0, P: 0, S: 0 };
+      x[m.win ? "V" : (m.tie ? "P" : "S")]++;
       saldo.set(k, x);
     });
     const rowsHtml = [];
@@ -4926,7 +4955,7 @@ let filtroPartite = "tutte";
         ultimaSerata = k;
         const x = saldo.get(k);
         rowsHtml.push(`<tr class="tel-serata" data-serata="${k}"><td colspan="5"><span>${titoloSerata(s, m)}</span>`
-          + `<span class="tel-saldo">${x.V}V ${x.N}N ${x.S}S</span></td></tr>`);
+          + `<span class="tel-saldo">${x.V}V ${x.P}P ${x.S}S</span></td></tr>`);
       }
       const outcome = m.win ? "W" : (m.tie ? "T" : "L");
       const outcomeLabel = m.win ? "Vittoria" : (m.tie ? "Pareggio" : "Sconfitta");

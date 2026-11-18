@@ -101,7 +101,7 @@ node test_record.js index.html       # record, scalata e resoconto della serata 
 node test_carriera.js index.html     # la carriera di ognuno, titolo per titolo e in totale
 node test_traguardi.js index.html    # i traguardi storici: eroi, partita decisiva, solo nei Record
 node test_avversari.js index.html    # livello degli avversari: noi e loro letti nello stesso momento
-node test_telefono.js index.html     # Giocatori, Carriera e Partite sul telefono, contro i dati grezzi
+node test_telefono.js index.html     # Giocatori, Carriera, Partite e Serate sul telefono, contro i dati grezzi
 ```
 
 **`test_indice.js` è l'unico controllo che non parte dalla pagina.** Gli altri verificano

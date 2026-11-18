@@ -1923,7 +1923,7 @@ lo stesso giorno** (`MIN_GAMES_PER_TITOLO`): escono dalla rosa Bagherese_95 (3) 
 la rosa passa da 17 a 15. Restano in Carriera, che elenca chi è nel club su tutti i titoli:
 se debbano uscire anche da lì non è stato chiesto.
 
-Ancora da fare sul telefono: Serate (Partite fatta lo stesso giorno, sotto).
+Fatte lo stesso giorno anche Partite e Serate, sotto.
 
 ## Partite sul telefono: elenco per serata (18/11/2026)
 
@@ -1934,4 +1934,16 @@ aggiunti a `test_telefono.js`, visti fallire su cinque rotture (serata per data 
 saldo con i pareggi contati come vittorie, saldo sul tipo sbagliato, voto sbagliato, tipo non
 tradotto sul computer). La rottura del saldo sul tipo sbagliato **passava** coi dati veri:
 nessuna serata di FC 27 mescola campionato e playoff. Il test ora ne crea una quando manca.
+
+## Serate sul telefono, e il pareggio di nuovo «P» (18/11/2026)
+
+Bozza approvata da Peppe: calendario più basso, riepilogo in quattro riquadri, partite e
+giocatori della sera in righe, «mostra tutte» oltre la quinta partita. Dettagli nel README,
+«Serate sul telefono». Trovata nel farlo un'incoerenza introdotta poche ore prima: Partite sul
+telefono scriveva il pareggio «N», il resto della pagina «P». Corretto, e il test ora lo
+controlla. Controlli aggiunti a `test_telefono.js` (tutte le 52 serate), visti fallire su cinque
+rotture: saldo del riquadro, soglia del «mostra tutte», media voto, tasto che non mostra, «N».
+
+Con questo le quattro pagine d'uso quotidiano (Home era già stata rifatta il 04/11) sono
+tutte pensate per il telefono. Le altre sezioni del menu «Altro» non sono state guardate.
 

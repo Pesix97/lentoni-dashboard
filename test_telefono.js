@@ -214,7 +214,7 @@ const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
   const serataDi = new Map();
   (DATA.serate || []).forEach(s => (s.matchIds || []).forEach(id => serataDi.set(String(id), s.chiave)));
   const TIPO = { leagueMatch: "Campionato", playoffMatch: "Playoff", friendlyMatch: "Amichevole" };
-  const lettera = m => (m.win ? "V" : (m.tie ? "N" : "S"));
+  const lettera = m => (m.win ? "V" : (m.tie ? "P" : "S"));   // pareggio = P, come in Home
   const blocchi = () => {   // [{ testa, ids: [...] }] nell'ordine della pagina
     const out = [];
     d.querySelectorAll("#matchesTable > tbody > tr").forEach(tr => {
@@ -250,9 +250,9 @@ const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
       viste.add(k);
       const attesiIds = attese.filter(m => (serataDi.get(String(m.match_id)) || String(m.match_id)) === k).map(m => String(m.match_id));
       if (attesiIds.join() !== b.ids.join()) err.push(`${nome} ${k}: partite [${b.ids.length}], attese [${attesiIds.length}]`);
-      const c = { V: 0, N: 0, S: 0 }; b.ids.forEach(id => c[lettera(perId.get(id))]++);
+      const c = { V: 0, P: 0, S: 0 }; b.ids.forEach(id => c[lettera(perId.get(id))]++);
       const saldo = T(b.testa.querySelector(".tel-saldo"));
-      if (saldo !== `${c.V}V ${c.N}N ${c.S}S`) err.push(`${nome} ${k}: saldo "${saldo}", atteso ${c.V}V ${c.N}N ${c.S}S`);
+      if (saldo !== `${c.V}V ${c.P}P ${c.S}S`) err.push(`${nome} ${k}: saldo "${saldo}", atteso ${c.V}V ${c.P}P ${c.S}S`);
     }
     return err;
   };
@@ -293,6 +293,86 @@ const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
     if (det.classList.contains("open")) errPagelle.push(`${m.match_id}: toccata di nuovo, non si chiude`);
   }
   verifica(`Partite: pagelle della partita aperta contro i dati grezzi (${aperte} partite aperte)`, aperte ? errPagelle : ["nessuna partita aperta"]);
+
+  // ---- Serate (18/11/2026) ----
+  // Ogni serata del calendario, mese per mese: i riquadri, le righe delle partite e dei
+  // giocatori contro DATA.serate, DATA.matches e DATA.matchPlayers. Lo skill rating no: dipende
+  // dalle istantanee del club e da come la pagina sceglie il "prima" e il "dopo".
+  const errSerate = [], errTutte = [];
+  const viste = new Set();
+  const controllaSchede = () => {
+    for (const scheda of d.querySelectorAll("#serataDettaglio > .panel")) {
+      const trs = [...scheda.querySelectorAll("table.serata-partite tbody tr")];
+      if (!trs.length) continue;
+      const chiave = serataDi.get(trs[0].dataset.match);
+      const s = (DATA.serate || []).find(x => x.chiave === chiave);
+      if (!s) { errSerate.push(`partita ${trs[0].dataset.match}: nessuna serata nei dati`); continue; }
+      if (viste.has(chiave)) continue;
+      viste.add(chiave);
+      const ms = s.matchIds.map(id => perId.get(String(id))).filter(Boolean);
+      const c = { V: 0, P: 0, S: 0 }; ms.forEach(m => c[lettera(m)]++);
+      const gf = ms.reduce((t, m) => t + m.goals_for, 0), gs = ms.reduce((t, m) => t + m.goals_against, 0);
+      const riq = k => T(scheda.querySelector(`.tel-riquadro b[data-v="${k}"]`));
+      if (riq("partite") !== String(ms.length)) errSerate.push(`${s.giorno}: riquadro partite ${riq("partite")}, attese ${ms.length}`);
+      if (riq("saldo") !== `${c.V}V ${c.P}P ${c.S}S`) errSerate.push(`${s.giorno}: saldo ${riq("saldo")}, atteso ${c.V}V ${c.P}P ${c.S}S`);
+      if (riq("gol") !== `${gf} – ${gs}`) errSerate.push(`${s.giorno}: gol ${riq("gol")}, attesi ${gf} – ${gs}`);
+      if (trs.map(tr => tr.dataset.match).join() !== ms.map(m => String(m.match_id)).join()) errSerate.push(`${s.giorno}: partite diverse da quelle della serata`);
+      trs.forEach((tr, i) => {
+        const m = perId.get(tr.dataset.match); if (!m) return;
+        if (T(tr.querySelector(".tel-esito")) !== lettera(m)) errSerate.push(`${s.giorno} ${m.match_id}: esito ${T(tr.querySelector(".tel-esito"))}, atteso ${lettera(m)}`);
+        if (T(tr.querySelector(".tel-ris")) !== `${m.goals_for} – ${m.goals_against}`) errSerate.push(`${s.giorno} ${m.match_id}: risultato ${T(tr.querySelector(".tel-ris"))}`);
+        if (tr.classList.contains("tel-oltre") !== (i >= 5)) errSerate.push(`${s.giorno}: la partita ${i + 1} ${i >= 5 ? "non e' nascosta" : "e' nascosta"} prima di "mostra tutte"`);
+      });
+      const bott = scheda.querySelector(".tel-tutte");
+      if (!!bott !== (ms.length > 5)) errTutte.push(`${s.giorno}: ${ms.length} partite, tasto "mostra tutte" ${bott ? "presente" : "assente"}`);
+      if (bott) {
+        clic(bott);
+        if (!scheda.querySelector("table.serata-partite").classList.contains("tutte") || scheda.querySelector(".tel-tutte")) errTutte.push(`${s.giorno}: "mostra tutte" toccato, le partite restano nascoste`);
+      }
+      // I giocatori: presenze, media voto, gol, assist e stelle rifatti dalle pagelle.
+      const agg = new Map();
+      ms.forEach(m => ((DATA.matchPlayers || {})[m.match_id] || []).forEach(p => {
+        const a = agg.get(p.player_name) || { n: 0, somma: 0, gol: 0, ass: 0, mom: 0 };
+        a.n++; a.somma += p.rating || 0; a.gol += p.goals || 0; a.ass += p.assists || 0; a.mom += p.mom || 0;
+        agg.set(p.player_name, a);
+      }));
+      const gio = [...scheda.querySelectorAll("table.serata-giocatori tbody tr")];
+      if (gio.length !== agg.size) errSerate.push(`${s.giorno}: ${gio.length} giocatori, attesi ${agg.size}`);
+      gio.forEach(tr => {
+        const nome = T(tr.querySelector(".tel-giocatore .pname")), a = agg.get(nome);
+        if (!a) { errSerate.push(`${s.giorno}: "${nome}" non ha giocato quella sera`); return; }
+        const sotto = T(tr.querySelector(".tel-giocatore .tel-sotto"));
+        const pres = (sotto.match(/(\d+) pres/) || [0, -1])[1], gol = (sotto.match(/(\d+) gol/) || [0, 0])[1], ass = (sotto.match(/(\d+) assist/) || [0, 0])[1];
+        if (Number(pres) !== a.n || Number(gol) !== a.gol || Number(ass) !== a.ass) errSerate.push(`${s.giorno} ${nome}: "${sotto}", attesi ${a.n} pres, ${a.gol} gol, ${a.ass} assist`);
+        if (Math.abs(num(T(tr.querySelector(".tel-voto"))) - a.somma / a.n) > TOLL) errSerate.push(`${s.giorno} ${nome}: media ${T(tr.querySelector(".tel-voto"))}, attesa ${(a.somma / a.n).toFixed(2)}`);
+        const stelle = T(tr.querySelector(".tel-motm"));
+        if ((a.mom ? (a.mom > 1 ? `⭐${a.mom}` : "⭐") : "") !== stelle) errSerate.push(`${s.giorno} ${nome}: stelle "${stelle}", MOTM ${a.mom}`);
+        if (!tr.querySelector(".tel-giocatore .player-link[data-player]")) errSerate.push(`${s.giorno} ${nome}: il nome non apre la scheda`);
+      });
+    }
+  };
+  const mesiVisti = new Set();
+  for (let giro = 0; giro < 60; giro++) {
+    const titolo = T(d.querySelector("#serateFiltri .calTitolo"));
+    if (!mesiVisti.has(titolo)) {
+      mesiVisti.add(titolo);
+      const giorni = [...d.querySelectorAll("#serateFiltri .calDay.haPartite")].map(x => x.dataset.g);
+      for (const g of giorni) { clic(d.querySelector(`#serateFiltri .calDay.haPartite[data-g="${g}"]`)); controllaSchede(); }
+    }
+    // Il mese precedente non ancora visto, finche' ce n'e' uno.
+    const nav = [...d.querySelectorAll("#serateFiltri .calNav")].filter(n => n.style.visibility !== "hidden");
+    const prima = T(d.querySelector("#serateFiltri .calTitolo"));
+    let mosso = false;
+    for (const n of nav) {
+      clic(n);
+      if (!mesiVisti.has(T(d.querySelector("#serateFiltri .calTitolo")))) { mosso = true; break; }
+      if (T(d.querySelector("#serateFiltri .calTitolo")) !== prima) clic([...d.querySelectorAll("#serateFiltri .calNav")].find(x => x.dataset.d === String(-Number(n.dataset.d))));
+    }
+    if (!mosso) break;
+  }
+  if (viste.size !== (DATA.serate || []).length) errSerate.push(`serate controllate ${viste.size}, nei dati ${(DATA.serate || []).length}`);
+  verifica(`Serate: riquadri, partite e giocatori di ogni serata contro i dati grezzi (${viste.size} serate)`, errSerate);
+  verifica("Serate: oltre la quinta partita il tasto \"mostra tutte\", e toccato le mostra", errTutte);
 
   console.log(falliti === 0 ? "\nLa vista da telefono torna con i dati." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);
