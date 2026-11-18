@@ -300,7 +300,7 @@ console.log("\nCollegamenti interni");
 
 // La sezione Serate elenca chiunque abbia giocato quella sera, e quei nomi sono
 // cliccabili. La rosa invece contiene solo chi supera una soglia minima di partite di
-// CARRIERA (MIN_GAMES_PER_TITOLO in generate_dashboard.py: 0 per FC 27 dal 19/09/2026,
+// CARRIERA (MIN_GAMES_PER_TITOLO in generate_dashboard.py: 10 per FC 27 dal 18/11/2026,
 // 30 per gli altri titoli): per un giocatore nuovo il clic non apriva niente, in
 // silenzio. Segnalato il 25/08/2026 su Bagherese_95, che aveva giocato cinque partite
 // la sera prima.

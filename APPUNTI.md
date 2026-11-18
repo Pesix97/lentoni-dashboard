@@ -1906,3 +1906,21 @@ tutti i test prima di pubblicare, push con la riga che esclude Git Credential Ma
 fine il controllo che `git status -sb` non dica «ahead». Da ricordare: **quelle istruzioni non
 le vede `TestDocumentazioneAllineata`**, perché non stanno nel repository. Quando cambia il modo
 di pubblicare o la cartella, vanno aggiornate a mano anche lì.
+
+## Giocatori e Carriera sul telefono: elenco invece di tabella (18/11/2026)
+
+Peppe: la vista da telefono era ancora troppo tabellare, soprattutto aggiungendo colonne in
+Giocatori. Bozza approvata il 18/11/2026: riga compatta con il numero dell'ordinamento in
+grande, riga che si apre al tocco, un pulsante con pannello dal basso al posto di «Ordina per» e
+«Aggiungi colonne». Stessa vista per la Carriera. Dettagli e perché nel README, «Giocatori sul
+telefono»; controllo nuovo `test_telefono.js` (in CI), visto fallire su quattro rotture: numero
+grande sbagliato, tessere col doppione, tocco sul pulsante della scheda, totale di carriera.
+
+Visto durante la prova: ordinando per «% vittorie» in cima finiva un giocatore con 4 partite
+(75%), sopra i titolari — il caso «campioni piccoli pesati come quelli grandi» del CLAUDE.md,
+uguale sul computer, perché la soglia della rosa per FC 27 era 0. **Peppe l'ha portata a 10
+lo stesso giorno** (`MIN_GAMES_PER_TITOLO`): escono dalla rosa Bagherese_95 (3) e brizeer87 (4),
+la rosa passa da 17 a 15. Restano in Carriera, che elenca chi è nel club su tutti i titoli:
+se debbano uscire anche da lì non è stato chiesto.
+
+Ancora da fare sul telefono: Partite e Serate, una alla volta.

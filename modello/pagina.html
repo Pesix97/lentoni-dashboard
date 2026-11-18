@@ -111,7 +111,10 @@
 <section id="giocatori">
   <h2>Giocatori <span class="h2-sub">rosa, classifiche e confronto · solo giocatori con almeno __MIN_GAMES__ partite</span></h2>
   <div class="panel">
-    <input type="text" class="filter" id="rosterFilter" placeholder="Filtra giocatore...">
+    <div class="cerca-riga">
+      <input type="text" class="filter" id="rosterFilter" placeholder="Filtra giocatore...">
+      <button type="button" class="tel-scegli" id="rosterScegli" title="Scegli la statistica">Gol ↓</button>
+    </div>
     <div class="filter-bar" id="rosterQuickFilters">
       <span class="pos-badge">Ordina per:</span>
       <span class="filter-btn" data-key="games_played">Partite giocate</span>
@@ -193,7 +196,10 @@
     </div>
   </details>
   <div class="panel">
-    <input type="text" class="filter" id="carrieraFilter" placeholder="Filtra giocatore...">
+    <div class="cerca-riga">
+      <input type="text" class="filter" id="carrieraFilter" placeholder="Filtra giocatore...">
+      <button type="button" class="tel-scegli" id="carrieraScegli" title="Scegli la statistica">Gol ↓</button>
+    </div>
     <div class="filter-bar" id="carrieraTitoli">
       <span class="pos-badge">Titolo:</span>
     </div>

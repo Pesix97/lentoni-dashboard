@@ -428,6 +428,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
 | `test_avversari.js` | 3 controlli sul **livello degli avversari**: le fasce del riquadro e i conteggi «più forti / più deboli» di ogni giocatore rifatti dai dati grezzi, con le due squadre confrontate nello stesso istante; e la prova che sugli stessi dati la regola vecchia (il nostro skill rating di oggi) darebbe fasce diverse. Nato l'11/11/2026, vedi «Il livello degli avversari». |
+| `test_telefono.js` | 10 controlli sulla **vista da telefono** di Giocatori e Carriera: per ognuna delle 16 statistiche del pannello, il numero grande di ogni giocatore contro `DATA.roster` (e il totale di carriera contro `DATA.carriera`), l'ordine, il pulsante che dice la scelta, l'inversione al secondo tocco, le nove tessere della riga aperta, il tocco che apre e chiude e «Apri scheda completa» che apre la scheda giusta. Il CSS non lo vede: va guardato a 375px in un Chromium vero. Nato il 18/11/2026, vedi «Giocatori sul telefono». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1519,13 +1520,15 @@ quindi non apriva niente, **in silenzio**. Nessun errore, nessun messaggio, solo
 nome che non risponde — segnalato dal club il 25/08/2026 su Bagherese_95, cinque
 partite giocate la sera prima.
 
-**Per FC 27, dal 19/09/2026, la soglia è 0, cioè nessuna esclusione** — non per FC 26, che
-resta a 30. La soglia storica di 30 partite ha senso su un archivio maturo (centinaia di
+**Per FC 27 la soglia è 10 partite** (dal 18/11/2026; dal 19/09 al 17/11/2026 era 0, cioè
+nessuna esclusione) — non per FC 26, che resta a 30. Il 18/11/2026, con i titolari a 50-280
+partite, la soglia a 0 metteva in cima alla classifica delle percentuali un giocatore con 4
+partite e il 75% di vittorie: Peppe l'ha portata a 10. Vale per rosa, classifiche e Indice di
+Forza; non per la Carriera, che elenca chi è nel club su tutti i titoli. La soglia storica di 30 partite ha senso su un archivio maturo (centinaia di
 partite a testa, com'è FC 26): a inizio stagione, con tutti a 3-4 partite, avrebbe svuotato
 la rosa intera invece di escludere solo i pochi con un campione minuscolo. La soglia non è
 più un solo numero ma una per titolo (`MIN_GAMES_PER_TITOLO` in `generate_dashboard.py`,
-`{"FC 27": 0}`, col vecchio `MIN_GAMES = 30` come default per tutti gli altri). Da togliere
-per FC 27 quando anche lì l'archivio avrà abbastanza partite.
+`{"FC 27": 10}`, col vecchio `MIN_GAMES = 30` come default per tutti gli altri).
 
 Ora la scheda si costruisce dalle **partite archiviate**: presenze, media voto, gol,
 assist, premi, percentuali di passaggi, contrasti e tiro, e in che ruolo ha giocato. Un
@@ -1657,6 +1660,35 @@ sono confrontabili:
   accanto i conteggi**, ma il giudizio in parole usa valori tirati verso la media della
   squadra in proporzione alle partite. Per domenicocasaburi la voce è passata da "la
   squadra va peggio senza di lui" a "nessuna differenza rilevabile".
+
+## Giocatori sul telefono (18/11/2026)
+
+Sotto i 700px Giocatori e Carriera non sono più una tabella ma un **elenco**: una riga per
+giocatore con rango, nome, ruolo e presenze, e a destra in grande il numero della statistica su
+cui si ordina. Al tocco la riga si apre con nove tessere (le altre statistiche principali), la
+forma e «Apri scheda completa». Le due file «Ordina per» e «Aggiungi colonne» sono sostituite da
+un pulsante solo («Gol ↓») che apre un pannello dal basso con le 16 statistiche divise in
+Generale, Attacco, Passaggi e Difesa; toccare di nuovo quella scelta inverte l'ordine. Sopra i
+700px non cambia niente.
+
+**Perché.** Segnalazione di Peppe: sul telefono la pagina era ancora «troppo tabellare».
+Misurato a 375px: ogni giocatore era una scheda alta circa 190px, quindi tre per schermata, e
+ogni colonna aggiunta la allungava ancora («Uomo delle partite (MOTM)» andava a capo da sola).
+Le 12 statistiche aggiungibili stavano in una fila che scorreva di lato, fuori dallo schermo.
+Ora ne stanno otto per schermata.
+
+**Aggiungere colonne sul telefono non esiste più, apposta.** Su uno schermo da 375px non c'è
+spazio per le colonne: era proprio quello che faceva crescere le schede. Il prezzo è che
+sul telefono non si confrontano due statistiche affiancate nell'elenco: si vedono aprendo il
+giocatore. Sul computer la tabella con le colonne è quella di sempre.
+
+**Come è fatto.** Ogni riga della tabella ha due celle in più (`.tel-riga`, `.tel-dettaglio`),
+visibili solo sotto i 700px; le celle della tabella restano nel DOM, nascoste dal CSS. Così il
+computer non cambia e i test che leggono le colonne leggono le stesse celle. Il rischio di questa
+scelta è che le due strade si separino (il numero grande che dice una cosa e la colonna
+un'altra): `test_telefono.js` confronta ogni numero da telefono con i dati grezzi della pagina,
+non con la tabella. Il nome da pro accanto al nome non compare nella riga da telefono: c'è nella
+scheda.
 
 ## L'identità dei giocatori è il nome, non l'id
 

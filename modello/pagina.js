@@ -1919,8 +1919,114 @@ const COLONNE_EXTRA = STAT_DEFS
   .filter(d => !COLONNE_BASE.includes(d.key))
   .map(d => ({ key: d.key, label: d.label, icon: d.icon, def: d }));
 
+// ---- Telefono: Giocatori e Carriera come elenco, non come tabella (18/11/2026) ----
+//
+// Sotto i 700px ogni riga della tabella mostra solo due celle in piu', scritte apposta:
+// rango, nome, ruolo e presenze a sinistra, e a destra IN GRANDE il numero su cui si sta
+// ordinando. Al tocco la riga si apre con le altre statistiche e il link alla scheda. Le
+// celle della tabella restano nel DOM (nascoste dal CSS): il computer non cambia, e i test
+// che leggono le colonne continuano a leggere le stesse celle.
+//
+// Sul telefono le due file "Ordina per" e "Aggiungi colonne" diventano un pulsante solo
+// che apre un pannello dal basso: la statistica scelta e' insieme l'ordinamento e il numero
+// grande. Aggiungere colonne a uno schermo largo 375px non ha senso: era quello che faceva
+// crescere ogni scheda fino a riempire lo schermo (vedi README, «Giocatori sul telefono»).
+const ETICHETTA_BREVE = {
+  games_played: "PG", goals: "Gol", assists: "Assist", rating_ave: "Media",
+  goals_plus_assists: "G+A", contribution_pg: "G+A/partita", win_rate: "% vittorie",
+  man_of_the_match: "MOTM", red_cards: "Rossi", pass_success_rate: "% passaggi",
+  passes_made: "Passaggi", pass_attempts_pg: "Passaggi/partita",
+  tackle_success_rate: "% contrasti", tackles_made: "Contrasti", shot_success_rate: "% tiro",
+  clean_sheets_def: "Clean sheet",
+};
+const GRUPPI_STAT = [
+  ["Generale", ["games_played", "rating_ave", "win_rate", "man_of_the_match"]],
+  ["Attacco", ["goals", "assists", "goals_plus_assists", "contribution_pg", "shot_success_rate"]],
+  ["Passaggi", ["pass_success_rate", "passes_made", "pass_attempts_pg"]],
+  ["Difesa", ["tackle_success_rate", "tackles_made", "clean_sheets_def", "red_cards"]],
+];
+// Cosa si vede aprendo una riga: le prime nove, saltando la statistica gia' in grande, cosi'
+// la griglia da tre e' sempre piena.
+const DETTAGLIO_TEL = ["games_played", "goals", "assists", "rating_ave",
+  "goals_plus_assists", "contribution_pg", "win_rate", "man_of_the_match",
+  "pass_success_rate", "tackle_success_rate"];
+
+function sulTelefono(){
+  return !!(window.matchMedia && window.matchMedia("(max-width:700px)").matches);
+}
+// defs: chiave -> definizione di STAT_DEFS (la Carriera ne sostituisce una).
+function valoreTel(defs, key, r){
+  const def = defs[key];
+  if(!def) return String(r[key] ?? "-");
+  return fmtStatValue(def, statValue(def, r)) + (def.unit === "%" ? "%" : "");
+}
+function chiaveTel(key){ return ETICHETTA_BREVE[key] ? key : "goals"; }
+function celleTelefono(r, i, sortKey, defs, opz){
+  const k = chiaveTel(sortKey);
+  const tessere = DETTAGLIO_TEL.filter(x => x !== k).slice(0, 9).map(x =>
+    `<div class="tel-tessera"><span>${ETICHETTA_BREVE[x]}</span><b>${valoreTel(defs, x, r)}</b></div>`).join("");
+  return `<td class="tel-riga"><span class="tel-rango">${i + 1}</span>`
+    + `<span class="tel-chi"><span class="pname">${r.player_name}</span>`
+    + `<span class="tel-sotto">${gruppoBadge(r.gruppo, opz.daAssegnare)}<span class="tel-pg">${r.games_played} PG</span></span></span>`
+    + `<span class="tel-valore" data-stat="${k}"><b>${valoreTel(defs, k, r)}</b><span>${ETICHETTA_BREVE[k]}</span></span>`
+    + `<span class="tel-freccia" aria-hidden="true"></span></td>`
+    + `<td class="tel-dettaglio"><div class="tel-tessere">${tessere}</div>`
+    + (opz.forma ? `<div class="tel-forma"><span>Forma</span>${opz.forma}</div>` : "")
+    + (opz.apribile ? `<button type="button" class="player-link tel-scheda" data-player="${r.player_name}">Apri scheda completa</button>` : "")
+    + `</td>`;
+}
+function etichettaScelta(sort){
+  const base = ETICHETTA_BREVE[sort.key] || (sort.key === "player_name" ? "Nome" : "Ruolo");
+  return `${base} ${sort.dir === -1 ? "↓" : "↑"}`;
+}
+// Il pannello dal basso, uno solo per tutta la pagina: chi lo apre passa la statistica
+// attuale e cosa fare con quella scelta.
+let sceltaStatCallback = null;
+function apriSceltaStat(attuale, onScegli){
+  let sheet = document.getElementById("statSheet");
+  if(!sheet){
+    document.body.insertAdjacentHTML("beforeend", `<div id="statSheet" class="stat-sheet" hidden>
+      <div class="stat-sheet-pannello" role="dialog" aria-modal="true" aria-label="Scegli la statistica">
+        <div class="stat-sheet-maniglia" aria-hidden="true"></div>
+        <div class="stat-sheet-testa">Ordina per <span>tocca di nuovo per invertire</span></div>
+        ${GRUPPI_STAT.map(([nome, chiavi]) => `<div class="stat-sheet-gruppo">${nome}</div>
+          <div class="stat-sheet-scelte">${chiavi.map(k =>
+            `<button type="button" class="filter-btn" data-stat="${k}">${ETICHETTA_BREVE[k]}</button>`).join("")}</div>`).join("")}
+      </div></div>`);
+    sheet = document.getElementById("statSheet");
+    sheet.addEventListener("click", e => {
+      const b = e.target.closest("[data-stat]");
+      if(b){ const cb = sceltaStatCallback; chiudiSceltaStat(); if(cb) cb(b.dataset.stat); return; }
+      if(e.target === sheet) chiudiSceltaStat();
+    });
+    document.addEventListener("keydown", e => { if(e.key === "Escape") chiudiSceltaStat(); });
+  }
+  sceltaStatCallback = onScegli;
+  sheet.querySelectorAll("[data-stat]").forEach(b => b.classList.toggle("active", b.dataset.stat === attuale));
+  sheet.hidden = false;
+  document.body.classList.add("sheet-aperto");
+}
+function chiudiSceltaStat(){
+  const sheet = document.getElementById("statSheet");
+  if(!sheet || sheet.hidden) return;
+  sheet.hidden = true;
+  sceltaStatCallback = null;
+  document.body.classList.remove("sheet-aperto");
+}
+// Tocco su una riga: si apre o si chiude. Solo sul telefono: sul computer la riga
+// mostra gia' tutto, e il nome apre la scheda come sempre.
+function collegaRigheTelefono(tbody){
+  if(!tbody) return;
+  tbody.addEventListener("click", e => {
+    if(!sulTelefono() || e.target.closest(".tel-scheda")) return;
+    const tr = e.target.closest("tr");
+    if(tr && tr.querySelector(".tel-riga")) tr.classList.toggle("aperta");
+  });
+}
+
 let rosterSort = { key: "goals", dir: -1 };
 const colonneAttive = new Set();
+const DEFS_ROSA = Object.fromEntries(STAT_DEFS.map(d => [d.key, d]));
 
 function renderRoster(){
   const filterVal = document.getElementById("rosterFilter").value.toLowerCase();
@@ -1969,9 +2075,13 @@ function renderRoster(){
       <td data-label="Media">${r.rating_ave}</td>
       ${extra.map(c => `<td data-label="${c.label}">${fmtStatValue(c.def, statValue(c.def, r))}${c.def.unit === "%" ? "%" : ""}</td>`).join("")}
       <td data-label="Forma">${sparkline((r.prev_goals_trend||[]).slice().reverse())}</td>
+      ${celleTelefono(r, i, rosterSort.key, DEFS_ROSA, { daAssegnare: r.gruppo_da_assegnare,
+        forma: sparkline((r.prev_goals_trend||[]).slice().reverse()), apribile: true })}
     </tr>
   `).join("");
   updateQuickFilterHighlight();
+  const scegli = document.getElementById("rosterScegli");
+  if(scegli) scegli.textContent = etichettaScelta(rosterSort);
 }
 
 function updateQuickFilterHighlight(){
@@ -2033,6 +2143,11 @@ function ordinaPer(key){
 })();
 
 document.getElementById("rosterFilter").addEventListener("input", renderRoster);
+collegaRigheTelefono(document.querySelector("#rosterTable tbody"));
+(function(){
+  const b = document.getElementById("rosterScegli");
+  if(b) b.addEventListener("click", () => apriSceltaStat(rosterSort.key, ordinaPer));
+})();
 document.querySelectorAll('#rosterQuickFilters .filter-btn').forEach(btn => {
   btn.addEventListener("click", () => ordinaPer(btn.dataset.key));
 });
@@ -2051,6 +2166,7 @@ const carrieraColonne = new Set();
 // un titolo solo.
 const COLONNE_CARRIERA = COLONNE_EXTRA.map(c => c.key !== "pass_attempts_pg" ? c : { ...c, def: { ...c.def,
   compute: r => (r.games_played && r.pass_success_rate > 0 ? r.passes_made / (r.pass_success_rate / 100) / r.games_played : 0) } });
+const DEFS_CARRIERA = { ...DEFS_ROSA, ...Object.fromEntries(COLONNE_CARRIERA.map(c => [c.key, c.def])) };
 function rigaCarriera(nome){
   const per = CARRIERA[nome] || {};
   const v = carrieraTitolo === "Totale" ? totaleCarriera(per) : per[carrieraTitolo];
@@ -2093,8 +2209,12 @@ function renderCarrieraTabella(){
       <td data-label="Assist">${r.assists}</td>
       <td data-label="Media">${(r.rating_ave || 0).toFixed(2)}</td>
       ${extra.map(c => `<td data-label="${c.label}">${fmtStatValue(c.def, statValue(c.def, r))}${c.def.unit === "%" ? "%" : ""}</td>`).join("")}
+      ${celleTelefono(r, i, carrieraSort.key, DEFS_CARRIERA, { daAssegnare: !GROUP_OF_PLAYER[r.player_name],
+        apribile: schedaApribile(r.player_name) })}
     </tr>`).join("")
     : `<tr><td colspan="${7 + extra.length}" class="empty">Nessun giocatore trovato</td></tr>`;
+  const scegli = document.getElementById("carrieraScegli");
+  if(scegli) scegli.textContent = etichettaScelta(carrieraSort);
   document.querySelectorAll("#carrieraTitoli .filter-btn").forEach(b => b.classList.toggle("active", b.dataset.titolo === carrieraTitolo));
   document.querySelectorAll("#carrieraQuickFilters .filter-btn").forEach(b => b.classList.toggle("active", b.dataset.key === carrieraSort.key));
   document.querySelectorAll("#carrieraColonne .filter-btn").forEach(b => b.classList.toggle("active", carrieraColonne.has(b.dataset.col)));
@@ -2124,6 +2244,9 @@ function ordinaCarrieraPer(key){
     } else { carrieraColonne.add(k); ordinaCarrieraPer(k); }
   }));
   document.getElementById("carrieraFilter").addEventListener("input", renderCarrieraTabella);
+  collegaRigheTelefono(document.querySelector("#carrieraTable tbody"));
+  const scegli = document.getElementById("carrieraScegli");
+  if(scegli) scegli.addEventListener("click", () => apriSceltaStat(carrieraSort.key, ordinaCarrieraPer));
   document.querySelectorAll("#carrieraQuickFilters .filter-btn").forEach(b => b.addEventListener("click", () => ordinaCarrieraPer(b.dataset.key)));
   // Come in Giocatori: un ascoltatore solo sulla riga delle intestazioni, che non viene mai
   // sostituita (le celle si ricostruiscono a ogni disegno).

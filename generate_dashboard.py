@@ -566,7 +566,10 @@ MIN_GAMES = 30
 # (chiuso, centinaia di partite a testa) resta alla soglia di sempre, dove il numero ha
 # ancora senso. Da togliere per FC 27 quando anche li' l'archivio avra' abbastanza partite
 # perche' la soglia torni a fare quello per cui era nata.
-MIN_GAMES_PER_TITOLO = {"FC 27": 0}
+# Dal 18/11/2026 la soglia di FC 27 e' 10 (scelta di Peppe): a stagione avviata i titolari
+# hanno 50-280 partite, e con 0 un giocatore con 4 partite e il 75% di vittorie finiva in
+# cima alla classifica delle percentuali, sopra tutti.
+MIN_GAMES_PER_TITOLO = {"FC 27": 10}
 
 MODELLO = QUI / "modello"
 
