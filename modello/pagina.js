@@ -3400,6 +3400,11 @@ function computeRoleAggregates(){
 // casella": e' una scelta relativa per definizione, dove conta l'ordine e non la distanza.
 // Le scale fisse non aggiungerebbero niente e la decisione del club e' che la formazione
 // tipo non si tocca senza chiederlo (una riscrittura era gia' stata annullata).
+//
+// Il minimo-massimo pero' si applica DOPO la stessa regola dei reparti (versoLaMedia): con 1-2
+// partite in un ruolo si vale la media di quel ruolo, poi si sale piano. Senza, il 24/11/2026
+// Ocirne_1197 stava in difesa con UNA partita (voto 8.40), sopra chi ci aveva giocato 10, 39,
+// 73 volte: lo stesso episodio corretto nei reparti il 01/09. Applicata con il permesso di Peppe.
 function normalizeRelativa(values){
   const min = Math.min(...values), max = Math.max(...values);
   if(max === min) return values.map(() => 0.5);
@@ -3412,7 +3417,8 @@ function computeRoleScores(){
   OUTFIELD_ROLES.forEach(role => {
     const pool = all.filter(a => a.role === role);
     if(pool.length === 0){ byRole[role] = []; return; }
-    const normalize = normalizeRelativa;
+    const partite = pool.map(a => a.games);
+    const normalize = valori => normalizeRelativa(versoLaMedia(valori, partite));
     const nRating = normalize(pool.map(a => a.ratingAve));
     const nContrib = normalize(pool.map(a => a.contrib));
     const nMotm = normalize(pool.map(a => a.motmRate));

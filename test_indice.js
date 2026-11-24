@@ -579,6 +579,28 @@ function puntiDaTesto(t, sinistra) {
   }
   verifica(`tre orologi (${annunciProvati} con un vincitore da annunciare)`, annunciProvati > 0 ? errA : errA.concat(["nessun caso con un vincitore: il controllo non prova niente"]));
 
+  // ---- Formazione tipo: un episodio non prende un posto (24/11/2026) ----
+  // Le partite nel ruolo si contano qui da DATA.matchPlayers (il campo pos di ogni partita) e
+  // devono essere quelle stampate in tabella. La regola delle 1-2 partite, che chiede le
+  // funzioni della pagina, sta in test_tecnica.js: qui non se ne usa nessuna.
+  {
+    const errF = [];
+    const conta = {};
+    (DATA.matches || []).forEach(m => (DATA.matchPlayers[m.match_id] || []).forEach(p => {
+      const k = p.player_name + "|" + p.pos; conta[k] = (conta[k] || 0) + 1; }));
+    const POS = { "Attacco": "forward", "Trequartista": "midfielder", "Centrocampo": "midfielder", "Difesa": "defender" };
+    const fd = dom.window.document;
+    const righeF = [...fd.querySelectorAll("#formationTable tbody tr")];
+    righeF.forEach(tr => {
+      const c = l => T(tr.querySelector(`td[data-label="${l}"]`));
+      if (/stima/.test(c("Fonte"))) return;
+      const k = c("Giocatore") + "|" + POS[c("Ruolo")];
+      if (Number(c("Partite nel ruolo")) !== (conta[k] || 0)) errF.push(`${k}: ${c("Partite nel ruolo")} partite in tabella, ${conta[k] || 0} nei dati`);
+    });
+    verifica(`formazione tipo: partite nel ruolo contro i dati grezzi (${righeF.length} posti)`,
+      righeF.length ? errF : ["nessun posto in tabella"]);
+  }
+
   console.log(falliti === 0 ? "\nOgni numero torna con il ricalcolo indipendente." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);
 })();

@@ -421,9 +421,9 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_pipeline.py` | 144 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli, i dati dell'avversario scritti per le partite nuove e recuperati dal grezzo per quelle già archiviate, le icone citate da pagine e manifest che esistono davvero. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 120 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
-| `test_tecnica.js` | 25 controlli sulla tecnica: **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
+| `test_tecnica.js` | 26 controlli sulla tecnica (più la regola delle 1–2 partite nella formazione tipo): **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
-| `test_indice.js` | 25 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; i passaggi tentati a partita, in tabella e in ogni scheda; il giocatore di ogni mese (vincitore, punteggio, chi è in testa nel mese in corso e la soglia di presenze), la corsa del mese in corso, le vittorie di ognuno con il numero di titolo su ogni tessera, e l'annuncio in Home con il suo link alla pagina POTM, aprendo la pagina con l'orologio spostato al giorno 1 di due mesi e al giorno 2. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
+| `test_indice.js` | 26 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; i passaggi tentati a partita, in tabella e in ogni scheda; il giocatore di ogni mese (vincitore, punteggio, chi è in testa nel mese in corso e la soglia di presenze), la corsa del mese in corso, le vittorie di ognuno con il numero di titolo su ogni tessera, e l'annuncio in Home con il suo link alla pagina POTM, aprendo la pagina con l'orologio spostato al giorno 1 di due mesi e al giorno 2. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
 | `test_record.js` | 15 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), e la stessa riga com'è scritta per il telefono, ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
@@ -1823,6 +1823,31 @@ comprese; la formazione contro le colonne e il campo. Oggi nessun posto della fo
 stima, quindi il test apre una seconda copia della pagina in cui nessuna partita risulta in
 difesa: i tre posti dietro vanno a stima, e la parola deve comparire. Senza quella copia la
 rottura passava.
+
+## Formazione tipo: un episodio non prende un posto (24/11/2026)
+
+La formazione tipo sceglie per ogni casella il migliore nel ruolo, con un punteggio relativo
+(minimo-massimo: il primo del ruolo vale 100). Prima del minimo-massimo ora ogni voce passa
+per la stessa regola dei reparti dell'Indice di Forza (`versoLaMedia`): con al massimo
+`PARTITE_MINIME_REPARTO` (2) partite in un ruolo si vale la media di quel ruolo, poi si sale
+piano. La scala relativa resta, come deciso.
+
+**Perché.** Il 24/11/2026, guardando la formazione, in difesa c'era Ocirne_1197 con **una**
+partita in quel ruolo (voto 8.40), terzo con 56.7, sopra chi ci aveva giocato 10, 39 e 73
+volte. Era lo stesso episodio corretto nei reparti il 01/09 (Adriano primo fra i difensori con
+una partita), ma la formazione calcola i suoi punteggi con un'altra funzione
+(`computeRoleScores`) e la correzione lì non era mai arrivata. Peppe ha scelto fra due
+versioni misurate sui dati: questa, che tiene la scala relativa, e il calcolo dei reparti per
+intero, con le scale fisse. Davano gli stessi dieci giocatori; questa non cambia la forma dei
+numeri sul campo. Effetto quel giorno: in difesa FFLI_Adriano e ktm-008 (10 partite lì) al
+posto di Jysmu (12) e Ocirne_1197 (1), che passano a centrocampo dove hanno 116 e 83 partite.
+
+Resta com'era, e va saputo: la difesa si riempie per prima, quindi prende chi serve anche a
+centrocampo. Con 10 partite in difesa la scelta poggia comunque su pochi dati.
+
+Controlli: `test_indice.js` conta dai dati grezzi le partite nel ruolo di ogni posto e le
+confronta con la tabella; `test_tecnica.js` verifica che tutti quelli sotto soglia abbiano lo
+stesso punteggio (sul codice vecchio falliva: 56.7, 32.5, 31.0, 28.6, 15.8 fra i difensori).
 
 ## L'identità dei giocatori è il nome, non l'id
 

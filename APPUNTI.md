@@ -920,6 +920,9 @@ accorgersene. Quando arriva una segnalazione così, va presa sul serio subito.
 `roles.json` (sei posti reali invece di un 3-4-1-2 con cinque caselle riempite da stime).
 La modifica è stata **annullata su richiesta**, per ripensarla meglio. Il codice è nella
 storia di git, commit `e9f0b6c` per il ripristino. Non va rifatta senza chiederlo.
+Il 24/11/2026 Peppe ha approvato una correzione puntuale, non una riscrittura: la regola delle
+1–2 partite dei reparti applicata anche ai punteggi della formazione (scala relativa, modulo e
+caselle invariati). Vedi README, «Formazione tipo: un episodio non prende un posto».
 
 **Premi e Stats divertenti sono stati rimossi il 23/08**, non persi. Erano intrattenimento
 copiato dalle funzioni di proclubstracker, e il progetto ha preso la direzione opposta:

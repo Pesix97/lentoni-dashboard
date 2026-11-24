@@ -173,6 +173,30 @@ setTimeout(() => {
   const ruoli = w.document.querySelectorAll("#formazione *").length;
   verifica("la formazione tipo viene disegnata", ruoli > 0, `nodi trovati: ${ruoli}`);
 
+  // 4-bis. Un episodio non prende un posto (24/11/2026). Chi ha al massimo PARTITE_MINIME_REPARTO
+  //    partite in un ruolo vale la media di quel ruolo, come nei reparti: quindi tutti quelli
+  //    sotto soglia hanno lo stesso punteggio. Le partite si contano dai dati grezzi, non dal
+  //    campo games della funzione. Il caso: Ocirne_1197 in difesa con una partita, 56.7, mentre
+  //    un altro con una partita stava a 32.5.
+  {
+    const DATI = w.eval("DATA");
+    const conta = {};
+    (DATI.matches || []).forEach(m => (DATI.matchPlayers[m.match_id] || []).forEach(p => {
+      const k = p.player_name + "|" + p.pos; conta[k] = (conta[k] || 0) + 1; }));
+    const soglia = w.eval("PARTITE_MINIME_REPARTO");
+    const perRuolo = w.eval("computeRoleScores()");
+    let sotto = 0;
+    const diversi = [];
+    Object.entries(perRuolo).forEach(([ruolo, pool]) => {
+      const pochi = pool.filter(a => (conta[a.player_name + "|" + ruolo] || 0) <= soglia);
+      sotto += pochi.length;
+      if (new Set(pochi.map(a => a.score.toFixed(6))).size > 1)
+        diversi.push(`${ruolo}: ${pochi.map(a => `${a.player_name} ${conta[a.player_name + "|" + ruolo]}p ${a.score.toFixed(1)}`).join(", ")}`);
+    });
+    verifica(`formazione tipo: i ${sotto} giocatori con al massimo ${soglia} partite in un ruolo valgono tutti la media`,
+      sotto > 0 && diversi.length === 0, sotto === 0 ? "nessun caso da provare" : diversi.join(" | "));
+  }
+
   // 5. Il riquadro nella pagina vera: tre righe piu' il totale, e il totale mostrato deve
   //    essere quello della colonna arrotondato. Guardare l'HTML e non solo le funzioni e'
   //    il motivo per cui il guasto del 29/08 era passato.
