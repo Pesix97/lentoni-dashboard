@@ -2854,6 +2854,30 @@
     {
       "serata": "2026-11-17T21:05Z",
       "partite": 11
+    },
+    {
+      "serata": "2026-11-23T21:35Z",
+      "partite": 4
+    },
+    {
+      "serata": "2026-11-19T21:24Z",
+      "partite": 8
+    },
+    {
+      "serata": "2026-11-20T22:19Z",
+      "partite": 8
+    },
+    {
+      "serata": "2026-11-21T22:37Z",
+      "partite": 3
+    },
+    {
+      "serata": "2026-11-22T14:49Z",
+      "partite": 10
+    },
+    {
+      "serata": "2026-11-22T21:51Z",
+      "partite": 3
     }
   ],
   "_serate_chiuse": [
