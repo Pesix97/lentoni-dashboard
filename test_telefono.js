@@ -472,6 +472,100 @@ const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
   });
   verifica("Avversari: le fasce di livello da telefono dicono i numeri della tabella", errFasce);
 
+  // ---- Indice di Forza (18/11/2026) ----
+  // L'indice lo rifa' da zero test_indice.js partendo dai dati grezzi, cella per cella della
+  // tabella: qui la riga da telefono deve dire gli stessi numeri di quelle celle, giocatore per
+  // giocatore, in tutte e sette le tabelle. Piu' le cose che esistono solo sul telefono: il
+  // reparto scelto, i conti sui pulsanti, il link della tecnica.
+  const cella = (tr, l) => T(tr.querySelector(`td[data-label="${l}"]`));
+  const tessera = (tr, e) => { const t = [...tr.querySelectorAll(".tel-tessera")].find(x => T(x.querySelector("span")) === e); return t ? T(t.querySelector("b")) : null; };
+  const righeForza = sel => [...d.querySelectorAll(sel)].filter(tr => tr.querySelector(".tel-riga"));
+
+  const errGen = [];
+  const gen = righeForza("#powerTable tbody tr");
+  if (gen.length === 0) errGen.push("nessuna riga nella generale");
+  gen.forEach(tr => {
+    const nome = T(tr.querySelector(".tel-riga .pname")), g = cella(tr, "Giocatore");
+    if (nome !== g) errGen.push(`riga "${nome}", colonna "${g}"`);
+    const pos = cella(tr, "#"), rango = T(tr.querySelector(".tel-rango"));
+    if (rango !== (pos.startsWith("#") ? pos.slice(1) : "–")) errGen.push(`${g}: posizione ${rango}, colonna ${pos}`);
+    const indice = cella(tr, "Indice"), val = T(tr.querySelector(".tel-valore b"));
+    if (pos.startsWith("#") ? val !== indice : val !== "—") errGen.push(`${g}: indice ${val}, colonna ${indice}`);
+    if (pos.startsWith("#") && T(tr.querySelector(".tel-valore span")) !== cella(tr, "Δ")) errGen.push(`${g}: variazione "${T(tr.querySelector(".tel-valore span"))}", colonna "${cella(tr, "Δ")}"`);
+    const forma = cella(tr, "Forma").split(" ")[0];
+    for (const [e, v] of [["Storico", cella(tr, "Storico")], ["Forma", forma], ["Media", cella(tr, "Media")], ["G+A/partita", cella(tr, "G+A/partita")], ["Tecnica", cella(tr, "Tecnica")], ["MOTM%", cella(tr, "MOTM%")]])
+      if (tessera(tr, e) !== v) errGen.push(`${g}: tessera ${e} ${tessera(tr, e)}, colonna ${v}`);
+    if (pos.startsWith("#") && forma !== "-" && !T(tr.querySelector(".tel-sotto")).includes(`forma ${forma}`)) errGen.push(`${g}: sotto il nome "${T(tr.querySelector(".tel-sotto"))}", forma ${forma}`);
+  });
+  verifica(`Indice di Forza: la generale da telefono dice i numeri delle colonne (${gen.length} giocatori)`, errGen);
+
+  const errRep = [];
+  const pannelli = [...d.querySelectorAll("#roleBoards .forza-reparto")];
+  const bottoniRep = [...d.querySelectorAll("#roleBoards .tel-reparti [data-reparto]")];
+  if (pannelli.length === 0) errRep.push("nessun reparto");
+  if (bottoniRep.length !== pannelli.length) errRep.push(`${bottoniRep.length} pulsanti per ${pannelli.length} reparti`);
+  // Si parte dal reparto con piu' partite, sommate dalla colonna "Partite nel ruolo".
+  const partiteRep = p => [...p.querySelectorAll('td[data-label="Partite nel ruolo"]')].reduce((t, c) => t + Number(T(c)), 0);
+  const repAtteso = pannelli.slice().sort((x, y) => partiteRep(y) - partiteRep(x))[0];
+  const scelti = () => [...d.querySelectorAll("#roleBoards .forza-reparto")].filter(p => p.classList.contains("tel-scelto")).map(p => p.dataset.reparto);
+  if (repAtteso && scelti().join() !== repAtteso.dataset.reparto) errRep.push(`all'apertura scelto ${scelti().join()}, atteso ${repAtteso.dataset.reparto} (piu' partite)`);
+  const MED = { "🥇": "1", "🥈": "2", "🥉": "3" };
+  let righeRep = 0;
+  for (const b of bottoniRep) {
+    clic(b);
+    const rep = b.dataset.reparto;
+    if (scelti().join() !== rep) errRep.push(`toccato ${rep}, visibili ${scelti().join() || "nessuno"}`);
+    const righe = righeForza(`#roleBoards .forza-reparto[data-reparto="${rep}"] tbody tr`);
+    if (!T(b).endsWith(" " + righe.length)) errRep.push(`${rep}: pulsante "${T(b)}", righe ${righe.length}`);
+    righe.forEach(tr => {
+      righeRep++;
+      const g = cella(tr, "Giocatore").replace(/ da assegnare$/, "");
+      if (T(tr.querySelector(".tel-riga .pname")) !== g) errRep.push(`${rep}: riga "${T(tr.querySelector(".tel-riga .pname"))}", colonna "${g}"`);
+      const pos = cella(tr, "#"), indice = cella(tr, "Indice"), val = T(tr.querySelector(".tel-valore b"));
+      const rangoAtteso = MED[pos] || (/^\d+$/.test(pos) ? pos : "–");
+      if (T(tr.querySelector(".tel-rango")) !== rangoAtteso) errRep.push(`${rep} ${g}: posizione ${T(tr.querySelector(".tel-rango"))}, colonna ${pos}`);
+      const valAtteso = /^\d/.test(indice) ? indice : indice === "n/d" ? "n/d" : "—";
+      if (val !== valAtteso) errRep.push(`${rep} ${g}: indice ${val}, colonna ${indice}`);
+      const sotto = T(tr.querySelector(".tel-sotto"));
+      const n = cella(tr, "Partite nel ruolo");
+      if (sotto !== `${n} ${n === "1" ? "partita" : "partite"} qui · ${cella(tr, "Gol")} gol · ${cella(tr, "Assist")} assist`) errRep.push(`${rep} ${g}: "${sotto}"`);
+      for (const e of ["Media", "G+A/partita", "Tecnica", "MOTM%", "Gol", "Assist"])
+        if (tessera(tr, e) !== cella(tr, e)) errRep.push(`${rep} ${g}: tessera ${e} ${tessera(tr, e)}, colonna ${cella(tr, e)}`);
+    });
+  }
+  // Il minimo di partite ridisegna i reparti: la scelta deve restare e i conti seguire.
+  const ultimoRep = bottoniRep.length ? bottoniRep[bottoniRep.length - 1].dataset.reparto : null;
+  const dieci = d.querySelector('#roleMinFilters [data-min="10"]');
+  if (dieci && ultimoRep) {
+    clic(dieci);
+    if (scelti().join() !== ultimoRep) errRep.push(`dopo il minimo a 10 il reparto scelto e' ${scelti().join()}, non piu' ${ultimoRep}`);
+    [...d.querySelectorAll("#roleBoards .tel-reparti [data-reparto]")].forEach(b => {
+      const n = righeForza(`#roleBoards .forza-reparto[data-reparto="${b.dataset.reparto}"] tbody tr`).length;
+      if (!T(b).endsWith(" " + n)) errRep.push(`minimo 10, ${b.dataset.reparto}: pulsante "${T(b)}", righe ${n}`);
+    });
+    clic(d.querySelector('#roleMinFilters [data-min="1"]'));
+  }
+  verifica(`Indice di Forza: reparti uno alla volta, ogni riga contro le colonne (${righeRep} righe)`, errRep);
+
+  // Il link della tecnica apre il riquadro di QUELLA riga e lascia la riga aperta.
+  const errTec = [];
+  const conTec = [...righeForza("#powerTable tbody tr"), ...righeForza("#roleBoards tbody tr")];
+  conTec.forEach(tr => {
+    const b = tr.querySelector(".tel-tec");
+    if (!b) { errTec.push(`${cella(tr, "Giocatore")}: manca il link`); return; }
+    const cellaTec = tr.querySelector("td[data-label='Tecnica'] .tec-apri");
+    if (!cellaTec || cellaTec.dataset.tec !== b.dataset.tec) { errTec.push(`${cella(tr, "Giocatore")}: link ${b.dataset.tec}, colonna ${cellaTec && cellaTec.dataset.tec}`); return; }
+    if (!tr.classList.contains("aperta")) clic(tr.querySelector(".tel-riga"));
+    clic(b);
+    const det = d.getElementById("tec-" + b.dataset.tec);
+    if (!det || !det.classList.contains("open")) errTec.push(`${b.dataset.tec}: riquadro non aperto`);
+    if (!tr.classList.contains("aperta")) errTec.push(`${b.dataset.tec}: la riga si e' chiusa`);
+    clic(b);
+    if (det && det.classList.contains("open")) errTec.push(`${b.dataset.tec}: secondo tocco non lo chiude`);
+    clic(tr.querySelector(".tel-riga"));
+  });
+  verifica(`Indice di Forza: il link della tecnica apre il riquadro della sua riga (${conTec.length} righe)`, errTec);
+
   console.log(falliti === 0 ? "\nLa vista da telefono torna con i dati." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);
 })();

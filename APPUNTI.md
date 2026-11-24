@@ -1971,3 +1971,11 @@ aver aggiunto una ricerca larga (vedi README). Aperta, non toccata: «Bestia ner
 preferita» poggiano su avversari con 2 partite (14 su 297), quindi oggi dicono poco — se
 tenerle è una decisione di Peppe.
 
+## Indice di Forza sul telefono (18/11/2026)
+
+Bozza approvata da Peppe, con i reparti uno alla volta (l'alternativa, tutti aperti a lista,
+gli era stata detta: circa 3.500px invece di 1.000, nessun tocco). Da 33.190px a 3.865px.
+Dettagli nel README, «Indice di Forza sul telefono». Controlli in `test_telefono.js`, visti
+fallire su otto rotture. Restano, sul telefono: Vittorie e sconfitte, Scheda osservatore,
+Riepilogo (il grafico) e Formazione.
+

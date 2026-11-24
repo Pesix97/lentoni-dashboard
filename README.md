@@ -428,7 +428,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
 | `test_avversari.js` | 3 controlli sul **livello degli avversari**: le fasce del riquadro e i conteggi «più forti / più deboli» di ogni giocatore rifatti dai dati grezzi, con le due squadre confrontate nello stesso istante; e la prova che sugli stessi dati la regola vecchia (il nostro skill rating di oggi) darebbe fasce diverse. Nato l'11/11/2026, vedi «Il livello degli avversari». |
-| `test_telefono.js` | 19 controlli sulla **vista da telefono** di Giocatori, Carriera, Partite, Serate e Avversari: per ognuna delle 16 statistiche del pannello, il numero grande di ogni giocatore contro `DATA.roster` (e il totale di carriera contro `DATA.carriera`), l'ordine, il pulsante che dice la scelta, l'inversione al secondo tocco, le nove tessere della riga aperta, il tocco che apre e chiude e «Apri scheda completa» che apre la scheda giusta; in Partite ogni riga (esito, avversario, risultato, tipo) e ogni intestazione di serata (le partite sotto e il saldo) contro `DATA.matches` e `DATA.serate`, anche con il filtro per tipo, e le pagelle della partita aperta contro `DATA.matchPlayers`; in Serate, per ogni serata di ogni mese del calendario, i riquadri (partite, saldo, gol), le righe delle partite, il tasto «mostra tutte» oltre la quinta e i giocatori (presenze, media, gol, assist, stelle) rifatti dalle pagelle. Se i dati non hanno una serata con due tipi di partita il test ne crea una, perché un saldo contato sul tipo sbagliato non resti senza prova. Il CSS non lo vede: va guardato a 375px in un Chromium vero. In Avversari, contro `DATA.matches` raggruppate da capo: le prime 20 per recenza, ogni riga dei 297 avversari, l'ordine, la ricerca anche fra le righe nascoste e le fasce di livello. Nato il 18/11/2026, vedi «Giocatori sul telefono», «Partite sul telefono», «Serate sul telefono» e «Avversari sul telefono». |
+| `test_telefono.js` | 22 controlli sulla **vista da telefono** di Giocatori, Carriera, Partite, Serate, Avversari e Indice di Forza: per ognuna delle 16 statistiche del pannello, il numero grande di ogni giocatore contro `DATA.roster` (e il totale di carriera contro `DATA.carriera`), l'ordine, il pulsante che dice la scelta, l'inversione al secondo tocco, le nove tessere della riga aperta, il tocco che apre e chiude e «Apri scheda completa» che apre la scheda giusta; in Partite ogni riga (esito, avversario, risultato, tipo) e ogni intestazione di serata (le partite sotto e il saldo) contro `DATA.matches` e `DATA.serate`, anche con il filtro per tipo, e le pagelle della partita aperta contro `DATA.matchPlayers`; in Serate, per ogni serata di ogni mese del calendario, i riquadri (partite, saldo, gol), le righe delle partite, il tasto «mostra tutte» oltre la quinta e i giocatori (presenze, media, gol, assist, stelle) rifatti dalle pagelle. Se i dati non hanno una serata con due tipi di partita il test ne crea una, perché un saldo contato sul tipo sbagliato non resti senza prova. Il CSS non lo vede: va guardato a 375px in un Chromium vero. In Avversari, contro `DATA.matches` raggruppate da capo: le prime 20 per recenza, ogni riga dei 297 avversari, l'ordine, la ricerca anche fra le righe nascoste e le fasce di livello. Nell'Indice di Forza ogni riga da telefono contro le colonne della stessa riga (che `test_indice.js` rifà dai dati grezzi), il reparto scelto, i conti sui pulsanti e il pulsante della tecnica. Nato il 18/11/2026, vedi «Giocatori sul telefono», «Partite sul telefono», «Serate sul telefono», «Avversari sul telefono» e «Indice di Forza sul telefono». |
 | `raw/club_search.json` | Fotografia del club presa a mano, usata per stemma e regione. **Non** per la piattaforma. |
 
 ---
@@ -1772,6 +1772,32 @@ tasto fino in fondo, l'ordine «più affrontati», la ricerca del meno recente e
 («fc», 92 avversari) che deve mostrarli tutti. Quest'ultima c'è perché una ricerca di un nome
 solo passava anche col limite applicato alla ricerca: un risultato solo sta sempre nelle prime
 venti righe.
+
+## Indice di Forza sul telefono (18/11/2026)
+
+Sotto i 700px il podio diventa tre tessere affiancate (medaglia, nome, indice) e le due
+classifiche diventano l'elenco di Giocatori: posizione, nome, sotto il ruolo e la forma (nei
+reparti: partite nel reparto, gol, assist), a destra l'indice in grande con la variazione. Un
+tocco apre le tessere con il resto delle colonne, il pulsante **«Come si compone la Tecnica»**
+e «Apri scheda completa». Il reparto per reparto ne mostra **uno alla volta**, scelto con i
+pulsanti in cima che dicono anche quanti giocatori ha; si parte dal reparto con più partite,
+il più solido, e la scelta resta quando si cambia il minimo di partite. Finestra, peso e
+«Come funziona» restano come sono. Sul computer non cambia niente.
+
+**Perché.** Misurato a 375px: la sezione era alta 33.190px, circa quaranta schermate — il podio
+700, la generale 7.000 (15 giocatori a schede da 11 righe), i sei reparti 24.500 (56 righe).
+Ora è 3.865px.
+
+Il pulsante della tecnica non ha un riquadro suo: tocca la cella Tecnica della stessa riga, e
+si apre il riquadro di sempre. Così `test_tecnica.js` continua a controllare un riquadro solo,
+e non uno per vista. Il tocco su quel pulsante (e sulla cella che aziona) non chiude la riga:
+`collegaRigheTelefono` li esclude.
+
+In `test_telefono.js` la riga da telefono si confronta con le colonne della stessa riga, in tutte
+le sette tabelle: le colonne le rifà da zero `test_indice.js` partendo dai dati grezzi, quindi la
+catena arriva ai dati. Più ciò che esiste solo sul telefono: il reparto di partenza (quello con
+più partite, sommate dalla colonna), un reparto visibile per tocco, i conti sui pulsanti anche
+con il minimo a 10, il pulsante della tecnica su tutte le 71 righe.
 
 ## L'identità dei giocatori è il nome, non l'id
 

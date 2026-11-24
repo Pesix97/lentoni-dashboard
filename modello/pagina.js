@@ -2018,12 +2018,25 @@ function chiudiSceltaStat(){
 function collegaRigheTelefono(tbody){
   if(!tbody) return;
   tbody.addEventListener("click", e => {
-    if(!sulTelefono() || e.target.closest(".tel-scheda")) return;
+    if(!sulTelefono() || e.target.closest(".tel-scheda, .tel-tec, .tec-apri")) return;
     const tr = e.target.closest("tr");
     if(tr && tr.querySelector(".tel-riga")) tr.classList.toggle("aperta");
   });
 }
 
+// Indice di Forza sul telefono (18/11/2026): stessa riga di Giocatori - posizione, nome, una
+// riga sotto, il numero a destra - e al tocco le tessere. Il link della tecnica non ha un
+// riquadro suo: apre quello della colonna, che test_tecnica.js controlla gia'.
+function celleForza(o){
+  return `<td class="tel-riga"><span class="tel-rango">${o.rango}</span>`
+    + `<span class="tel-chi"><span class="pname">${o.nome}</span><span class="tel-sotto">${o.sotto}</span></span>`
+    + `<span class="tel-valore"><b>${o.valore}</b>${o.piccolo ? `<span>${o.piccolo}</span>` : ""}</span>`
+    + `<span class="tel-freccia" aria-hidden="true"></span></td>`
+    + `<td class="tel-dettaglio"><div class="tel-tessere">${o.tessere.map(([e, v]) =>
+        `<div class="tel-tessera"><span>${e}</span><b>${v}</b></div>`).join("")}</div>`
+    + `<button type="button" class="tel-tec" data-tec="${o.tec}">Come si compone la Tecnica</button>`
+    + `<button type="button" class="player-link tel-scheda" data-player="${o.nome}">Apri scheda completa</button></td>`;
+}
 let rosterSort = { key: "goals", dir: -1 };
 const colonneAttive = new Set();
 const DEFS_ROSA = Object.fromEntries(STAT_DEFS.map(d => [d.key, d]));
@@ -2832,6 +2845,7 @@ disegnaQuando("home", function initShare(){
 (function renderPowerRanking(){
   const podiumEl = document.getElementById("powerPodium");
   const tbody = document.querySelector("#powerTable tbody");
+  collegaRigheTelefono(tbody);
   const roster = DATA.roster || [];
   if(roster.length === 0){
     podiumEl.innerHTML = "";
@@ -2857,6 +2871,11 @@ disegnaQuando("home", function initShare(){
     return labels[best];
   }
 
+  function tessereForza(s){
+    return [["Storico", s.historicScore.toFixed(1)], ["Forma", s.formAvailable ? s.formScore.toFixed(1) : "-"],
+      ["Media", s.r.rating_ave], ["G+A/partita", s.contrib.toFixed(2)],
+      ["Tecnica", s.grezziMescolati.tech.toFixed(0)], ["MOTM%", `${s.motmRate.toFixed(0)}%`]];
+  }
   function deltaCell(s){
     if(!s.formAvailable) return '<span class="trend-flat" title="Poche partite recenti">solo storico</span>';
     const d = s.delta;
@@ -2954,6 +2973,9 @@ disegnaQuando("home", function initShare(){
           <td data-label="G+A/partita">${s.contrib.toFixed(2)}</td>
           <td data-label="Tecnica"><span class="tec-apri" data-tec="g-${s.r.player_name}">${s.grezziMescolati.tech.toFixed(0)}</span></td>
           <td data-label="MOTM%">${s.motmRate.toFixed(0)}%</td>
+          ${celleForza({ rango: "–", nome: s.r.player_name, valore: "—", piccolo: "fuori",
+            sotto: `${gruppoBadge(s.r.gruppo, s.r.gruppo_da_assegnare)}<span class="tel-pg">${motivoBreve}</span>`,
+            tec: `g-${s.r.player_name}`, tessere: tessereForza(s) })}
         </tr>
         ${dettaglioTecnicaMista(s.tecnica, s.r.gruppo, 11).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-g-${s.r.player_name}"`)}`;
       }
@@ -2972,6 +2994,9 @@ disegnaQuando("home", function initShare(){
           <td data-label="G+A/partita">${s.contrib.toFixed(2)}</td>
           <td data-label="Tecnica"><span class="tec-apri" data-tec="g-${s.r.player_name}">${s.grezziMescolati.tech.toFixed(0)}</span></td>
           <td data-label="MOTM%">${s.motmRate.toFixed(0)}%</td>
+          ${celleForza({ rango: i + 1, nome: s.r.player_name, valore: s.blendedScore.toFixed(1), piccolo: deltaCell(s),
+            sotto: `${gruppoBadge(s.r.gruppo, s.r.gruppo_da_assegnare)}<span class="tel-pg">${s.formAvailable ? `forma ${s.formScore.toFixed(1)}` : "solo storico"}</span>`,
+            tec: `g-${s.r.player_name}`, tessere: tessereForza(s) })}
         </tr>
         ${dettaglioTecnicaMista(s.tecnica, s.r.gruppo, 11).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-g-${s.r.player_name}"`)}
       `;
@@ -3033,6 +3058,15 @@ disegnaQuando("home", function initShare(){
   let minMatches = 1;   // default: mostra tutti, anche chi ha una sola presenza nel ruolo
 
   const MEDALS = ["🥇", "🥈", "🥉"];
+  let repartoTel = null;
+  boardsEl.addEventListener("click", e => {
+    const b = e.target.closest(".tel-reparti [data-reparto]");
+    if(!b) return;
+    repartoTel = b.dataset.reparto;
+    boardsEl.querySelectorAll("[data-reparto]").forEach(x => {
+      x.classList.toggle(x.classList.contains("filter-btn") ? "active" : "tel-scelto", x.dataset.reparto === repartoTel);
+    });
+  });
 
   function renderFilters(){
     filtersEl.innerHTML = MIN_OPTIONS.map(n =>
@@ -3046,7 +3080,7 @@ disegnaQuando("home", function initShare(){
     const label = GROUP_LABELS[group] || group;
     const icon = GROUP_ICONS[group] || "•";
     if(ranked.length === 0){
-      return `<div class="panel" style="margin-bottom:16px;">
+      return `<div class="panel forza-reparto${group === repartoTel ? " tel-scelto" : ""}" data-reparto="${group}" style="margin-bottom:16px;">
         <h3 style="margin:0 0 8px; font-size:15px;">${icon} ${label}</h3>
         <div class="empty">Nessun giocatore con almeno ${minMatches} ${minMatches === 1 ? "partita" : "partite"} in questo ruolo.</div>
       </div>`;
@@ -3087,6 +3121,12 @@ disegnaQuando("home", function initShare(){
         <td data-label="G+A/partita">${a.contrib.toFixed(2)}</td>
         <td data-label="Tecnica"><span class="tec-apri" data-tec="r-${group}-${a.player_name}">${a.techEff.toFixed(0)}</span></td>
         <td data-label="MOTM%">${a.motmRate.toFixed(0)}%</td>
+        ${celleForza({ rango: !rankable || !inClassifica ? "–" : i + 1, nome: a.player_name,
+          valore: !rankable ? "n/d" : inClassifica ? a.score.toFixed(1) : "—", piccolo: !rankable || inClassifica ? "" : "poche partite",
+          sotto: `${a.games} ${a.games === 1 ? "partita" : "partite"} qui · ${a.sumGoals} gol · ${a.sumAssists} assist`,
+          tec: `r-${group}-${a.player_name}`,
+          tessere: [["Media", a.ratingAve.toFixed(2)], ["G+A/partita", a.contrib.toFixed(2)], ["Tecnica", a.techEff.toFixed(0)],
+            ["MOTM%", `${a.motmRate.toFixed(0)}%`], ["Gol", a.sumGoals], ["Assist", a.sumAssists]] })}
       </tr>
       ${dettaglioTecnica(a.passaggi, a.contrasti, a.tiro, group, 10, { passaggi: a.sumPassAttempts, contrasti: a.sumTackleAttempts, tiro: a.sumShots, difesa: a.partite90Difesa }, a.difesa).replace('class="match-detail tecnica-detail"', `class="match-detail tecnica-detail" id="tec-r-${group}-${a.player_name}"`)}`;
     }).join("");
@@ -3119,7 +3159,7 @@ disegnaQuando("home", function initShare(){
          una differenza di qualche punto qui non vuol dire niente. Le statistiche restano reali.</div>`
       : "";
 
-    return `<div class="panel" style="margin-bottom:16px;">
+    return `<div class="panel forza-reparto${group === repartoTel ? " tel-scelto" : ""}" data-reparto="${group}" style="margin-bottom:16px;">
       <h3 style="margin:0 0 10px; font-size:16px; font-weight:600;">${label} <span class="h2-sub">${ranked.length} ${ranked.length === 1 ? "giocatore" : "giocatori"}</span></h3>
       ${notaPochiDati}${notaIgnorate}${soloNote}
       <div class="table-wrap">
@@ -3133,9 +3173,17 @@ disegnaQuando("home", function initShare(){
 
   function draw(){
     const used = GROUP_ORDER.filter(g => ALL.some(a => a.group === g));
+    // Sul telefono un reparto alla volta (18/11/2026); si parte da quello con piu' partite,
+    // che e' il piu' solido, e la scelta resta quando cambia il minimo di partite.
+    const partiteDi = g => ALL.filter(a => a.group === g).reduce((t, a) => t + a.games, 0);
+    if(!used.includes(repartoTel)) repartoTel = used.slice().sort((x, y) => partiteDi(y) - partiteDi(x))[0] || null;
+    const conti = Object.fromEntries(used.map(g => [g, ALL.filter(a => a.group === g && a.games >= minMatches).length]));
     boardsEl.innerHTML = used.length === 0
       ? `<div class="panel"><div class="empty">Nessuna partita archiviata con un ruolo riconosciuto.</div></div>`
-      : used.map(g => groupTable(g, rankGroup(ALL.filter(a => a.group === g && a.games >= minMatches)))).join("");
+      : `<div class="filter-bar tel-reparti" role="tablist">${used.map(g =>
+          `<button type="button" class="filter-btn${g === repartoTel ? " active" : ""}" data-reparto="${g}" role="tab">${GROUP_LABELS[g] || g} <span>${conti[g]}</span></button>`).join("")}</div>`
+        + used.map(g => groupTable(g, rankGroup(ALL.filter(a => a.group === g && a.games >= minMatches)))).join("");
+    boardsEl.querySelectorAll("tbody").forEach(collegaRigheTelefono);
 
     const rosterNames = (DATA.roster || []).map(r => r.player_name);
     const withMatches = new Set(ALL.map(a => a.player_name));
@@ -5284,6 +5332,13 @@ document.addEventListener("click", (e) => {
   }
   if(e.target.id === "playerModalOverlay"){
     closePlayerCard();
+  }
+  // Il pulsante della tecnica sul telefono (Indice di Forza) tocca la cella della sua riga.
+  const telTec = e.target.closest && e.target.closest(".tel-tec");
+  if(telTec){
+    const cella = [...document.querySelectorAll(".tec-apri")].find(x => x.dataset.tec === telTec.dataset.tec);
+    if(cella) cella.click();
+    return;
   }
   // Apertura del dettaglio della tecnica. Delegato invece di agganciato riga per riga,
   // perche' le tabelle si ridisegnano ad ogni cambio di filtro e i gestori andrebbero persi.
