@@ -391,16 +391,20 @@ class TestDashboard(BaseConArchivio):
         Il caricamento deve ripiegare sui ruoli EA e generare comunque la dashboard,
         altrimenti un errore di battitura interromperebbe la pipeline ad ogni giro.
         """
-        originale = (QUI / "roles.json").read_text(encoding="utf-8")
+        # In byte, non in testo: su Windows write_text trasforma ogni a capo in CRLF e il
+        # file vero del repository restava "modificato" dopo ogni giro di test.
+        originale = (QUI / "roles.json").read_bytes()
         rotto = json.loads(originale)
         rotto["giocatori"] = {"Tizio": ["questo", "non", "va"]}
         try:
-            (QUI / "roles.json").write_text(json.dumps(rotto), encoding="utf-8")
+            (QUI / "roles.json").write_bytes(json.dumps(rotto).encode("utf-8"))
             html = self._genera(self.tmp / "rotto.html")
             self.assertIn('id="forza"', html)
             self.assertIn('"skill_rating"', html)
         finally:
-            (QUI / "roles.json").write_text(originale, encoding="utf-8")
+            (QUI / "roles.json").write_bytes(originale)
+        self.assertEqual((QUI / "roles.json").read_bytes(), originale,
+                         "roles.json non e' tornato identico byte per byte")
 
     def test_la_dashboard_contiene_i_dati_essenziali(self):
         """Gli stessi controlli che giro.sh fa prima di pubblicare."""
