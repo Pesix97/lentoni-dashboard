@@ -1979,3 +1979,12 @@ Dettagli nel README, «Indice di Forza sul telefono». Controlli in `test_telefo
 fallire su otto rotture. Restano, sul telefono: Vittorie e sconfitte, Scheda osservatore,
 Riepilogo (il grafico) e Formazione.
 
+## Le ultime voci di «Altro» sul telefono (24/11/2026)
+
+Peppe ha chiesto di farle tutte insieme («fai tutto adesso»), senza bozza per ciascuna: Vittorie
+e sconfitte, Scheda osservatore, Riepilogo (grafico dei margini sostituito da un elenco a barre
+solo sul telefono) e Formazione. Dettagli e misure nel README, «Le ultime voci di Altro sul
+telefono». Cinque controlli nuovi in `test_telefono.js`, visti fallire su dieci rotture; quella
+della «stima» in Formazione solo dopo aver aggiunto la copia della pagina senza difensori.
+Con queste, tutte le voci del menu sono state guardate sul telefono.
+

@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-1aSSoxTVpu+9IK0U8hRtxY/cyDpz4I7XwfUp1i7tBss='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Mh46P6mNpKqpV9EL5Xy7UU3gmJ7tj51ya10FkCzQGQQ=' 'sha256-kee/lWmZwWJEHfFmEw8T3nA0CcmSAXN8xzaC0DVwyp0='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lentoni — Club Dashboard</title>
@@ -1135,6 +1135,49 @@ body.sheet-aperto{overflow:hidden;}
     background:none; color:var(--accent); font-size:13.5px; font-weight:500; font-family:inherit; cursor:pointer;}
   #powerTable tr.match-detail.open > td, #roleBoards tr.match-detail.open > td{display:block;}
 }
+
+/* ---- Telefono: Vittorie e sconfitte, Scheda osservatore, Riepilogo, Formazione (24/11/2026) ----
+   Ultime voci di «Altro». Stesso schema: celle .tel-* in piu', visibili solo sotto i 700px.
+   Vedi README, «Le ultime voci di Altro sul telefono». */
+.tel-diag, .tel-diag-testa, .tel-oss, .tel-formazione, .tel-margini{display:none;}
+
+@media (max-width:700px){
+  #diagnosiTabella tbody tr, .table-wrap table.responsive-table.oss-tabella tbody tr, #formationTable tbody tr{
+    display:block; padding:0; margin:0; background:none; border:0; border-radius:0; border-bottom:1px solid var(--border);
+  }
+  #diagnosiTabella tbody tr:last-child, .table-wrap table.responsive-table.oss-tabella tbody tr:last-child, #formationTable tbody tr:last-child{border-bottom:0;}
+  #diagnosiTabella tbody td, .table-wrap table.responsive-table.oss-tabella tbody td, #formationTable tbody td{display:none;}
+  #diagnosiTabella tbody td.tel-diag, .table-wrap table.responsive-table.oss-tabella tbody td.tel-oss, #formationTable tbody td.tel-formazione{
+    display:flex; align-items:center; gap:10px; padding:9px 2px; border:0; text-align:left;
+  }
+  #diagnosiTabella td.tel-diag::before, .oss-tabella td.tel-oss::before, #formationTable td.tel-formazione::before{content:none;}
+  .tel-eti{font-size:14.5px; font-weight:600;}
+  .tel-diag .tel-sotto{font-size:12px;}
+
+  .tel-diag-testa{display:flex; align-items:center; gap:10px; padding:0 2px 6px; border-bottom:1px solid var(--border); font-size:12px;}
+  .tel-diag-testa span{flex:1;}
+  .tel-tre, .tel-diag-testa{--col:46px;}
+  .tel-tre{display:flex; flex:none;}
+  .tel-tre b, .tel-diag-testa b{width:var(--col); text-align:right; font-size:14.5px; font-weight:600;}
+  .tel-diag-testa b{font-size:12px;}
+
+  .tel-neutra{font-size:11px; font-weight:400; color:var(--muted);}
+  .oss-tabella .tel-valore b{font-size:17px;}
+
+  .tel-ruolo{flex:none; width:78px; font-size:11.5px; color:var(--muted);}
+  #formationTable .tel-chi .pname{font-size:15px;}
+
+  #chartResultsDist{display:none !important;}
+  .tel-margini{display:flex; flex-direction:column; gap:10px;}
+  .tel-margine-testa{display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;}
+  .tel-margine-testa b{font-weight:600;}
+  .tel-margine-traccia{height:8px; border-radius:4px; background:var(--panel-2); overflow:hidden;}
+  .tel-margine-traccia div{height:100%; border-radius:4px;}
+  #wrappedGrid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;}
+  #wrappedGrid .wrapped-card{padding:10px;}
+  #wrappedGrid .wrapped-card .label{font-size:12px;}
+  #wrappedGrid .wrapped-card .value{font-size:15px;}
+}
 </style>
 </head>
 <!-- La piattaforma del club attivo non si vede in pagina (10/11/2026: l'intestazione e' solo il nome), ma resta dichiarata qui, presa da club.json. -->
@@ -1610,6 +1653,7 @@ body.sheet-aperto{overflow:hidden;}
   <div class="panel" style="margin-top:16px;">
     <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Distribuzione dei risultati per margine di gol</div>
     <canvas id="chartResultsDist"></canvas>
+    <div id="telMargini" class="tel-margini"></div>
   </div>
 </section>
 
@@ -1662,6 +1706,7 @@ body.sheet-aperto{overflow:hidden;}
   <div id="diagnosiLettura"></div>
   <div class="panel">
     <div class="table-wrap">
+      <div class="tel-diag-testa" aria-hidden="true"><span></span><b class="diag-win">V</b><b>P</b><b class="diag-loss">S</b></div>
       <table id="diagnosiTabella" class="responsive-table">
         <thead><tr><th>Indicatore</th><th>Vittoria</th><th>Pareggio</th><th>Sconfitta</th><th>Differenza</th></tr></thead>
         <tbody></tbody>
@@ -5282,6 +5327,10 @@ function computeOutfieldLineup(){
       <td data-label="Partite nel ruolo">${e.games}</td>
       <td data-label="Media voto">${e.ratingAve.toFixed(2)}</td>
       <td data-label="Fonte">${e.fallback ? "stima (Indice di Forza generale)" : "dati di ruolo reali"}</td>
+      <td class="tel-formazione"><span class="tel-ruolo">${e.roleLabel}</span>`
+      + `<span class="tel-chi"><span class="player-link pname" data-player="${e.player_name}">${e.player_name}</span>`
+      + `<span class="tel-sotto">${e.games} ${e.games === 1 ? "partita" : "partite"} · media ${e.ratingAve.toFixed(2)}${e.fallback ? " · stima" : ""}</span></span>`
+      + `<span class="tel-valore"><b>${e.score.toFixed(1)}</b></span></td>
     </tr>
   `).join("");
 })();
@@ -5666,6 +5715,14 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
     { label: "Vittoria schiacciante (+3 o più)", test: d => d >= 3, color: "#1f8f56" },
   ];
   const counts = buckets.map(b => matches.filter(m => b.test(m.goals_for - m.goals_against)).length);
+  // Sul telefono le sette etichette non stanno sotto le barre e si sovrappongono: lo stesso
+  // dato in righe, una per margine, con la barra in proporzione alla piu' alta (24/11/2026).
+  const massimo = Math.max(...counts, 1);
+  const lista = document.getElementById("telMargini");
+  if(lista) lista.innerHTML = buckets.map((b, i) => `<div class="tel-margine" data-n="${counts[i]}">
+    <div class="tel-margine-testa"><span>${b.label}</span><b>${counts[i]}</b></div>
+    <div class="tel-margine-traccia"><div style="width:${(100 * counts[i] / massimo).toFixed(1)}%; background:${b.color};"></div></div>
+  </div>`).join("");
 
   new Chart(ctx, {
     type: "bar",
@@ -5915,6 +5972,8 @@ function giornoBreve(iso){
       <td data-label="Pareggio">${b == null ? "—" : v.f(b)}</td>
       <td data-label="Sconfitta" class="diag-loss">${v.f(c)}</td>
       <td data-label="Differenza" style="font-size:12px;">${diff}</td>
+      <td class="tel-diag"><span class="tel-chi"><span class="tel-eti">${v.lab}</span>${diff ? `<span class="tel-sotto">${diff}</span>` : ""}</span>`
+      + `<span class="tel-tre"><b class="diag-win">${v.f(a)}</b><b>${b == null ? "—" : v.f(b)}</b><b class="diag-loss">${v.f(c)}</b></span></td>
     </tr>`;
   }).join("");
 
@@ -6391,6 +6450,9 @@ function giornoBreve(iso){
           <span style="color:${col}; font-size:12px;">${sc.testo}</span>
           <div style="height:4px; border-radius:2px; background:${col}; opacity:.5; width:${larghezza}%; margin-top:3px;"></div>
         </td>
+        <td class="tel-oss"><span class="tel-chi"><span class="tel-eti">${d.lab}${d.neutra ? ` <span class="tel-neutra">né bene né male</span>` : ""}</span>`
+        + `<span class="tel-sotto">rif. ${d.f(base)} · <span style="color:${col};">${sc.testo}</span></span></span>`
+        + `<span class="tel-valore"><b>${d.f(suo)}</b>${scarso ? `<span>pochi dati</span>` : ""}</span></td>
       </tr>`;
     }).join("");
 
@@ -6404,7 +6466,7 @@ function giornoBreve(iso){
         Confronto con ${rif.etichetta}.${g.s.n < 15 ? ` Campione ridotto: con ${g.s.n} partite qualche scarto può essere casuale.` : ""}
       </div>
       <div class="table-wrap">
-        <table class="responsive-table">
+        <table class="responsive-table oss-tabella">
           <thead><tr><th>Indicatore</th><th>${rif.etichettaAttuale}</th><th>Riferimento</th><th>Scarto</th></tr></thead>
           <tbody>${righe}</tbody>
         </table>

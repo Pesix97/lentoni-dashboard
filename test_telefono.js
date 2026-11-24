@@ -75,7 +75,7 @@ function totale(per) {
 }
 
 const nulla = () => {};
-const dom = new JSDOM(html.replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/, ""), {
+const apriPagina = testo => new JSDOM(testo.replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/, ""), {
   runScripts: "dangerously", pretendToBeVisual: true, url: "https://pesix97.github.io/lentoni-dashboard/",
   beforeParse(w) {
     w.Chart = function () { return { destroy() {}, update() {} }; }; w.Chart.register = nulla;
@@ -91,6 +91,7 @@ const dom = new JSDOM(html.replace(/<script id="lib-chartjs">[\s\S]*?<\/script>/
     w.matchMedia = q => ({ matches: /max-width:\s*700px/.test(q), media: q, addEventListener: nulla, removeEventListener: nulla, addListener: nulla, removeListener: nulla });
   },
 });
+const dom = apriPagina(html);
 const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
 
 (async () => {
@@ -565,6 +566,130 @@ const T = el => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
     clic(tr.querySelector(".tel-riga"));
   });
   verifica(`Indice di Forza: il link della tecnica apre il riquadro della sua riga (${conTec.length} righe)`, errTec);
+
+  // ---- Vittorie e sconfitte (24/11/2026) ----
+  // Partite, gol fatti e subiti e porta inviolata si rifanno qui da DATA.matches; le altre
+  // voci (tiri, passaggi, contrasti, voto) devono dire i numeri delle colonne della stessa riga.
+  const errDiag = [];
+  const esitoDi = m => (m.win ? "V" : m.tie ? "P" : "S");
+  const gruppiEsito = { V: [], P: [], S: [] };
+  partite.forEach(m => gruppiEsito[esitoDi(m)].push(m));
+  const media = (arr, f) => arr.reduce((t, m) => t + f(m), 0) / arr.length;
+  const attesiDiag = {
+    "Partite": ["V", "P", "S"].map(k => String(gruppiEsito[k].length)),
+    "Gol fatti": ["V", "P", "S"].map(k => gruppiEsito[k].length ? media(gruppiEsito[k], m => m.goals_for).toFixed(1) : "—"),
+    "Gol subiti": ["V", "P", "S"].map(k => gruppiEsito[k].length ? media(gruppiEsito[k], m => m.goals_against).toFixed(1) : "—"),
+    "Porta inviolata": ["V", "P", "S"].map(k => gruppiEsito[k].length ? Math.round(100 * media(gruppiEsito[k], m => (m.goals_against === 0 ? 1 : 0))) + "%" : "—"),
+  };
+  const righeDiag = [...d.querySelectorAll("#diagnosiTabella tbody tr")];
+  if (righeDiag.length === 0) errDiag.push("nessuna riga");
+  const visteDiag = new Set();
+  righeDiag.forEach(tr => {
+    const eti = T(tr.querySelector(".tel-diag .tel-eti")), lab = cella(tr, "Indicatore");
+    if (eti !== lab) errDiag.push(`riga "${eti}", colonna "${lab}"`);
+    const tre = [...tr.querySelectorAll(".tel-tre b")].map(T);
+    const colonne = [cella(tr, "Vittoria"), cella(tr, "Pareggio"), cella(tr, "Sconfitta")];
+    if (tre.join("|") !== colonne.join("|")) errDiag.push(`${lab}: telefono ${tre.join(" ")}, colonne ${colonne.join(" ")}`);
+    if (attesiDiag[lab]) { visteDiag.add(lab); if (tre.join("|") !== attesiDiag[lab].join("|")) errDiag.push(`${lab}: ${tre.join(" ")}, dai dati ${attesiDiag[lab].join(" ")}`); }
+    const diff = cella(tr, "Differenza"), sotto = T(tr.querySelector(".tel-diag .tel-sotto"));
+    if (diff !== sotto) errDiag.push(`${lab}: differenza "${sotto}", colonna "${diff}"`);
+  });
+  Object.keys(attesiDiag).forEach(k => { if (!visteDiag.has(k)) errDiag.push(`manca la riga "${k}"`); });
+  verifica(`Vittorie e sconfitte: le righe da telefono contro i dati grezzi e le colonne (${righeDiag.length} voci)`, errDiag);
+
+  // ---- Scheda osservatore (24/11/2026) ----
+  // Ogni giocatore, con ogni metro di confronto: la riga da telefono dice il suo numero, il
+  // riferimento e lo scarto delle colonne.
+  const errOss = [];
+  let casiOss = 0, righeOss = 0;
+  const nomiOss = [...d.querySelectorAll("#ossGiocatori [data-n]")].map(b => b.dataset.n);
+  const metriOss = [...d.querySelectorAll("#ossMetro [data-m]")].map(b => b.dataset.m);
+  if (!nomiOss.length || !metriOss.length) errOss.push(`giocatori ${nomiOss.length}, metri ${metriOss.length}`);
+  for (const n of nomiOss) {
+    clic(d.querySelector(`#ossGiocatori [data-n="${n}"]`));
+    for (const m of metriOss) {
+      clic(d.querySelector(`#ossMetro [data-m="${m}"]`));
+      const righeT = [...d.querySelectorAll("#ossConfronto .oss-tabella tbody tr")];
+      if (!righeT.length) continue;   // confronto non possibile: la pagina lo dice a parole
+      casiOss++;
+      righeT.forEach(tr => {
+        righeOss++;
+        const tds = [...tr.querySelectorAll("td[data-label]")];
+        const lab = T(tds[0]).replace(/ \(né bene né male\)$/, "");
+        const suo = T(tds[1]).replace(/ · pochi dati$/, "").replace(/·\s*pochi dati$/, "").trim();
+        const base = T(tds[2]), scarto = T(tds[3].querySelector("span"));
+        const tel = tr.querySelector(".tel-oss");
+        if (!tel) { errOss.push(`${n}/${m} ${lab}: manca la riga da telefono`); return; }
+        if (T(tel.querySelector(".tel-eti")).replace(/ né bene né male$/, "") !== lab) errOss.push(`${n}/${m}: "${T(tel.querySelector(".tel-eti"))}" contro "${lab}"`);
+        if (T(tel.querySelector(".tel-valore b")) !== suo) errOss.push(`${n}/${m} ${lab}: ${T(tel.querySelector(".tel-valore b"))}, colonna ${suo}`);
+        if (T(tel.querySelector(".tel-sotto")) !== `rif. ${base} · ${scarto}`) errOss.push(`${n}/${m} ${lab}: "${T(tel.querySelector(".tel-sotto"))}", colonne rif. ${base} · ${scarto}`);
+        if (/pochi dati/.test(T(tds[1])) !== /pochi dati/.test(T(tel.querySelector(".tel-valore")))) errOss.push(`${n}/${m} ${lab}: "pochi dati" non coincide`);
+      });
+    }
+  }
+  if (casiOss === 0) errOss.push("nessun confronto controllato");
+  verifica(`Scheda osservatore: ogni riga da telefono contro le colonne (${nomiOss.length} giocatori, ${casiOss} confronti, ${righeOss} righe)`, errOss);
+
+  // ---- Riepilogo: margini di gol (24/11/2026) ----
+  // Il grafico non si legge sul telefono e al suo posto c'e' un elenco: i conteggi si rifanno
+  // da DATA.matches, la barra piu' lunga e' il margine piu' frequente.
+  const errMarg = [];
+  w.showPage("riepilogo");
+  await new Promise(r => setTimeout(r, 200));
+  const fasceMarg = [["Sconfitta pesante", x => x <= -3], ["Sconfitta netta", x => x === -2], ["Sconfitta di misura", x => x === -1],
+    ["Pareggio", x => x === 0], ["Vittoria di misura", x => x === 1], ["Vittoria netta", x => x === 2], ["Vittoria schiacciante", x => x >= 3]];
+  const contiMarg = fasceMarg.map(([, f]) => partite.filter(m => f(m.goals_for - m.goals_against)).length);
+  const righeMarg = [...d.querySelectorAll("#telMargini .tel-margine")];
+  if (righeMarg.length !== fasceMarg.length) errMarg.push(`${righeMarg.length} righe, attese ${fasceMarg.length}`);
+  const maxMarg = Math.max(...contiMarg, 1);
+  righeMarg.forEach((r, i) => {
+    if (!fasceMarg[i]) return;
+    const eti = T(r.querySelector(".tel-margine-testa span")), n = T(r.querySelector(".tel-margine-testa b"));
+    if (!eti.startsWith(fasceMarg[i][0])) errMarg.push(`riga ${i + 1}: "${eti}", attesa ${fasceMarg[i][0]}`);
+    if (n !== String(contiMarg[i])) errMarg.push(`${fasceMarg[i][0]}: ${n}, dai dati ${contiMarg[i]}`);
+    const larg = parseFloat(r.querySelector(".tel-margine-traccia div").style.width);
+    if (Math.abs(larg - 100 * contiMarg[i] / maxMarg) > 0.06) errMarg.push(`${fasceMarg[i][0]}: barra ${larg}%, attesa ${(100 * contiMarg[i] / maxMarg).toFixed(1)}%`);
+  });
+  verifica("Riepilogo: i margini di gol da telefono contro i dati grezzi", errMarg);
+
+  // ---- Formazione (24/11/2026) ----
+  const errForm = [];
+  const righeForm = [...d.querySelectorAll("#formationTable tbody tr")];
+  if (righeForm.length === 0) errForm.push("nessuna riga");
+  const sulCampo = new Set([...d.querySelectorAll("#pitchField .pitch-player[data-player]")].map(x => x.dataset.player));
+  righeForm.forEach(tr => {
+    const tel = tr.querySelector(".tel-formazione");
+    const g = cella(tr, "Giocatore");
+    if (!tel) { errForm.push(`${g}: manca la riga da telefono`); return; }
+    if (T(tel.querySelector(".pname")) !== g) errForm.push(`riga "${T(tel.querySelector(".pname"))}", colonna "${g}"`);
+    if (T(tel.querySelector(".tel-ruolo")) !== cella(tr, "Ruolo")) errForm.push(`${g}: ruolo ${T(tel.querySelector(".tel-ruolo"))}, colonna ${cella(tr, "Ruolo")}`);
+    if (T(tel.querySelector(".tel-valore b")) !== cella(tr, "Indice")) errForm.push(`${g}: indice ${T(tel.querySelector(".tel-valore b"))}, colonna ${cella(tr, "Indice")}`);
+    const n = cella(tr, "Partite nel ruolo");
+    const sottoAtteso = `${n} ${n === "1" ? "partita" : "partite"} · media ${cella(tr, "Media voto")}${/stima/.test(cella(tr, "Fonte")) ? " · stima" : ""}`;
+    if (T(tel.querySelector(".tel-sotto")) !== sottoAtteso) errForm.push(`${g}: "${T(tel.querySelector(".tel-sotto"))}", atteso "${sottoAtteso}"`);
+    if (!sulCampo.has(g)) errForm.push(`${g} in elenco ma non sul campo`);
+  });
+  if (righeForm.length !== sulCampo.size) errForm.push(`${righeForm.length} in elenco, ${sulCampo.size} sul campo`);
+  verifica(`Formazione: l'elenco da telefono contro le colonne e il campo (${righeForm.length} giocatori)`, errForm);
+
+  // Oggi nessun posto e' riempito a stima, e la parola "stima" sotto il nome resterebbe senza
+  // prova. Una seconda copia della pagina in cui nessuna partita risulta giocata in difesa:
+  // i tre posti dietro si riempiono con l'Indice di Forza generale, cioe' a stima.
+  const errStima = [];
+  const datiStima = JSON.parse(JSON.stringify(DATA));
+  Object.values(datiStima.matchPlayers || {}).forEach(lista => lista.forEach(p => { if (p.pos === "defender") p.pos = "goalkeeper"; }));
+  // Le posizioni si ricalcolano: piu' sopra la pagina e' gia' stata riscritta (la serata mista).
+  const iniS = html.indexOf("const DATA = ") + "const DATA = ".length;
+  const fineS = iniS + html.slice(iniS).search(/;\r?\n/);
+  const domStima = apriPagina(html.slice(0, iniS) + JSON.stringify(datiStima).replace(/</g, "\\u003c") + html.slice(fineS));
+  await new Promise(r => setTimeout(r, 1500));
+  const righeStima = [...domStima.window.document.querySelectorAll("#formationTable tbody tr")].filter(tr => /stima/.test(cella(tr, "Fonte")));
+  if (righeStima.length === 0) errStima.push("la copia senza difensori non ha prodotto nessuna stima: il caso non e' provato");
+  righeStima.forEach(tr => {
+    if (!T(tr.querySelector(".tel-formazione .tel-sotto")).endsWith("· stima")) errStima.push(`${cella(tr, "Giocatore")}: a stima ma sotto il nome "${T(tr.querySelector(".tel-formazione .tel-sotto"))}"`);
+  });
+  domStima.window.close();
+  verifica(`Formazione: chi e' messo a stima lo dice anche sul telefono (${righeStima.length} posti, in una copia senza difensori)`, errStima);
 
   console.log(falliti === 0 ? "\nLa vista da telefono torna con i dati." : `\n${falliti} controlli falliti.`);
   process.exit(falliti === 0 ? 0 : 1);

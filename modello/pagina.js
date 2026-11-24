@@ -3522,6 +3522,10 @@ function computeOutfieldLineup(){
       <td data-label="Partite nel ruolo">${e.games}</td>
       <td data-label="Media voto">${e.ratingAve.toFixed(2)}</td>
       <td data-label="Fonte">${e.fallback ? "stima (Indice di Forza generale)" : "dati di ruolo reali"}</td>
+      <td class="tel-formazione"><span class="tel-ruolo">${e.roleLabel}</span>`
+      + `<span class="tel-chi"><span class="player-link pname" data-player="${e.player_name}">${e.player_name}</span>`
+      + `<span class="tel-sotto">${e.games} ${e.games === 1 ? "partita" : "partite"} · media ${e.ratingAve.toFixed(2)}${e.fallback ? " · stima" : ""}</span></span>`
+      + `<span class="tel-valore"><b>${e.score.toFixed(1)}</b></span></td>
     </tr>
   `).join("");
 })();
@@ -3906,6 +3910,14 @@ disegnaQuando("riepilogo", function renderResultsDistribution(){
     { label: "Vittoria schiacciante (+3 o più)", test: d => d >= 3, color: "#1f8f56" },
   ];
   const counts = buckets.map(b => matches.filter(m => b.test(m.goals_for - m.goals_against)).length);
+  // Sul telefono le sette etichette non stanno sotto le barre e si sovrappongono: lo stesso
+  // dato in righe, una per margine, con la barra in proporzione alla piu' alta (24/11/2026).
+  const massimo = Math.max(...counts, 1);
+  const lista = document.getElementById("telMargini");
+  if(lista) lista.innerHTML = buckets.map((b, i) => `<div class="tel-margine" data-n="${counts[i]}">
+    <div class="tel-margine-testa"><span>${b.label}</span><b>${counts[i]}</b></div>
+    <div class="tel-margine-traccia"><div style="width:${(100 * counts[i] / massimo).toFixed(1)}%; background:${b.color};"></div></div>
+  </div>`).join("");
 
   new Chart(ctx, {
     type: "bar",
@@ -4155,6 +4167,8 @@ function giornoBreve(iso){
       <td data-label="Pareggio">${b == null ? "—" : v.f(b)}</td>
       <td data-label="Sconfitta" class="diag-loss">${v.f(c)}</td>
       <td data-label="Differenza" style="font-size:12px;">${diff}</td>
+      <td class="tel-diag"><span class="tel-chi"><span class="tel-eti">${v.lab}</span>${diff ? `<span class="tel-sotto">${diff}</span>` : ""}</span>`
+      + `<span class="tel-tre"><b class="diag-win">${v.f(a)}</b><b>${b == null ? "—" : v.f(b)}</b><b class="diag-loss">${v.f(c)}</b></span></td>
     </tr>`;
   }).join("");
 
@@ -4631,6 +4645,9 @@ function giornoBreve(iso){
           <span style="color:${col}; font-size:12px;">${sc.testo}</span>
           <div style="height:4px; border-radius:2px; background:${col}; opacity:.5; width:${larghezza}%; margin-top:3px;"></div>
         </td>
+        <td class="tel-oss"><span class="tel-chi"><span class="tel-eti">${d.lab}${d.neutra ? ` <span class="tel-neutra">né bene né male</span>` : ""}</span>`
+        + `<span class="tel-sotto">rif. ${d.f(base)} · <span style="color:${col};">${sc.testo}</span></span></span>`
+        + `<span class="tel-valore"><b>${d.f(suo)}</b>${scarso ? `<span>pochi dati</span>` : ""}</span></td>
       </tr>`;
     }).join("");
 
@@ -4644,7 +4661,7 @@ function giornoBreve(iso){
         Confronto con ${rif.etichetta}.${g.s.n < 15 ? ` Campione ridotto: con ${g.s.n} partite qualche scarto può essere casuale.` : ""}
       </div>
       <div class="table-wrap">
-        <table class="responsive-table">
+        <table class="responsive-table oss-tabella">
           <thead><tr><th>Indicatore</th><th>${rif.etichettaAttuale}</th><th>Riferimento</th><th>Scarto</th></tr></thead>
           <tbody>${righe}</tbody>
         </table>
