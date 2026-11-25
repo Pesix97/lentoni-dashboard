@@ -599,6 +599,51 @@ function puntiDaTesto(t, sinistra) {
     });
     verifica(`formazione tipo: partite nel ruolo contro i dati grezzi (${righeF.length} posti)`,
       righeF.length ? errF : ["nessun posto in tabella"]);
+
+    // L'indice scritto sul campo e in tabella (25/11/2026): stesso calcolo e stesse scale del
+    // «Reparto per reparto», ma sulle partite divise per posizione EA (il campo pos), con TUTTI
+    // quelli che ci hanno giocato (anche chi non e' in rosa: entra nella media del ruolo) e la
+    // tecnica senza pesi di reparto (quelli generici, cioe' dell'attacco). Rifatto qui da zero.
+    const errS = [];
+    const perPos = new Map();
+    MATCHES.forEach(m => righeDi(m).forEach(p => {
+      if (!["forward", "midfielder", "defender"].includes(p.pos)) return;
+      const k = p.player_name + "|" + p.pos;
+      if (!perPos.has(k)) perPos.set(k, { nome: p.player_name, pos: p.pos, righe: [] });
+      perPos.get(k).righe.push(p);
+    }));
+    const indicePos = {};
+    ["forward", "midfielder", "defender"].forEach(pos => {
+      const pool = [...perPos.values()].filter(a => a.pos === pos).map(a => {
+        const l = a.righe, k = l.length, sm = f => somma(l, p => p[f] || 0);
+        const val = { passaggi: sm("pass_attempts") ? sm("passes_made") / sm("pass_attempts") * 100 : 0,
+                      contrasti: sm("tackle_attempts") ? sm("tackles_made") / sm("tackle_attempts") * 100 : 0,
+                      tiro: sm("shots") ? sm("goals") / sm("shots") * 100 : 0, difesa: 0 };
+        const q = quote(val, { passaggi: sm("pass_attempts"), contrasti: sm("tackle_attempts"), tiro: sm("shots"), difesa: 0 });
+        return { nome: a.nome, games: k, rating: sm("rating") / k, contrib: (sm("goals") + sm("assists")) / k,
+                 motmPct: sm("mom") / k * 100, tech: tecnicaDa(q, null), disc: sm("red_cards") / k };
+      });
+      const n = pool.map(a => a.games);
+      const vv = { rating: versoLaMedia(pool.map(a => a.rating), n), contrib: versoLaMedia(pool.map(a => a.contrib), n),
+                   motmPct: versoLaMedia(pool.map(a => a.motmPct), n), tech: versoLaMedia(pool.map(a => a.tech), n),
+                   disc: versoLaMedia(pool.map(a => a.disc), n) };
+      pool.forEach((a, i) => { indicePos[a.nome + "|" + pos] = punteggio(voci({ rating: vv.rating[i], contrib: vv.contrib[i],
+        motmPct: vv.motmPct[i], tech: vv.tech[i], disc: vv.disc[i] })); });
+    });
+    let provati = 0;
+    righeF.forEach(tr => {
+      const c = l => T(tr.querySelector(`td[data-label="${l}"]`));
+      if (/stima/.test(c("Fonte"))) return;
+      const k = c("Giocatore") + "|" + POS[c("Ruolo")], atteso = indicePos[k];
+      provati++;
+      if (atteso === undefined) { errS.push(`${k}: non ricalcolabile`); return; }
+      if (Math.abs(num(c("Indice")) - atteso) > 0.051) errS.push(`${k}: tabella ${c("Indice")}, ricalcolato ${atteso.toFixed(2)}`);
+      const dot = [...fd.querySelectorAll("#pitchField .pitch-player")].find(x => x.dataset.player === c("Giocatore"));
+      const scritto = dot ? T(dot.querySelector(".dot")) : null;
+      if (scritto !== String(Math.round(atteso)) && Math.abs(Number(scritto) - atteso) > 0.501) errS.push(`${k}: sul campo ${scritto}, ricalcolato ${atteso.toFixed(2)}`);
+    });
+    verifica(`formazione tipo: l'indice scritto e' quello della scala dei reparti, rifatto dai dati grezzi (${provati} posti)`,
+      provati ? errS : ["nessun posto da provare"]);
   }
 
   console.log(falliti === 0 ? "\nOgni numero torna con il ricalcolo indipendente." : `\n${falliti} controlli falliti.`);

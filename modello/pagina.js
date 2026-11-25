@@ -3424,8 +3424,15 @@ function computeRoleScores(){
     const nMotm = normalize(pool.map(a => a.motmRate));
     const nTech = normalize(pool.map(a => a.techEff));
     const nDisc = normalize(pool.map(a => a.redRate));
+    // Il numero che si MOSTRA e' un altro (25/11/2026): stesso calcolo e stesse scale fisse del
+    // «Reparto per reparto», sulle stesse partite. Il minimo-massimo qui sotto serve solo a
+    // scegliere chi va nella casella; scritto sul campo, il primo del ruolo leggeva 100 e il
+    // secondo 55 per tre decimi di voto. Il MOTM qui e' una frazione, le scale lo vogliono in %.
+    const scala = new Map(rankGroup(pool.map(a => ({ ...a, motmRate: a.motmRate * 100 })))
+      .map(a => [a.player_name, a.score]));
     byRole[role] = pool.map((a, i) => ({
       ...a,
+      scoreScala: scala.get(a.player_name),
       score: Math.max(0, Math.min(100, 100 * (
         PESI_INDICE.rating * nRating[i] + PESI_INDICE.contrib * nContrib[i] + PESI_INDICE.motm * nMotm[i]
         + PESI_INDICE.tech * nTech[i] - PESI_INDICE.disc * nDisc[i]
@@ -3487,6 +3494,9 @@ function computeOutfieldLineup(){
   return lineup;
 }
 
+// Sul campo e in tabella: l'indice nel ruolo sulla scala dell'Indice di Forza. Chi e' a stima
+// ha gia' l'Indice di Forza generale, che sta sulla stessa scala.
+function indiceMostrato(e){ return e.fallback || e.scoreScala === undefined ? e.score : e.scoreScala; }
 (function renderFormation(){
   const lineup = computeOutfieldLineup();
   const pitchEl = document.getElementById("pitchField");
@@ -3498,7 +3508,7 @@ function computeOutfieldLineup(){
     const estBadge = entry.fallback ? `<div class="pscore est">stima</div>` : `<div class="pscore">${entry.games}p · ${entry.ratingAve.toFixed(2)}</div>`;
     return `
       <div class="pitch-player player-link" data-player="${entry.player_name}">
-        <div class="dot ${cssRole}">${entry.score.toFixed(0)}</div>
+        <div class="dot ${cssRole}">${indiceMostrato(entry).toFixed(0)}</div>
         <div class="pname">${entry.player_name}</div>
         ${estBadge}
       </div>`;
@@ -3524,14 +3534,14 @@ function computeOutfieldLineup(){
     <tr>
       <td data-label="Ruolo">${e.roleLabel}</td>
       <td data-label="Giocatore"><span class="player-link" data-player="${e.player_name}">${e.player_name}</span></td>
-      <td data-label="Indice" class="lb-value">${e.score.toFixed(1)}</td>
+      <td data-label="Indice" class="lb-value">${indiceMostrato(e).toFixed(1)}</td>
       <td data-label="Partite nel ruolo">${e.games}</td>
       <td data-label="Media voto">${e.ratingAve.toFixed(2)}</td>
       <td data-label="Fonte">${e.fallback ? "stima (Indice di Forza generale)" : "dati di ruolo reali"}</td>
       <td class="tel-formazione"><span class="tel-ruolo">${e.roleLabel}</span>`
       + `<span class="tel-chi"><span class="player-link pname" data-player="${e.player_name}">${e.player_name}</span>`
       + `<span class="tel-sotto">${e.games} ${e.games === 1 ? "partita" : "partite"} · media ${e.ratingAve.toFixed(2)}${e.fallback ? " · stima" : ""}</span></span>`
-      + `<span class="tel-valore"><b>${e.score.toFixed(1)}</b></span></td>
+      + `<span class="tel-valore"><b>${indiceMostrato(e).toFixed(1)}</b></span></td>
     </tr>
   `).join("");
 })();

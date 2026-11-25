@@ -423,7 +423,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `test_ruoli.js` | 120 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 26 controlli sulla tecnica (più la regola delle 1–2 partite nella formazione tipo): **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |
 | `test_sicurezza.js` | 6 controlli: **un nome che arriva da fuori non deve diventare codice.** Avvelena i dati della pagina (nomi di avversari, di un club, nomi da pro) con `<img onerror=…>`, apre ogni sezione e verifica che nessun elemento iniettato esista e che il nome si legga come testo. Nato il 27/10/2026, vedi «Sicurezza». |
-| `test_indice.js` | 26 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; i passaggi tentati a partita, in tabella e in ogni scheda; il giocatore di ogni mese (vincitore, punteggio, chi è in testa nel mese in corso e la soglia di presenze), la corsa del mese in corso, le vittorie di ognuno con il numero di titolo su ogni tessera, e l'annuncio in Home con il suo link alla pagina POTM, aprendo la pagina con l'orologio spostato al giorno 1 di due mesi e al giorno 2. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
+| `test_indice.js` | 27 controlli: **l'Indice di Forza e il testa a testa rifatti da zero.** Pesi, scale e regole riscritti dal README, numeri ricalcolati dai dati grezzi, nessuna funzione della pagina usata; poi il confronto con ciò che la pagina stampa: classifica generale (9 combinazioni di finestra e peso), tutte le coppie del testa a testa su tre viste, ogni tabella di «Reparto per reparto»; i passaggi tentati a partita, in tabella e in ogni scheda; il giocatore di ogni mese (vincitore, punteggio, chi è in testa nel mese in corso e la soglia di presenze), la corsa del mese in corso, le vittorie di ognuno con il numero di titolo su ogni tessera, e l'annuncio in Home con il suo link alla pagina POTM, aprendo la pagina con l'orologio spostato al giorno 1 di due mesi e al giorno 2. Nato il 28/10/2026, vedi «Il ricalcolo indipendente». |
 | `test_record.js` | 15 controlli: **record, scalata e resoconto della serata rifatti da zero**, come `test_indice.js`. Ogni riga dei record (valore, chi, quando, chi lo eguaglia, battuto o eguagliato nell'ultima serata), e la stessa riga com'è scritta per il telefono, ogni promozione e retrocessione con la partita che l'ha portata, le frecce nel calendario, il resoconto in home. Poi la home: la serie in corso, dopo ognuna delle partite in archivio e non solo l'ultima; le ultime 20 della Forma e il dettaglio al tocco di ognuna; la serata in corso, anche con l'orologio spostato, così entrambi i casi vengono provati ogni volta. Poi si rilancia su una **simulazione**: la pagina com'era la mattina dopo l'ultima serata in cui è caduto un record, perché il caso «record battuto» non resti mai senza prova. Nato il 28/10/2026, vedi «Record e scalata». |
 | `test_carriera.js` | 9 controlli sulla sezione **Carriera** e sul riquadro nella scheda: i titoli (Totale predefinito), in ogni titolo esattamente chi l'ha giocato, ogni cella contro un ricalcolo (conteggi sommati, media voto pesata sulle partite, % passaggi dai riusciti e dai tentati), ordinamento e inversione, colonne aggiunte e tolte, filtro, e il nome cliccabile esattamente quando la scheda si apre. Nato il 29/10/2026, vedi «Carriera nel club». |
 | `test_traguardi.js` | 5 controlli sui traguardi: gli eroi sono esattamente chi è stato in campo in tutte le partite del traguardo, la decisiva è quella a cui i contatori di EA danno la promozione, nei Record ci sono tutti gli eroi e il risultato della decisiva, e il traguardo non compare da nessun'altra parte (la festa in Home è stata tolta l'08/11/2026). Nato il 07/11/2026. |
@@ -1848,6 +1848,31 @@ centrocampo. Con 10 partite in difesa la scelta poggia comunque su pochi dati.
 Controlli: `test_indice.js` conta dai dati grezzi le partite nel ruolo di ogni posto e le
 confronta con la tabella; `test_tecnica.js` verifica che tutti quelli sotto soglia abbiano lo
 stesso punteggio (sul codice vecchio falliva: 56.7, 32.5, 31.0, 28.6, 15.8 fra i difensori).
+
+**Il numero scritto non è quello che sceglie (25/11/2026).** Il minimo-massimo resta per
+decidere chi va in ogni casella, ma sul campo e in tabella si scrive l'indice nel ruolo sulla
+scala dell'Indice di Forza: stesso calcolo e stesse scale fisse del «Reparto per reparto»
+(`rankGroup`), sulle stesse partite della colonna accanto (`scoreScala`, mostrato da
+`indiceMostrato`). Chi è a stima mostra l'Indice di Forza generale, che sta già su quella scala.
+
+Perché. Peppe ha chiesto come facesse ad avere 100: era il primo dell'attacco in tutte e quattro
+le voci, e il minimo-massimo dà 100 a chi è primo su tutto. Il secondo, eredes, leggeva 55 per
+tre decimi di voto in meno. Il numero si legge come un voto e quella distanza non c'era. Con la
+scala fissa: 59.0 e 50.3.
+
+Perché non il numero del «Reparto per reparto» preso pari pari: quei reparti dividono le partite
+secondo i reparti del club (trequartista ed esterni a parte, serate confermate), la formazione
+secondo la posizione EA di ogni partita. Il 25/11 ilmillejr, trequartista in formazione, nel
+reparto Trequartista non c'era, e Jysmu avrebbe mostrato 119 partite accanto a un indice fatto
+su 18. Trovato anche, misurando: nella formazione il MOTM è una frazione (0.25), le scale lo
+vogliono in percentuale, e passato così valeva quasi zero per tutti; si moltiplica per 100.
+
+Due conseguenze da sapere: dentro un ruolo due numeri vicini possono comparire in ordine
+inverso a quello della scelta (pochi decimi), e il numero non coincide al decimale con quello
+del «Reparto per reparto», per la ragione detta sopra. `test_indice.js` rifà l'indice scritto
+dai dati grezzi, senza funzioni della pagina; visto fallire con il numero di prima e con il MOTM
+lasciato frazione. Togliere dal ruolo chi non è in rosa non lo fa fallire, ed è giusto: oggi ha
+al massimo due partite, cioè peso zero nella media.
 
 ## L'identità dei giocatori è il nome, non l'id
 

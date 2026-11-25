@@ -923,6 +923,8 @@ storia di git, commit `e9f0b6c` per il ripristino. Non va rifatta senza chiederl
 Il 24/11/2026 Peppe ha approvato una correzione puntuale, non una riscrittura: la regola delle
 1–2 partite dei reparti applicata anche ai punteggi della formazione (scala relativa, modulo e
 caselle invariati). Vedi README, «Formazione tipo: un episodio non prende un posto».
+Il 25/11/2026, su richiesta di Peppe («com'è possibile che ho 100?»), il numero scritto sul
+campo è passato alla scala dell'Indice di Forza; la scelta dei giocatori è invariata.
 
 **Premi e Stats divertenti sono stati rimossi il 23/08**, non persi. Erano intrattenimento
 copiato dalle funzioni di proclubstracker, e il progetto ha preso la direzione opposta:
