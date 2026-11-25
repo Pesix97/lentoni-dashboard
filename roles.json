@@ -2402,6 +2402,42 @@
       "quando": "17/11 00:39 VIVA EL FUTBOLE",
       "giocatore": "ilmille",
       "gruppo": "TREQUARTISTA"
+    },
+    {
+      "match_id": "212148017780496",
+      "quando": "24/11 22:39 ac ferno 2",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "211930432430045",
+      "quando": "24/11 22:57 Figgi  Du Zena",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "211886581140465",
+      "quando": "24/11 23:20 Picciotti AC",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "211900630750425",
+      "quando": "24/11 23:39 DaMario",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "211868726320334",
+      "quando": "24/11 23:57 TheMontanaClub",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
+    },
+    {
+      "match_id": "211900753680337",
+      "quando": "25/11 00:19 FC LKDF",
+      "giocatore": "Smilzo_87",
+      "gruppo": "ESTERNI"
     }
   ],
   "_esclusioni_partita": [
@@ -2878,6 +2914,10 @@
     {
       "serata": "2026-11-22T21:51Z",
       "partite": 3
+    },
+    {
+      "serata": "2026-11-24T21:39Z",
+      "partite": 9
     }
   ],
   "_serate_chiuse": [
