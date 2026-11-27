@@ -104,7 +104,11 @@ fi
 
 echo "--- giro delle $(date -u '+%H:%M:%S') UTC ---"
 
-if ! curl -sS --fail --max-time "$ATTESA_FONTE" -H 'User-Agent: Mozilla/5.0' \
+# User-Agent completo di un browser (27/11/2026): dal 26/11 10:51 UTC la fonte risponde 403 a
+# quello corto "Mozilla/5.0" e 200 a questo. Lo stesso valore e' in avversari.py (lo controlla
+# test_pipeline). Se torna il 403 anche con questo, prima prova: un Chrome piu' recente.
+UA_FONTE='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+if ! curl -sS --fail --max-time "$ATTESA_FONTE" -H "User-Agent: $UA_FONTE" \
      "https://proclubstracker.com/api/clubs/${CLUB_ID}?platform=${PIATTAFORMA}" \
      -o /tmp/club.json; then
   # La fonte e' un progetto amatoriale di una persona: il 23/08/2026 il principale sito

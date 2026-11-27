@@ -1993,3 +1993,14 @@ telefono». Cinque controlli nuovi in `test_telefono.js`, visti fallire su dieci
 della «stima» in Formazione solo dopo aver aggiunto la copia della pagina senza difensori.
 Con queste, tutte le voci del menu sono state guardate sul telefono.
 
+## La fonte rifiutava il nostro User-Agent (27/11/2026)
+
+Peppe ha segnalato partite visibili sulla fonte e assenti nell'app «da ieri». Il battito diceva
+`fonte: irraggiungibile`, 113 giri di fila dal 26/11 10:51 UTC; la stessa richiesta da PC dava
+403 con `Mozilla/5.0` e 200 con un User-Agent completo di Chrome. Nel feed c'erano 8 partite di
+playoff non archiviate (26/11 e 27/11). Correzione pubblicata la sera stessa, in orario di
+gioco, con il suo consenso: il ciclo non archiviava comunque niente e la fonte tiene solo le
+ultime 10 partite per tipo. Vedi README, «Irraggiungibile non vuol dire sempre caduta».
+
+Da guardare: per un giorno e mezzo nessuno se n'è accorto prima di Peppe, eppure il battito
+segnava il guasto. Va capito se i controlli programmati hanno avvisato.

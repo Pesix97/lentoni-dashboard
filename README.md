@@ -131,6 +131,16 @@ Perché è urgente e non cosmetico: EA espone solo le ultime 10 partite. Se la f
 giù per una notte di gioco e nessuno se ne accorge, quelle partite escono dalla finestra e
 sono perse per sempre.
 
+**«Irraggiungibile» non vuol dire sempre «caduta» (27/11/2026).** Dal 26/11 alle 10:51 UTC la
+fonte rispondeva **403 Forbidden** al nostro User-Agent corto (`Mozilla/5.0`) e 200 a quello
+completo di un Chrome: il sito era su, rifiutava noi. Per il battito un 403 e un sito spento
+sono la stessa cosa, perché `curl --fail` li tratta uguali, e il ciclo ha registrato 113 giri
+falliti di fila in un giorno e mezzo, con le partite di playoff del 26/11 e del 27/11
+visibili sul sito e assenti in archivio. Da allora `giro.sh` e `avversari.py` mandano lo
+stesso User-Agent completo (`UA_FONTE`), e `TestUserAgentFonte` controlla che sia uguale nei
+due file. Davanti a un «irraggiungibile» che dura, la prima prova è la stessa richiesta da un
+PC con `-w "%{http_code}"`: 403 è un rifiuto, un timeout o un 5xx è un guasto del sito.
+
 **Chi legge il battito, e quando.** Due attività programmate **online**, che girano nel cloud e non
 hanno bisogno del PC (dal 14/10/2026 le versioni locali dell'app sono state cancellate; sono
 visibili e modificabili da `list_triggers`). **Notificano con una push sul telefono solo quando
@@ -418,7 +428,7 @@ riuscito per coprire una finestra ampia, anche quando GitHub ne salta tre di fil
 | `pagellone_fc26.json` | Il pagellone di fine stagione FC26, scritto a mano il 15/09/2026 e **congelato**: non viene ricalcolato a ogni giro, resta agganciato solo al titolo "FC 26" (vedi `README.md` più sotto). |
 | `traguardi.json` | I traguardi storici del club, scritti a mano e **congelati** come il pagellone: per ognuno le partite che l'hanno portato, la decisiva e gli eroi. La prima voce è la Divisione 1 del 07/11/2026. Vedi «Traguardi storici». |
 | `affidabilita.py` | Misura quali metriche si confermano nel tempo. Serve a decidere i pesi dell'Indice di Forza con i dati invece che a intuito. Con `--completa` misura tutte le voci, anche i pezzi della tecnica, con la divisione pari/dispari e un intervallo al 90% (ultimi risultati in `APPUNTI.md`, punto 5). |
-| `test_pipeline.py` | 144 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli, i dati dell'avversario scritti per le partite nuove e recuperati dal grezzo per quelle già archiviate, le icone citate da pagine e manifest che esistono davvero. |
+| `test_pipeline.py` | 145 test: ingest, duplicati, isolamento tra titoli, passaggio di titolo, qualità dei dati, modello, memoria del battito con interruzioni, esecuzioni e avvii, coerenza fra durata del ciclo e cadenza dei cron, minuti di partenza non affollati, controllo di apertura sulle pagine d'archivio, potatura del grezzo, numeri dichiarati nei testi, pagellone di fine stagione (struttura e aggancio al titolo), un nome con `</script>` che non deve chiudere il blocco dei dati, la Content-Security-Policy che ammette esattamente gli script della pagina, la carriera presa dalla lettura con più partite e messa insieme fra i titoli, i dati dell'avversario scritti per le partite nuove e recuperati dal grezzo per quelle già archiviate, le icone citate da pagine e manifest che esistono davvero. |
 | `test_apertura.js` | 17 controlli che **aprono davvero** `index.html` in un motore HTML (jsdom): il JavaScript gira senza errori, il menu ha voci, le tabelle hanno righe, le sezioni non sono tutte visibili insieme, e i comandi **rispondono al clic** invece di limitarsi a esistere. Nato il 29/08/2026, dopo che una dashboard inutilizzabile era finita online con tutti gli altri test verdi. |
 | `test_ruoli.js` | 120 controlli su ruoli, pesi dell’indice, testa a testa, novità dell’ultima serata, scheda giocatore e collegamenti interni, eseguiti sulla pagina generata. |
 | `test_tecnica.js` | 26 controlli sulla tecnica (più la regola delle 1–2 partite nella formazione tipo): **il riquadro Tecnica deve spiegare il numero della colonna, non un altro.** Le righe devono sommare alla colonna (ogni giocatore × 3 finestre × 5 pesi), il valore scritto in ogni riga deve essere quello che produce i punti a fianco, ogni riquadro della generale deve avere il totale della sua colonna. Poi i gol subiti dei difensori (pesi, verso della scala, valore di carriera contro le righe grezze) e il testa a testa, i cui pezzi devono tornare con i riquadri stampati. Nato il 31/08/2026, quando la colonna diceva 68 e il riquadro aperto sulla stessa riga diceva 71. |

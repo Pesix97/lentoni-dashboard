@@ -23,6 +23,8 @@ import urllib.request
 from datetime import datetime, timezone
 
 URL = "https://proclubstracker.com/api/clubs/{club_id}?platform={piattaforma}"
+# Lo stesso di giro.sh: la fonte rifiuta (403) il "Mozilla/5.0" corto dal 26/11/2026.
+UA_FONTE = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 GIORNI_VALIDITA = 14      # oltre questa eta' il dato viene riscaricato
 PAUSA_TRA_CHIAMATE = 1.5  # secondi: nessuna fretta, l'endpoint e' gratuito e non nostro
 
@@ -51,7 +53,7 @@ def intero(v, default=None):
 def scarica(club_id, piattaforma, timeout=30):
     req = urllib.request.Request(
         URL.format(club_id=club_id, piattaforma=piattaforma),
-        headers={"User-Agent": "Mozilla/5.0"},
+        headers={"User-Agent": UA_FONTE},
     )
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8"))

@@ -2749,5 +2749,23 @@ class TestCapitano(unittest.TestCase):
         self.assertNotIn("title=", brand.split(">")[0])
 
 
+class TestUserAgentFonte(unittest.TestCase):
+    """Dal 26/11/2026 la fonte risponde 403 al User-Agent corto "Mozilla/5.0" (113 giri falliti
+    prima di accorgersene). giro.sh e avversari.py devono mandare lo stesso valore, completo."""
+
+    def test_stesso_user_agent_completo(self):
+        import re
+        base = QUI
+        giro = (base / "giro.sh").read_text(encoding="utf-8")
+        avv = (base / "avversari.py").read_text(encoding="utf-8")
+        ua_giro = re.search(r"^UA_FONTE='([^']+)'", giro, re.M)
+        ua_avv = re.search(r'^UA_FONTE = "([^"]+)"', avv, re.M)
+        self.assertTrue(ua_giro and ua_avv, "UA_FONTE non trovato")
+        self.assertEqual(ua_giro.group(1), ua_avv.group(1))
+        self.assertIn("Chrome/", ua_giro.group(1))
+        self.assertNotIn("User-Agent: Mozilla/5.0'", giro)
+        self.assertIn('"User-Agent: $UA_FONTE"', giro)
+        self.assertIn('"User-Agent": UA_FONTE', avv)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
